@@ -16,6 +16,8 @@ import type { ImposedLayersRecord } from "../imposed-layers.ts";
 import type {
 	ArtifactKind,
 	AttemptCounters,
+	ContestationFacts,
+	ContestationFinding,
 	FrozenProtocol,
 	GateDecisionState,
 	InterventionCost,
@@ -115,6 +117,8 @@ export type ChangeEvent =
 			control_version: string;
 			requirement_ids: string[];
 			subject_digest: string;
+			/** Absent from evidence recorded before results carried the identity of their protocol. */
+			protocol_id?: string;
 			protocol_revision: number;
 			environment_digest: string;
 			verdict: Verdict;
@@ -133,6 +137,14 @@ export type ChangeEvent =
 			blocking_findings: number;
 	  })
 	| (Base & { type: "review.invalidated"; review_id: string; reason: string })
+	| (Base & { type: "contestation.filed"; contestation: ContestationFacts })
+	| (Base & {
+			type: "contestation.concluded";
+			contestation_id: string;
+			finding: ContestationFinding;
+			examiner_id: string;
+			reasons: string;
+	  })
 	| (Base & {
 			type: "decision.requested";
 			decision_id: string;

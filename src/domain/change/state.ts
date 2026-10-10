@@ -14,6 +14,7 @@ import type {
 	InterventionRole,
 } from "../../contracts/v1/common.ts";
 import type { AnsweredQuestion, Obligation } from "../../contracts/v1/protocol.ts";
+import type { ContestationFindingReport } from "../../contracts/v1/reports.ts";
 import type { ModelLocation } from "../policy.ts";
 
 export type ArtifactKind =
@@ -140,6 +141,8 @@ export interface EvidenceEntry {
 	control_version: string;
 	requirement_ids: string[];
 	subject_digest: string;
+	/** Absent from evidence recorded before results carried the identity of their protocol. */
+	protocol_id?: string;
 	protocol_revision: number;
 	environment_digest: string;
 	verdict: Verdict;
@@ -161,6 +164,44 @@ export interface ReviewEntry {
 	blocking_findings: number;
 	valid: boolean;
 	recorded_at: string;
+}
+
+/**
+ * What the producer contests of a frozen case: the requirement and the case, the protocol and the
+ * candidate it met the case under, what the case asserts against what the change adopted, and the
+ * kernel's own run of the frozen control in which the case failed. A contestation is a signal: it
+ * grants no right on the protected paths and changes nothing the protocol judges.
+ */
+export interface ContestationFacts {
+	contestation_id: string;
+	/** The producer intervention whose report raised it. */
+	intervention_id: string;
+	requirement_id: string;
+	/** The frozen case, as the reader of its control names it. */
+	case_name: string;
+	protocol: { protocol_id: string; revision: number };
+	candidate_digest: string;
+	/** What the case asserts, against what the adopted requirement or human answer says. */
+	observation: string;
+	/** The evidence of the frozen control, run by the kernel on the candidate, in which the case failed. */
+	reproduction: { control_id: string; evidence_id: string };
+}
+
+/**
+ * What the examination of a contestation found: the case contradicts nothing the change adopted, so the
+ * code is to be corrected; the case contradicts the requirement as adopted, so the preparation is to be
+ * written again; or the case holds the requirement and the requirement is what changes, which is the
+ * owner's to decide.
+ */
+export type ContestationFinding = ContestationFindingReport["finding"];
+
+export interface ContestationEntry extends ContestationFacts {
+	filed_at: string;
+	/** Null while the contestation is examined. */
+	finding: ContestationFinding | null;
+	examiner_id: string | null;
+	reasons: string | null;
+	concluded_at: string | null;
 }
 
 /** What a gate decision names as the next step of the change. */
@@ -308,6 +349,8 @@ export interface ChangeState {
 	candidate_history: string[];
 	evidence: EvidenceEntry[];
 	reviews: ReviewEntry[];
+	/** Absent from a dossier written before contestations were recorded, which holds none. */
+	contestations?: ContestationEntry[];
 	pending_decisions: PendingDecision[];
 	human_decisions: HumanDecisionEntry[];
 	operation: OperationState | null;
@@ -319,6 +362,19 @@ export interface ChangeState {
 	integration_authorization_id: string | null;
 	last_actor: ActorRef | null;
 	feedback: { attempt_id: string; digest: string; bytes: number }[];
+}
+
+/**
+ * Whether a result ran under the frozen protocol: the same protocol, at the same revision. A result recorded
+ * before it carried the identity of its protocol is judged by its revision alone, as it was when recorded.
+ */
+export function ranUnderProtocol(
+	e: { protocol_id?: string; protocol_revision: number },
+	frozen: Pick<ProtocolRef, "protocol_id" | "revision">,
+): boolean {
+	return (
+		(e.protocol_id === undefined || e.protocol_id === frozen.protocol_id) && e.protocol_revision === frozen.revision
+	);
 }
 
 /** Whether the change delivers the state of the project; a dossier written before the field delivers a candidate. */

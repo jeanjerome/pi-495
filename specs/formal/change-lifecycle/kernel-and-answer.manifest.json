@@ -2,7 +2,7 @@
   "model": "assumptions/KernelAndAnswer.tla",
   "config": "assumptions/KernelAndAnswer.cfg",
   "files": {
-    "ChangeLifecycle.tla": "sha256:1d9b5cd10424625a1dfdd9fe3dcea05c1527d313a49976ee415d2781d308827d",
+    "ChangeLifecycle.tla": "sha256:219847eca9cd86cae53c3138169ff75c75150f1d2093c60b0c74ce88a8cf6fcc",
     "assumptions/KernelAndAnswer.tla": "sha256:c4edab344308047cb90c6402115fa98ac16fb0581d81c9e2d3802a76c85d69b4",
     "assumptions/KernelAndAnswer.cfg": "sha256:e696e5aeca99e114e391490e2d42a3e5bed2dd987ca61941e9027ec94f96dead"
   },

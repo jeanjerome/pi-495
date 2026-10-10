@@ -26,6 +26,7 @@ import type { PreparationRecord, ReferenceSuiteObservation } from "../preparatio
 import type { DetectedTechnology } from "../stacks/stack.ts";
 import { failedInstalls, recordFailedInstall, recordResolution } from "./install-records.ts";
 import { settleArchitectureMap } from "./architecture-map.ts";
+import { foundWrongNotes } from "./contestation.ts";
 import { settleQualityReferential } from "./quality-referential.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
 import { reviseRequirements } from "./requirements-revision.ts";
@@ -150,11 +151,12 @@ async function openPreparation(
 			detection.recommendations,
 			adoptable,
 		);
-	const objective = preparationMandateObjective(
-		detection.stack,
-		detection.preparation_paths,
-		diagnosis.undiscriminated_requirements,
-	);
+	// A case an examination found wrong is still frozen until this preparation replaces it: it is named, so
+	// that the preparation does not carry it over as it stands.
+	const objective = [
+		preparationMandateObjective(detection.stack, detection.preparation_paths, diagnosis.undiscriminated_requirements),
+		...(await foundWrongNotes(ctx, unit)),
+	].join("\n");
 	const mandate = {
 		objective,
 		allowed_paths: detection.preparation_paths,

@@ -9,6 +9,7 @@ import { KERNEL_ACTOR } from "../actors.ts";
 import type { PreparedWorkspace } from "../artifacts.ts";
 import { implementObjective, resumeNote } from "../context.ts";
 import { mirrorsProductionResource } from "../target.ts";
+import { keepProducerContestations } from "./contestation.ts";
 import { requestBudgetExtensionIfExhausted, type PhaseContext, type Unit } from "./phase.ts";
 
 export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
@@ -155,6 +156,8 @@ export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Pro
 		complements,
 	);
 	const producerReport = r.output_valid ? (r.output as ProducerReport) : null;
+	// What the producer contested of the frozen tests is examined once the controls have run on the candidate.
+	await keepProducerContestations(ctx, unit.state.change_id, r.intervention_id, producerReport);
 	const truncatedNote =
 		r.result === "truncated"
 			? [

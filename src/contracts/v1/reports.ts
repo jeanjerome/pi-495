@@ -13,6 +13,24 @@ export const ProducerReport = Type.Object(
 		changed_paths: Type.Array(Type.String()),
 		tests_claimed: Type.Boolean({ description: "the producer claims it ran tests; the kernel never trusts this" }),
 		notes: Type.Array(Type.String()),
+		contestations: Type.Optional(
+			Type.Array(
+				Type.Object(
+					{
+						requirement_id: Type.String(),
+						case: Type.String({ description: "the name of the frozen test case, as its runner reports it" }),
+						observation: Type.String({
+							description: "what the case asserts, against what the requirement or the owner's answer says",
+						}),
+					},
+					{ additionalProperties: false },
+				),
+				{
+					description:
+						"the frozen test cases the producer finds in contradiction with the adopted requirements; a signal the kernel examines, never a permission to change the test",
+				},
+			),
+		),
 	},
 	{ $id: "urn:495:contract:producer-report:1", additionalProperties: false },
 );
@@ -39,6 +57,22 @@ export const ReviewReport = Type.Object(
 	{ $id: "urn:495:contract:review-report:1", additionalProperties: false },
 );
 export type ReviewReport = Static<typeof ReviewReport>;
+
+/**
+ * What the examination of a contestation can find: the case contradicts nothing the change adopted;
+ * the case asserts something the requirement does not say; or the case holds the requirement as
+ * adopted and what the producer objects to is the requirement itself.
+ */
+export const CONTESTATION_FINDINGS = ["unfounded", "test_correction", "requirement_change"] as const;
+
+export const ContestationFindingReport = Type.Object(
+	{
+		finding: Closed(CONTESTATION_FINDINGS),
+		reasons: Type.String({ minLength: 1 }),
+	},
+	{ $id: "urn:495:contract:contestation-finding:1", additionalProperties: false },
+);
+export type ContestationFindingReport = Static<typeof ContestationFindingReport>;
 
 export const ObservationReport = Type.Object(
 	{
@@ -119,6 +153,7 @@ export type SpecificationReport = Static<typeof SpecificationReport>;
 export const OUTPUT_SCHEMAS = {
 	"producer-report": ProducerReport,
 	"review-report": ReviewReport,
+	"contestation-finding": ContestationFindingReport,
 	"observation-report": ObservationReport,
 	"specification-report": SpecificationReport,
 	"architecture-map": ArchitectureMap,

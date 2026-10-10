@@ -2494,3 +2494,65 @@ bugs:
       on the reference, or name in the stagnation decision the protected case the mutation run reports failing; with its
       own test where a prepared case reads the source of the module under test.
     status: open
+  - bug_id: BUG-2026-10-10T090000
+    date: "2026-10-10"
+    title: "The kernel records the finding of a contestation's examination under any examiner_id, without checking that it names a review intervention distinct from the producer"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      `contestation.conclude` (`contestationConclude`, `src/domain/change/decide.ts`) requires the kernel's authority
+      and an open filed contestation, then records `examiner_id` as given. It does not check that the identifier names
+      an intervention of the change, that its role is `review`, nor that it differs from the producer intervention that
+      filed the contestation. Introduced by the branch of the story e38s07, which adds the command. The application
+      always passes the read-only review intervention it has just run (`examine`, `src/application/phases/contestation.ts`),
+      so no path of the extension reaches the gap today.
+    what_expected: >
+      The ledger cannot hold a finding attributed to the producer it judges, or to no intervention at all: the kernel
+      refuses a conclusion whose examiner is not a review intervention of the change distinct from the contestation's
+      producer.
+    steps_to_reproduce:
+      - "At the kernel, file a contestation, then run `contestation.conclude` under the kernel's authority with `examiner_id` set to the producer's intervention, or to an identifier no intervention carries: the finding is recorded."
+    root_cause: >
+      The examiner's identity is an argument of the command the kernel trusts, while the filing checks the producer's
+      role against the interventions of the change.
+    evidence: >
+      Reported by the review of e38s07 (round 1) and read on the branch: `contestationConclude` reads `examiner_id` only
+      to emit it.
+    risk_level: low
+    follow_ups: >
+      Check in `contestationConclude` that `examiner_id` names a `review` intervention of the change other than the
+      contestation's producer, with its own refusal test at the kernel.
+    status: open
+  - bug_id: BUG-2026-10-10T120000
+    date: "2026-10-10"
+    title: "The kernel files and examines a contestation of a case the frozen protocol does not carry, citing as its reproduction a failing run in which that case never ran"
+    severity: medium
+    priority: p2
+    scope: domain
+    what_happened: >
+      `contestationIssues` (`src/domain/change/contestation.ts`) counts a contestation as reproduced when the cited run
+      of the frozen control is valid, failing, on the frozen candidate and under the frozen protocol, and when the
+      contested case is not among its `passed_cases`. It does not check that the case is one of the cases the protocol
+      froze for the requirement, nor that the run observed it failing. In the acceptance run of e38s07 (campaign
+      fondee-tete), the producer contested "R1 shout keeps the comma", a case no frozen suite carries; the kernel filed
+      it with the failing run of "R1 shout upper-cases the greeting" as its reproduction, had it examined, and the
+      (scripted) finding was copied into the mandate of the revised preparation. Introduced by the branch of the story
+      e38s07.
+    what_expected: >
+      A contestation is filed only on a case the frozen protocol carries for the named requirement, with a run of the
+      kernel that observed that very case failing on the frozen candidate; any other is refused and examined no further.
+    steps_to_reproduce:
+      - "Freeze a protocol whose obligation for R1 lists one case, let the frozen control fail on the candidate, and have the producer contest under R1 a case name the suite does not contain: the contestation is filed and examined."
+    root_cause: >
+      The evidence keeps only the names of the cases that passed, so the check reads the absence of the case from them
+      as its failure.
+    evidence: >
+      Acceptance run of e38s07, dossier e38s07-fondee-tete: contestation ctt_mv1l7o5md4374ab264 on "R1 shout keeps the
+      comma" concluded test_correction, while obligation R1 of prt_mv1l7nvy98f84404c2 lists only "R1 shout upper-cases
+      the greeting".
+    risk_level: medium
+    follow_ups: >
+      Refuse in `contestationIssues` a case absent from the frozen obligation's cases, and record the failing cases of a
+      run so that the reproduction names a case observed failing; with a refusal test at v0.
+    status: open

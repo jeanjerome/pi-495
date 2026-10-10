@@ -1,5 +1,11 @@
 import type { CandidateRef, Verdict } from "../../contracts/v1/common.ts";
-import type { ChangeState, NextAction, EvidenceEntry, FrozenProtocol } from "../change/state.ts";
+import {
+	ranUnderProtocol,
+	type ChangeState,
+	type NextAction,
+	type EvidenceEntry,
+	type FrozenProtocol,
+} from "../change/state.ts";
 import type { ActivePolicy } from "../policy.ts";
 
 export interface G5Result {
@@ -36,7 +42,7 @@ export function evaluateG5(
 		const why = e.valid
 			? e.subject_digest !== candidate.manifest_digest
 				? "other candidate"
-				: e.protocol_revision !== protocol.ref.revision
+				: !ranUnderProtocol(e, protocol.ref)
 					? "other protocol revision"
 					: state.environment_digest && e.environment_digest !== state.environment_digest
 						? "other environment"

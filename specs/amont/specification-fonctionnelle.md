@@ -485,7 +485,7 @@ L'adaptateur générique de commandes fait partie du socle P0. Les intégrations
 | --- | --- |
 | RM-011 | Toute exigence obligatoire possède un critère observable et au moins un oracle ou une décision humaine assignée. |
 | RM-012 | Le protocole est adopté avant la production qu'il juge, sauf mandat explicite de préparation d'un contrôle. |
-| RM-013 | L'agent producteur ne peut modifier la révision gelée du protocole utilisée pour sa tentative. |
+| RM-013 | L'agent producteur ne peut modifier la révision gelée du protocole utilisée pour sa tentative. Il peut contester un cas gelé que son exécution contredit ; la contestation, examinée à part du producteur, n'ouvre aucun droit d'écriture : un cas jugé faux fait réécrire la préparation, qualifier et geler un nouveau protocole, un cas qui exprime l'exigence adoptée met l'exigence en question devant le propriétaire (IH-04), une contestation infondée laisse le code à corriger. Un cas que le propriétaire a gardé n'est réécrit que sur sa nouvelle réponse, quel que soit le protocole gelé depuis : l'examen d'une nouvelle contestation reçoit la réponse « garder », un constat qui juge ce cas faux lui est reposé (IH-04) avant toute révision de la préparation pour un autre cas, et la préparation écrite de nouveau ne reçoit pas ce cas parmi les cas à réécrire. |
 | RM-014 | Un contrôle nouvellement créé est qualifié indépendamment avant de contribuer à G2. |
 | RM-015 | La qualification d'un contrôle et la conformité de l'application sont deux verdicts distincts. |
 | RM-016 | Un code de sortie ne signifie que ce que le contrat du contrôle lui attribue. |
@@ -625,7 +625,7 @@ Les budgets de préparation sont distincts des tentatives d'implémentation mais
 | IH-01 | Clarification métier | Ambiguïté matérielle | Question, contexte, impact sur le résultat | Choix proposé, texte libre, abandon |
 | IH-02 | Adoption du mandat | G0 prête | Objectif, périmètre, hors-périmètre, hypothèses | Adopter, demander révision, abandonner |
 | IH-03 | Adoption de trajectoire | Programme ou révision | Incréments, dépendances, jalons, budgets | Adopter, réordonner, réviser |
-| IH-04 | Arbitrage de vérifiabilité | Oracle insuffisant | Obligation, lacune, options et risque | Préparer, assigner une revue humaine, réviser l'exigence |
+| IH-04 | Arbitrage de vérifiabilité | Oracle insuffisant, ou cas gelé contesté que l'examen rattache à l'exigence elle-même, ou cas gardé par le propriétaire que l'examen juge faux | Obligation, lacune, options et risque ; pour un cas contesté, le cas, l'objection et le constat de l'examen, et la réponse « garder » déjà donnée sur ce cas | Préparer, assigner une revue humaine, réviser l'exigence ; pour un cas contesté, réviser l'exigence ou la garder |
 | IH-05 | Choix de conception | Alternatives non équivalentes | Options, impacts, risques, recommandation | Choisir, demander analyse, suspendre |
 | IH-06 | Autorisation de permission | Droit supplémentaire nécessaire | Opération, portée, durée, données exposées | Autoriser une fois, autoriser la portée, refuser |
 | IH-07 | Augmentation de budget | Limite atteinte ou anticipée | Consommation, progrès, montant demandé | Étendre, arrêter, changer la stratégie |

@@ -2,7 +2,7 @@
   "model": "mutants/ForgedAcceptance.tla",
   "config": "mutants/ForgedAcceptance.cfg",
   "files": {
-    "ChangeLifecycle.tla": "sha256:1d9b5cd10424625a1dfdd9fe3dcea05c1527d313a49976ee415d2781d308827d",
+    "ChangeLifecycle.tla": "sha256:219847eca9cd86cae53c3138169ff75c75150f1d2093c60b0c74ce88a8cf6fcc",
     "mutants/ForgedAcceptance.tla": "sha256:4afb0baa455cdec0416c75d1778dbcb733be7f642aac049bbbd491dc42fc6eaf",
     "mutants/ForgedAcceptance.cfg": "sha256:346f4ed49cb237e6c6ef5f986b28ac07cbd4457b50157ec86573f0d6c31e2339"
   },

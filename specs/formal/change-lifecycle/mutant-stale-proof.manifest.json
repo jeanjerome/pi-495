@@ -2,7 +2,7 @@
   "model": "mutants/StaleProof.tla",
   "config": "mutants/StaleProof.cfg",
   "files": {
-    "ChangeLifecycle.tla": "sha256:1d9b5cd10424625a1dfdd9fe3dcea05c1527d313a49976ee415d2781d308827d",
+    "ChangeLifecycle.tla": "sha256:219847eca9cd86cae53c3138169ff75c75150f1d2093c60b0c74ce88a8cf6fcc",
     "mutants/StaleProof.tla": "sha256:8a1d134df78ffe7ee7fd76010295e2bc0a364af7338091f30e738efc20f29a3b",
     "mutants/StaleProof.cfg": "sha256:559ff6d5895a26d6c846ffbb3fdc1909b1c1c4e931698381c3d30399f00cd076"
   },

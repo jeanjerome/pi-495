@@ -2,7 +2,7 @@
   "model": "assumptions/KernelAndResume.tla",
   "config": "assumptions/KernelAndResume.cfg",
   "files": {
-    "ChangeLifecycle.tla": "sha256:1d9b5cd10424625a1dfdd9fe3dcea05c1527d313a49976ee415d2781d308827d",
+    "ChangeLifecycle.tla": "sha256:219847eca9cd86cae53c3138169ff75c75150f1d2093c60b0c74ce88a8cf6fcc",
     "assumptions/KernelAndResume.tla": "sha256:ba953b7722402d81118228052fc329f7d2a1eb075d7c17974e779aa20617860b",
     "assumptions/KernelAndResume.cfg": "sha256:fed0922e5ece714158ffcac53f7b7460d2011efe83c5888558504c188e34acad"
   },

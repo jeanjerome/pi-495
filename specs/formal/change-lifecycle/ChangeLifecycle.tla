@@ -217,6 +217,16 @@ ReviseProtocol ==
     /\ decisions' = Revoked(decisions)
     /\ UNCHANGED <<humanPolicy, saved, interruptions, attempt, open, cand, runs, outcome, retained>>
 
+\* G5 refused the candidate, the producer contested a frozen case of it, and an examination distinct from the
+\* producer found the test wrong: the preparation that froze the case is revised, with the effects of a protocol
+\* revision. A contestation found unfounded changes nothing the model represents, and the correction that follows
+\* is Correct.
+Contest ==
+    /\ phase = "deciding"
+    /\ status = "ready"
+    /\ g5 = "FAIL"
+    /\ ReviseProtocol
+
 \* The revised protocol is frozen (G2) and the design adopted again (G3): implementation resumes.
 Requalify ==
     /\ phase = "qualification"
@@ -254,13 +264,14 @@ Next ==
     \/ ExhaustOnStart
     \/ Freeze
     \/ ReviseProtocol
+    \/ Contest
     \/ Requalify
     \/ Pause
     \/ Resume
 
 \* What the controls and the kernel are assumed to do: every control launched eventually answers, and the
 \* kernel takes every step that stays enabled. Nothing is assumed of a human: an interruption, a revision, a
-\* resume or an answer may never come.
+\* contestation, a resume or an answer may never come.
 KernelAndControlsProceed ==
     /\ WF_vars(\E k \in Controls : Launch(k))
     /\ WF_vars(\E r \in Runs, v \in Verdicts : Deliver(r, v))

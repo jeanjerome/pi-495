@@ -23,7 +23,12 @@ import type {
 	ControlDefinition,
 } from "../contracts/v1/protocol.ts";
 import type { OutputSchemaId } from "../contracts/v1/reports.ts";
-import { type ChangeState, type Deliverable, isQuestionClosed } from "../domain/change/state.ts";
+import {
+	type ChangeState,
+	type ContestationFacts,
+	type Deliverable,
+	isQuestionClosed,
+} from "../domain/change/state.ts";
 import type { ImposedLayer } from "../domain/imposed-layers.ts";
 import type { ContextManifest, ContextSkill } from "../ports/execution.ts";
 import { runsNothing } from "./stacks/stack.ts";
@@ -67,6 +72,11 @@ export const OUTPUT_SCHEMA_EXAMPLES: Record<string, unknown> = {
 		changed_paths: ["src/…"],
 		tests_claimed: false,
 		notes: ["what is left undone, or nothing"],
+		contestations: [],
+	},
+	"contestation-finding": {
+		finding: "unfounded",
+		reasons: "what the case asserts, what the requirement and the owner's answers say, and why they agree or not",
 	},
 	"review-report": {
 		conclusion: "approve",
@@ -234,10 +244,15 @@ function outputSchemaFor(role: InterventionRole): OutputSchemaId {
 	}
 }
 
+/** What an intervention that examines a contested frozen case is told it is. */
+const CONTESTATION_EXAMINATION_INSTRUCTION =
+	'You examine a frozen test case the producer contests; you are not the producer and you change nothing. Read the case in the workspace, the requirement it verifies and the answers of the owner the requirements carry. Answer "unfounded" when the case asserts what the requirement says: the code is what must change. Answer "test_correction" when the case asserts something the requirement does not say: the test is what must be prepared again. Answer "requirement_change" when the case asserts the requirement as adopted and the objection is to the requirement itself: the owner decides. Your finding is an observation the kernel acts on, never a permission: it changes no test and accepts nothing.';
+
 /** What an intervention answering with one of these structured outputs is told it is, whatever its role. */
 const SCHEMA_INSTRUCTIONS: Partial<Record<OutputSchemaId, string>> = {
 	"architecture-map": ARCHITECTURE_MAP_INSTRUCTION,
 	"architecture-recommendation": ARCHITECTURE_RECOMMENDATION_INSTRUCTION,
+	"contestation-finding": CONTESTATION_EXAMINATION_INSTRUCTION,
 };
 
 /** What the intervention is told it is: what it answers with, else its role. */
@@ -250,7 +265,7 @@ function instructionOfRole(role: InterventionRole): string {
 	return role === "review"
 		? "You are a reviewer: you must not modify any file. Report localized findings with expected and observed behaviour."
 		: role === "implement"
-			? "You are the producer: implement the objective in the workspace. Never modify test files, control definitions or protocol files marked protected; a protected change fails the candidate."
+			? 'You are the producer: implement the objective in the workspace. Never modify test files, control definitions or protocol files marked protected; a protected change fails the candidate. When a protected test case contradicts the adopted requirements or an answer of the owner, leave it as it is and name it in "contestations", each with the requirement id, the exact name of the case and what contradicts what: the kernel has it examined apart, and the test stands until then.'
 			: role === "prepare"
 				? "You are preparing verification means (tests, fixtures, configuration). You cannot adopt your own proposal."
 				: role === "specify"
@@ -446,6 +461,19 @@ export function preparationObjective(mandateObjective: string, requirementIds: r
 /** What the producer is asked: the adopted mandate, or the design alone when no mandate is held. */
 export function implementObjective(mandateObjective: string | null): string {
 	return mandateObjective ?? "implement the adopted design";
+}
+
+/**
+ * What the examiner of a contested case is asked: the case, the requirement it verifies, the producer's objection,
+ * and whether the owner already kept that case.
+ */
+export function contestationObjective(
+	contestation: ContestationFacts,
+	statement: string | null,
+	kept: boolean,
+): string {
+	const owner = kept ? `. On this case the owner answered "keep" to IH-04: it stands as the owner kept it.` : "";
+	return `Examine the frozen case "${contestation.case_name}" of requirement ${contestation.requirement_id}${statement ? ` (${statement})` : ""}, which failed in control ${contestation.reproduction.control_id} on the candidate. The producer contests it: ${contestation.observation}${owner}`;
 }
 
 /** What a reviewer is asked, and on which paths. */

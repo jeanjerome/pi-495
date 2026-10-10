@@ -96,6 +96,9 @@ export const ACTION_MAPPING = {
 	ExhaustOnStart: { commands: ["intervention.start"], adverse: false },
 	Freeze: { commands: ["candidate.freeze"], adverse: false },
 	ReviseProtocol: { commands: ["artifact.revise"], adverse: false },
+	// The producer's contestation filed, the examination's finding that the test is wrong, then the preparation
+	// revised; the examination intervention is an internal step.
+	Contest: { commands: ["contestation.file", "contestation.conclude", "artifact.revise"], adverse: false },
 	Requalify: { commands: ["gate.evaluate"], adverse: false },
 	Pause: { commands: ["change.pause"], adverse: false },
 	Resume: { commands: ["change.resume"], adverse: false },
@@ -254,13 +257,28 @@ const MODEL_PHASES: readonly string[] = ["qualification", "implementation", "ver
 const MODEL_STATUSES: readonly string[] = ["ready", "paused", "decision_required", "blocked"];
 const CONTROL_OF: Record<string, Control> = { unit: "k1", lint: "k2" };
 
+/**
+ * Whether a result ran under the frozen protocol: its identity and its revision. A result recorded without
+ * the identity of its protocol is read by its revision alone, as a dossier written before it travelled is.
+ */
+export function ranUnder(
+	e: { protocol_id?: string; protocol_revision: number },
+	frozen: { protocol_id: string; revision: number } | undefined,
+): boolean {
+	return (
+		frozen !== undefined &&
+		(e.protocol_id === undefined || e.protocol_id === frozen.protocol_id) &&
+		e.protocol_revision === frozen.revision
+	);
+}
+
 /** What the model observes, read off the kernel's public state. */
 export function observeKernel(state: ChangeState): Observation {
 	const status = state.status === "running" || state.status === "completed" ? "ready" : state.status;
 	const digest = state.candidate?.manifest_digest;
-	const revision = state.protocol?.ref.revision;
+	const frozen = state.protocol?.ref;
 	const evidence = state.evidence
-		.filter((e) => e.valid && e.subject_digest === digest && e.protocol_revision === revision)
+		.filter((e) => e.valid && e.subject_digest === digest && ranUnder(e, frozen))
 		.map((e) => `${CONTROL_OF[e.control_id] ?? e.control_id}:${e.verdict}`)
 		.sort();
 	return {

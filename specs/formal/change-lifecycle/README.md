@@ -17,9 +17,10 @@ ses bornes, jamais sur le code qu'il décrit.
 | Interruption et reprise | `Pause` garde le statut au point de reprise, `Resume` le rétablit ; au plus `MaxInterruptions` |
 | Politique | `humanPolicy`, choisie à l'état initial : G5 exige ou non une acceptation humaine (IH-10) |
 | Décision humaine | seule l'action `HumanAnswer` enregistre une réponse humaine ; aucune autre sortie n'en tient lieu |
+| Contestation | `Contest` : G5 a refusé le candidat, le producteur conteste un cas gelé et un examen distinct de lui juge le test faux ; la préparation est révisée, avec les effets d'une révision du protocole. Une contestation jugée infondée ne change rien de ce que le modèle représente, et la correction qui suit est `Correct` |
 
 Le modèle commence au candidat de la première tentative, gelé sous la première révision : G0 à G4 le
-précèdent. Une révision ramène à `qualification`, puis `Requalify` abstrait G2 et G3.
+précèdent. Une révision, ou une contestation fondée, ramène à `qualification`, puis `Requalify` abstrait G2 et G3.
 
 Les propriétés jugent ce sur quoi un contrôle a réellement tourné (`ran`), qu'aucune transition ne lit. Les
 transitions proposent de préserver une règle ; les propriétés disent ce qui doit l'être.

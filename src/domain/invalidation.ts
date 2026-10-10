@@ -67,6 +67,17 @@ export function invalidationFor(state: ChangeState, cause: InvalidationCause): I
 						human_decisions: [...candidateDecisions, ...verifiabilityDecisions],
 						rollback_phase: "specification",
 					};
+				// The preparation froze the tests the protocol judges by: written again, it is qualified and
+				// frozen again, as a revised protocol is.
+				case "preparation":
+					return {
+						reason: "preparation revised",
+						gates: from("G2"),
+						evidence: allEvidence,
+						reviews: allReviews,
+						human_decisions: candidateDecisions,
+						rollback_phase: "qualification",
+					};
 				case "protocol":
 					return {
 						reason: "protocol revised",

@@ -175,6 +175,7 @@ function factOf(evidence: Evidence, findingsBlocking: number): EvidenceFact {
 		control_version: evidence.control_version,
 		requirement_ids: evidence.requirement_refs.map((r) => r.requirement_id),
 		subject_digest: evidence.subject.digest,
+		protocol_id: evidence.protocol_revision.protocol_id,
 		protocol_revision: evidence.protocol_revision.revision,
 		environment_digest: evidence.environment_digest,
 		verdict: evidence.verdict,

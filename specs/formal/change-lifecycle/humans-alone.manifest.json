@@ -2,7 +2,7 @@
   "model": "assumptions/HumansAlone.tla",
   "config": "assumptions/HumansAlone.cfg",
   "files": {
-    "ChangeLifecycle.tla": "sha256:1d9b5cd10424625a1dfdd9fe3dcea05c1527d313a49976ee415d2781d308827d",
+    "ChangeLifecycle.tla": "sha256:219847eca9cd86cae53c3138169ff75c75150f1d2093c60b0c74ce88a8cf6fcc",
     "assumptions/HumansAlone.tla": "sha256:a24a497c1336210ec0afb2daa2f8b354de273a61468fe1ea9f4d748a97a2b1c1",
     "assumptions/HumansAlone.cfg": "sha256:4b91ff2fc697a6d36fb0267f7298cb56316f3485e0d3a7a4462e09e9040d37d9"
   },

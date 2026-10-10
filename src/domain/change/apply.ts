@@ -117,6 +117,11 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 			return s;
 		case "artifact.revised": {
 			s.proposals = { ...s.proposals, [event.kind]: [...(s.proposals[event.kind] ?? []), event.ref] };
+			// A revised preparation no longer holds the tests it froze: the next one is adopted when it is qualified.
+			if (event.kind === "preparation") {
+				const { preparation: _revised, ...kept } = s.adopted;
+				s.adopted = kept;
+			}
 			const gates = { ...s.gates };
 			for (const g of event.invalidated_gates) delete gates[g];
 			s.gates = gates;
@@ -288,6 +293,7 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 					control_version: event.control_version,
 					requirement_ids: event.requirement_ids,
 					subject_digest: event.subject_digest,
+					...(event.protocol_id ? { protocol_id: event.protocol_id } : {}),
 					protocol_revision: event.protocol_revision,
 					environment_digest: event.environment_digest,
 					verdict: event.verdict,
@@ -322,6 +328,32 @@ export function apply(state: ChangeState | null, event: ChangeEvent): ChangeStat
 			return s;
 		case "review.invalidated":
 			s.reviews = s.reviews.map((r) => (r.review_id === event.review_id ? { ...r, valid: false } : r));
+			return s;
+		case "contestation.filed":
+			s.contestations = [
+				...(s.contestations ?? []),
+				{
+					...event.contestation,
+					filed_at: event.at,
+					finding: null,
+					examiner_id: null,
+					reasons: null,
+					concluded_at: null,
+				},
+			];
+			return s;
+		case "contestation.concluded":
+			s.contestations = (s.contestations ?? []).map((x) =>
+				x.contestation_id === event.contestation_id
+					? {
+							...x,
+							finding: event.finding,
+							examiner_id: event.examiner_id,
+							reasons: event.reasons,
+							concluded_at: event.at,
+						}
+					: x,
+			);
 			return s;
 		case "decision.requested":
 			s.pending_decisions = [

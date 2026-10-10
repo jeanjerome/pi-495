@@ -240,6 +240,7 @@ export function evidence(over: Partial<EvidenceFact> & { control_id: string; sub
 		evidence_id: `evd_${over.control_id}_${++evidenceSequence}`,
 		control_version: "1",
 		requirement_ids: over.control_id === "unit" ? ["R1"] : ["R2"],
+		protocol_id: "prt_1",
 		protocol_revision: 1,
 		environment_digest: ENV,
 		verdict: "PASS",

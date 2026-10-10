@@ -15,6 +15,8 @@ import type { Survey } from "../survey.ts";
 import type {
 	ArtifactKind,
 	AttemptCounters,
+	ContestationFacts,
+	ContestationFinding,
 	Deliverable,
 	InterventionCost,
 	InterventionResult,
@@ -33,6 +35,11 @@ export interface EvidenceFact {
 	control_version: string;
 	requirement_ids: string[];
 	subject_digest: string;
+	/**
+	 * The protocol the control ran under. Each protocol the application freezes is a new artifact at its
+	 * first revision, so the revision alone does not tell two of them apart.
+	 */
+	protocol_id: string;
 	protocol_revision: number;
 	environment_digest: string;
 	verdict: Verdict;
@@ -146,6 +153,15 @@ export type ChangeCommand =
 			blocking_findings: number;
 	  })
 	| (Base & { type: "review.complete" })
+	| (Base & { type: "contestation.file"; contestation: ContestationFacts })
+	| (Base & {
+			type: "contestation.conclude";
+			contestation_id: string;
+			finding: ContestationFinding;
+			/** The examination intervention whose finding the kernel records. */
+			examiner_id: string;
+			reasons: string;
+	  })
 	| (Base & {
 			type: "correction.authorize";
 			attempt_id: string;
@@ -206,10 +222,12 @@ export const PHASE_FOR_ROLE: Record<InterventionRole, readonly Phase[]> = {
 		"deciding",
 		"integration",
 	],
-	specify: ["scoping", "specification", "qualification", "design"],
+	// The requirements revised on the owner's answer to a contested frozen case are written again from deciding.
+	specify: ["scoping", "specification", "qualification", "design", "deciding"],
 	prepare: ["preparing"],
 	implement: ["implementation"],
 	verify: ["verifying"],
-	review: ["reviewing"],
+	// An examination of a contested frozen case runs once G5 refused the candidate the case failed on.
+	review: ["reviewing", "deciding"],
 	integrate: ["integration"],
 };

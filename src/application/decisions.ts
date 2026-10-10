@@ -397,6 +397,66 @@ const ADOPT_COMPLEMENT = {
 	},
 } as const;
 
+/**
+ * The frozen case an IH-04 asks about: its examination found that the objection is to the requirement itself, or
+ * found wrong a case the owner kept.
+ */
+export interface ContestedCase {
+	requirement_id: string;
+	case_name: string;
+	/** The owner kept this case before, and the examination now finds it wrong. */
+	kept?: true;
+}
+
+/**
+ * IH-04 asked on a contested frozen case the examination found to assert the requirement as adopted, the
+ * objection being to the requirement, or on a case the owner kept and the examination now finds wrong: only the
+ * owner says whether the need changes. Keeping it keeps the case and the protocol; revising it rewrites the
+ * specification. No option accepts the candidate.
+ */
+const CONTESTED_REQUIREMENT = {
+	fr: ({ requirement_id, case_name, kept }: ContestedCase) => ({
+		question: kept
+			? `Vous avez répondu « garder » sur le cas gelé « ${case_name} » de ${requirement_id} ; le producteur le conteste de nouveau et l'examen conclut cette fois que le cas affirme ce que ${requirement_id} ne dit pas. Le cas n'est pas réécrit sans vous : que décider ?`
+			: `Le cas gelé « ${case_name} » de ${requirement_id} est contesté par le producteur ; l'examen conclut qu'il exprime ${requirement_id} tel que vous l'avez adoptée et que l'objection porte sur l'exigence elle-même. Que décider ?`,
+		options: [
+			{
+				id: "revise",
+				label: "Réviser l'exigence (dire en texte libre ce qu'elle doit devenir)",
+				effect:
+					"La spécification est refaite avec votre consigne et vous adoptez les nouvelles exigences comme les premières ; les exigences, le protocole et la préparation adoptés jusque-là ne sont plus en vigueur, et les preuves déjà obtenues ne comptent plus.",
+				risky: true,
+			},
+			{
+				id: "keep",
+				label: "Garder l'exigence",
+				effect: "Le cas et le protocole gelés restent tels quels ; le code est à corriger dans une nouvelle tentative.",
+				risky: false,
+			},
+		],
+	}),
+	en: ({ requirement_id, case_name, kept }: ContestedCase) => ({
+		question: kept
+			? `You answered "keep" on the frozen case "${case_name}" of ${requirement_id}; the producer contests it again and the examination now finds that the case asserts what ${requirement_id} does not say. The case is not rewritten without you: what should be done?`
+			: `The frozen case "${case_name}" of ${requirement_id} is contested by the producer; the examination finds that it asserts ${requirement_id} as you adopted it and that the objection is to the requirement itself. What should be done?`,
+		options: [
+			{
+				id: "revise",
+				label: "Revise the requirement (say in free text what it should become)",
+				effect:
+					"The specification is redone with your instruction and you adopt the new requirements like the first ones; the requirements, protocol and preparation adopted so far no longer hold, and the evidence already obtained no longer counts.",
+				risky: true,
+			},
+			{
+				id: "keep",
+				label: "Keep the requirement",
+				effect: "The frozen case and protocol stay as they are; the code is to be corrected in a new attempt.",
+				risky: false,
+			},
+		],
+	}),
+} as const;
+
 /** What an IH-04 asked on a survey offers to adopt: the quality referential of a stack, and the packages its manager brings. */
 export interface ReferentialOffer {
 	stack: string;
@@ -696,6 +756,7 @@ const SURVEY_ACCEPTANCE = {
 function questionOf(args: Parameters<typeof buildDecisionRequest>[0], surveyed: boolean, installers: Installers) {
 	if (surveyed) return SURVEY_ACCEPTANCE[args.language];
 	if (args.interaction === "IH-05") return RECOMMENDATION_CHOICE[args.language](args.alternatives ?? []);
+	if (args.interaction === "IH-04" && args.contested) return CONTESTED_REQUIREMENT[args.language](args.contested);
 	if (args.interaction === "IH-04" && args.referential)
 		return REFERENTIAL_ADOPTION[args.language](args.arg ?? "", args.referential, installers);
 	if (args.interaction === "IH-04" && args.architecture_map)
@@ -714,6 +775,8 @@ export function buildDecisionRequest(args: {
 	arg?: string;
 	/** What an IH-04 offers to adopt; nothing when no recommended edit can be applied and no install run. */
 	adoptable?: Adoptable;
+	/** The contested frozen case an IH-04 asks the owner whether the need changes for. */
+	contested?: ContestedCase;
 	/** The quality referential an IH-04 asked on a survey offers instead of a preparation. */
 	referential?: ReferentialOffer;
 	/** How the architecture map an IH-04 asked on a survey proposes instead of a preparation would be verified. */

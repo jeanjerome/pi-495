@@ -2,8 +2,10 @@
  * Replays a formal trace on the kernel: each abstract action issues, through the real decider, the kernel
  * commands ACTION_MAPPING names for it, the events go to a store, and the store's state is observed after
  * each step as the model is. An abstract identity becomes a concrete reference here and nowhere else: a
- * candidate `n` is the fixture's candidate reference of seed `cn`, a revision `n` the frozen protocol's
- * revision `n`, a control `k1`/`k2` a control of the fixture protocol; none is a path or a command.
+ * candidate `n` is the fixture's candidate reference of seed `cn`, a revision `n` the protocol `prt_n`, a control
+ * `k1`/`k2` a control of the fixture protocol; none is a path or a command. A revised protocol is frozen under an
+ * identity of its own, at the first revision of that artifact, as the application freezes each protocol it
+ * designs: two revisions of the model never share the identity a result carries.
  */
 import type { ActorRef } from "../../src/contracts/v1/common.ts";
 import type { HumanOrigin } from "../../src/contracts/v1/decision.ts";
@@ -38,6 +40,7 @@ import {
 	type TraceProperty,
 	type TraceStep,
 	observeKernel,
+	ranUnder,
 } from "./formal-traces.ts";
 
 const CHANGE_ID = "chg_1";
@@ -110,6 +113,8 @@ export function memoryStore(): ReplayStore {
 }
 
 const concreteCandidate = (cand: number) => candidate(`c${cand}`);
+/** The identity of the protocol a revision of the model is frozen under. */
+const protocolOf = (revision: number) => `prt_${revision}`;
 
 /** Carries the abstract actions of one trace onto one change of the kernel. */
 export class KernelTranslation {
@@ -128,8 +133,19 @@ export class KernelTranslation {
 			g5_human_acceptance: humanAcceptance,
 			budgets: { max_attempts: EXPLORED_DOMAIN.maxAttempts },
 		});
-		// The model's initial state: G0 to G4 passed, the candidate of the first attempt frozen under revision 1.
-		this.runner.toImplementing().implement("int_0", "att_0").freeze(concreteCandidate(1));
+		// The model's initial state: G0 to G4 passed on an adopted preparation, the candidate of the first attempt
+		// frozen under revision 1.
+		this.runner.create().g0().g1();
+		this.runner.run({ type: "preparation.open", at: tick(), actor: KERNEL, mandate_ref: ref("prp_0", "prepare") });
+		this.runner.run({
+			type: "preparation.close",
+			at: tick(),
+			actor: KERNEL,
+			qualified: true,
+			capability_ids: ["unit"],
+			adopted_ref: ref("prep_0", "prepared"),
+		});
+		this.runner.g2().g3().implement("int_0", "att_0").freeze(concreteCandidate(1));
 		this.flush();
 	}
 
@@ -200,7 +216,8 @@ export class KernelTranslation {
 				const fact = evidence({
 					control_id: CONTROL_IDS[control],
 					subject_digest: concreteCandidate(args.cand ?? 1).manifest_digest,
-					protocol_revision: args.ran ?? 1,
+					protocol_id: protocolOf(args.ran ?? 1),
+					protocol_revision: 1,
 					verdict: args.verdict ?? "PASS",
 				});
 				issue({ type: "verification.record", at: tick(), actor: EXECUTOR, evidence: [fact] });
@@ -233,25 +250,29 @@ export class KernelTranslation {
 				return;
 			case "ReviseProtocol": {
 				const revision = this.revision + 1;
+				const p = protocol({ protocol_id: protocolOf(revision) });
 				const revised = issue({
 					type: "artifact.revise",
 					at: tick(),
 					actor: KERNEL,
 					kind: "protocol",
-					ref: ref("prt_1", protocol(), revision),
+					ref: ref(p.protocol_id, p),
 					reason: `protocol revision ${revision}`,
 				});
 				if (revised) this.revision = revision;
 				return;
 			}
+			case "Contest":
+				this.contest(issue);
+				return;
 			case "Requalify": {
-				const p = protocol();
+				const p = protocol({ protocol_id: protocolOf(this.revision) });
 				const frozen = issue({
 					type: "gate.evaluate",
 					gate: "G2",
 					at: tick(),
 					actor: KERNEL,
-					protocol_ref: ref("prt_1", p, this.revision),
+					protocol_ref: ref(p.protocol_id, p),
 					protocol: p,
 				});
 				if (frozen)
@@ -337,6 +358,54 @@ export class KernelTranslation {
 		});
 	}
 
+	/**
+	 * The producer contests the case of the control that failed on the refused candidate, the kernel files it
+	 * with the run that reproduces it, the examination finds the test wrong, and the preparation is revised.
+	 */
+	private contest(issue: (c: ChangeCommand) => boolean): void {
+		const s = this.runner.s;
+		const failed = s.evidence.findLast(
+			(e) => e.valid && e.verdict === "FAIL" && e.subject_digest === s.candidate?.manifest_digest,
+		);
+		const requirement = failed?.requirement_ids[0] ?? "none";
+		const contestationId = this.id("ctt");
+		const filed = issue({
+			type: "contestation.file",
+			at: tick(),
+			actor: KERNEL,
+			contestation: {
+				contestation_id: contestationId,
+				intervention_id: s.interventions.findLast((i) => i.role === "implement")?.intervention_id ?? "none",
+				requirement_id: requirement,
+				case_name: `${requirement} contested case`,
+				protocol: { protocol_id: s.protocol?.ref.protocol_id ?? "none", revision: s.protocol?.ref.revision ?? 0 },
+				candidate_digest: s.candidate?.manifest_digest ?? "none",
+				observation: `the case asserts what ${requirement} does not say`,
+				reproduction: { control_id: failed?.control_id ?? "none", evidence_id: failed?.evidence_id ?? "none" },
+			},
+		});
+		if (!filed) return;
+		issue({
+			type: "contestation.conclude",
+			at: tick(),
+			actor: KERNEL,
+			contestation_id: contestationId,
+			finding: "test_correction",
+			examiner_id: this.id("int"),
+			reasons: `the case asserts what ${requirement} does not say`,
+		});
+		const revision = this.revision + 1;
+		const revised = issue({
+			type: "artifact.revise",
+			at: tick(),
+			actor: KERNEL,
+			kind: "preparation",
+			ref: ref(`prv_${revision}`, { contestation_id: contestationId }),
+			reason: `contestation ${contestationId} found the test wrong`,
+		});
+		if (revised) this.revision = revision;
+	}
+
 	private correct(issue: (c: ChangeCommand) => boolean): void {
 		issue({ type: "correction.authorize", at: tick(), actor: KERNEL, attempt_id: this.id("att"), feedback: null });
 	}
@@ -413,11 +482,10 @@ const PROPERTY_JUDGES: Record<TraceProperty, (judged: Judged) => string | null> 
 		const retained = retainedEvidence(state, events);
 		if (retained.length === 0) return "accepted on no retained evidence";
 		const stale = retained.find(
-			(e) =>
-				e.subject_digest !== state.candidate?.manifest_digest || e.protocol_revision !== state.protocol?.ref.revision,
+			(e) => e.subject_digest !== state.candidate?.manifest_digest || !ranUnder(e, state.protocol?.ref),
 		);
 		return stale
-			? `accepted on ${stale.evidence_id}, which ran under revision ${stale.protocol_revision} or on another candidate`
+			? `accepted on ${stale.evidence_id}, which ran under ${stale.protocol_id ?? "a protocol"} r${stale.protocol_revision} or on another candidate`
 			: null;
 	},
 	AcceptanceNeedsObligations({ state, events }) {

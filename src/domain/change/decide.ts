@@ -26,11 +26,13 @@ import { unobservedEnd } from "../imposed-layers.ts";
 import type { ChangeCommand, CommandOf } from "./commands.ts";
 import type { ChangeEvent } from "./events.ts";
 import { apply } from "./apply.ts";
+import { contestationIssues } from "./contestation.ts";
 import {
 	currentAttempt,
 	isActive,
 	isQuestionClosed,
 	openAttempt,
+	ranUnderProtocol,
 	resumeLiftsStop,
 	runningIntervention,
 	subjectOfChange,
@@ -310,6 +312,10 @@ class Ctx {
 				return this.reviewRecord(c);
 			case "review.complete":
 				return this.reviewComplete();
+			case "contestation.file":
+				return this.contestationFile(c);
+			case "contestation.conclude":
+				return this.contestationConclude(c);
 			case "correction.authorize":
 				return this.correctionAuthorize(c);
 			case "change.reject":
@@ -1070,8 +1076,10 @@ class Ctx {
 		for (const e of c.evidence) {
 			const reasons: string[] = [];
 			if (e.subject_digest !== subject.digest) reasons.push(`subject digest does not match ${subject.name}`);
-			if (e.protocol_revision !== protocol.ref.revision)
-				reasons.push("protocol revision does not match the frozen protocol");
+			if (!ranUnderProtocol(e, protocol.ref))
+				reasons.push(
+					`it ran under protocol ${e.protocol_id} r${e.protocol_revision}, the frozen protocol is ${protocol.ref.protocol_id} r${protocol.ref.revision}`,
+				);
 			if (this.state.environment_digest && e.environment_digest !== this.state.environment_digest)
 				reasons.push("environment digest does not match the current environment");
 			if (!protocol.control_ids.includes(e.control_id))
@@ -1095,6 +1103,7 @@ class Ctx {
 				control_version: e.control_version,
 				requirement_ids: e.requirement_ids,
 				subject_digest: e.subject_digest,
+				protocol_id: e.protocol_id,
 				protocol_revision: e.protocol_revision,
 				environment_digest: e.environment_digest,
 				verdict: e.verdict,
@@ -1156,6 +1165,45 @@ class Ctx {
 		this.requirePhase("reviewing");
 		this.requireKernelAuthority();
 		this.enter("deciding", "reviews available");
+		return ok(this.events);
+	}
+
+	// --- contestation of a frozen case -------------------------------------------------------------
+
+	/**
+	 * Keeps the producer's contestation of a frozen case once G5 refused the candidate it met the case
+	 * on. The kernel files it, never the producer: what a model says is read from its report, and a
+	 * contestation that names a wrong identity or no failing run of its own is refused with nothing
+	 * kept. A kept one is examined; it opens no path to the protected tests and moves no verdict.
+	 */
+	contestationFile(c: CommandOf<"contestation.file">): Decision {
+		this.requirePhase("deciding");
+		this.requireKernelAuthority();
+		const issues = contestationIssues(this.state, c.contestation);
+		if (issues.length > 0)
+			this.fail(
+				"PRECONDITION_FAILED",
+				`contestation ${c.contestation.contestation_id || "(unnamed)"} cannot be examined: ${issues.join("; ")}`,
+			);
+		this.emit({ type: "contestation.filed", ...this.base(), contestation: c.contestation });
+		return ok(this.events);
+	}
+
+	/** Records what the examination found; the kernel, not the examiner, takes the step that follows. */
+	contestationConclude(c: CommandOf<"contestation.conclude">): Decision {
+		this.requireKernelAuthority();
+		const filed = (this.state.contestations ?? []).find((x) => x.contestation_id === c.contestation_id);
+		if (!filed) this.fail("UNKNOWN_REFERENCE", `contestation ${c.contestation_id} was never filed`);
+		if (filed.finding !== null)
+			this.fail("PRECONDITION_FAILED", `contestation ${c.contestation_id} was already found ${filed.finding}`);
+		this.emit({
+			type: "contestation.concluded",
+			...this.base(),
+			contestation_id: c.contestation_id,
+			finding: c.finding,
+			examiner_id: c.examiner_id,
+			reasons: c.reasons,
+		});
 		return ok(this.events);
 	}
 

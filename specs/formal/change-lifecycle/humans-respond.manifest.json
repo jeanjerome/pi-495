@@ -2,7 +2,7 @@
   "model": "ChangeLifecycle.tla",
   "config": "HumansRespond.cfg",
   "files": {
-    "ChangeLifecycle.tla": "sha256:1d9b5cd10424625a1dfdd9fe3dcea05c1527d313a49976ee415d2781d308827d",
+    "ChangeLifecycle.tla": "sha256:219847eca9cd86cae53c3138169ff75c75150f1d2093c60b0c74ce88a8cf6fcc",
     "HumansRespond.cfg": "sha256:fd4036b86db2f3502cc51224fcbee2503bef8a39493ec529a8385f38d33b6ebc"
   },
   "required_properties": [

@@ -29,7 +29,13 @@ describe("structured output extraction (AGT-06)", () => {
 	it("normalizes a report with missing arrays and unknown keys without inventing content", () => {
 		const raw = { summary: "done", changed_paths: ["a"], extra: "ignored" };
 		const norm = normalizeOutput(OUTPUT_SCHEMAS["producer-report"], raw) as Record<string, unknown>;
-		assert.deepEqual(norm, { summary: "done", changed_paths: ["a"], tests_claimed: false, notes: [] });
+		assert.deepEqual(norm, {
+			summary: "done",
+			changed_paths: ["a"],
+			tests_claimed: false,
+			notes: [],
+			contestations: [],
+		});
 		assert.equal(Value.Check(OUTPUT_SCHEMAS["producer-report"], norm), true);
 		const spec = normalizeOutput(OUTPUT_SCHEMAS["specification-report"], {
 			objective: "o",

@@ -11,6 +11,7 @@ import { KERNEL_ACTOR } from "../actors.ts";
 import { buildFeedback } from "../context.ts";
 import { requestBudgetExtensionIfExhausted, type PhaseContext, type Unit } from "./phase.ts";
 import { settleRecommendation } from "./architecture-recommendation.ts";
+import { examineContestations, settleFindings } from "./contestation.ts";
 import { judgeSurvey } from "./survey.ts";
 
 async function correctOrStop(ctx: PhaseContext, unit: Unit, cor: string, why: string): Promise<Unit> {
@@ -113,5 +114,18 @@ export async function decide(ctx: PhaseContext, unit: Unit, cor: string): Promis
 			cor,
 		);
 	}
-	return correctOrStop(ctx, unit, cor, g5.reasons.join("; "));
+	return correctUnlessContested(ctx, unit, cor, g5.reasons.join("; "));
+}
+
+/**
+ * What the producer contested of the frozen tests is examined before the code is sent back: a case
+ * found wrong is prepared again, a requirement put in question goes to the owner, and a contestation
+ * found unfounded leaves the protocol as it is, the producer being told so.
+ */
+async function correctUnlessContested(ctx: PhaseContext, unit: Unit, cor: string, refusal: string): Promise<Unit> {
+	const examined = await examineContestations(ctx, unit, cor);
+	if (examined.kind === "stopped") return examined.unit;
+	const settled = await settleFindings(ctx, examined.unit, cor, examined.concluded);
+	if (settled.kind === "settled") return settled.unit;
+	return correctOrStop(ctx, settled.unit, cor, [refusal, ...settled.notes].join("; "));
 }

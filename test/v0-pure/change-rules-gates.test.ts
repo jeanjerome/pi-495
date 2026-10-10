@@ -225,6 +225,19 @@ describe("verification and G5 (SA-012, SA-013, SA-014, SA-032, RM-036, VER-03)",
 			r.s.evidence.map((e) => `${e.evidence_id}:other protocol revision`),
 		);
 	});
+	it("G5 ignores evidence that ran under a protocol the revised preparation replaced, at the same revision", () => {
+		const c = candidate("c1");
+		const r = new Runner().toDeciding(c);
+		const frozen = r.s.protocol!;
+		const p2 = { ...frozen, ref: { ...frozen.ref, protocol_id: "prt_2" } };
+		const g5 = evaluateG5(r.s, p2, c, r.policy);
+		assert.notEqual(g5.verdict, "PASS", "a P1 result does not contribute to the acceptance under P2");
+		assert.deepEqual(g5.retained, []);
+		assert.deepEqual(
+			g5.ignored,
+			r.s.evidence.map((e) => `${e.evidence_id}:other protocol revision`),
+		);
+	});
 	it("a PASS with blocking findings counts as FAIL", () => {
 		const r = new Runner().toImplementing().implement();
 		const c = candidate("c1");

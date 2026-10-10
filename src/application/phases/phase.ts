@@ -19,6 +19,7 @@ import type { ArtifactRepository } from "../artifacts.ts";
 import type { FeedbackSources } from "../context.ts";
 import type {
 	Adoptable,
+	ContestedCase,
 	MapVerificationOffer,
 	PhaseInteraction,
 	RecommendedAlternative,
@@ -68,6 +69,7 @@ export interface DecisionOptions {
 	decisionId?: string;
 	language: "fr" | "en";
 	adoptable?: Adoptable;
+	contested?: ContestedCase;
 	referential?: ReferentialOffer;
 	/** How the architecture map the IH-04 proposes to adopt would be verified. */
 	architecture_map?: MapVerificationOffer;

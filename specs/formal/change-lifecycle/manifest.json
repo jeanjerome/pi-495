@@ -2,7 +2,7 @@
   "model": "ChangeLifecycle.tla",
   "config": "ChangeLifecycle.cfg",
   "files": {
-    "ChangeLifecycle.tla": "sha256:1d9b5cd10424625a1dfdd9fe3dcea05c1527d313a49976ee415d2781d308827d",
+    "ChangeLifecycle.tla": "sha256:219847eca9cd86cae53c3138169ff75c75150f1d2093c60b0c74ce88a8cf6fcc",
     "ChangeLifecycle.cfg": "sha256:1f6e401c82ee2520ca5e62b7ef30144d1d520d89ea0133e3e93e3346c61206ce"
   },
   "required_properties": [
@@ -37,6 +37,7 @@
         "Deliver",
         "EvaluateG5",
         "ReviseProtocol",
+        "Contest",
         "Freeze",
         "Resume"
       ]
@@ -73,7 +74,8 @@
         "HumanAnswer",
         "EvaluateG5",
         "Correct",
-        "ReviseProtocol"
+        "ReviseProtocol",
+        "Contest"
       ]
     },
     "HumanProvenance": {
@@ -85,7 +87,8 @@
         "HumanAnswer",
         "Resume",
         "Correct",
-        "ReviseProtocol"
+        "ReviseProtocol",
+        "Contest"
       ]
     }
   },
@@ -172,6 +175,16 @@
         "src/domain/change/apply.ts#apply"
       ],
       "abstracts": "the protocol revised: rollback to qualification, evidence invalidated, candidate decisions revoked"
+    },
+    "Contest": {
+      "command": "contestation.conclude",
+      "code": [
+        "src/domain/change/decide.ts#contestationFile",
+        "src/domain/change/decide.ts#contestationConclude",
+        "src/domain/change/decide.ts#artifactRevise",
+        "src/domain/invalidation.ts#invalidationFor"
+      ],
+      "abstracts": "the contestation of a case of the refused candidate filed and examined apart, the finding that the test is wrong recorded, then the preparation revised: artifact.revised and the invalidations of a revision"
     },
     "Requalify": {
       "command": "gate.evaluate",

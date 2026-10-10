@@ -20,9 +20,13 @@ import type { Decider } from "../support/kernel-replay.ts";
 
 /** The injected defect: the kernel records a result whatever protocol revision it ran under. */
 const revisionGuardDropped: Decider = (state, command, policy) => {
-	const frozen = state?.protocol?.ref.revision;
+	const frozen = state?.protocol?.ref;
 	if (command.type !== "verification.record" || frozen === undefined) return decide(state, command, policy);
-	const evidence = command.evidence.map((e) => ({ ...e, protocol_revision: frozen }));
+	const evidence = command.evidence.map((e) => ({
+		...e,
+		protocol_id: frozen.protocol_id,
+		protocol_revision: frozen.revision,
+	}));
 	return decide(state, { ...command, evidence }, policy);
 };
 
