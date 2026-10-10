@@ -2,7 +2,7 @@
 
 Story : e38s08
 Epic : e38
-Statut : à faire
+Statut : en cours
 
 Surface : pi-495 — G3 et boucles G4
 Dépendances : e38s06, e38s07
@@ -31,9 +31,22 @@ Scenario: Les contrôles locaux et l’autocontrôle préparent le candidat
   When le candidat est présenté
   Then le rapport relie tâches, contrôles locaux et constats d’autocontrôle au diff exact sans les présenter comme le verdict G5
 
+Scenario: Un test préparé réécrit par le producteur est refusé
+  Given un protocole gelé qui protège `test/` et le test préparé `test/shout.test.js`
+  And un producteur qui réécrit ce test en gardant le nom de son cas
+  When le candidat est figé
+  Then G4 refuse le candidat avec la raison « protected path altered by the producer: test/shout.test.js »
+  And le changement n’est pas accepté
+
+Scenario: Le rapport ne prête pas au producteur ce que la préparation a écrit
+  Given un plan accepté dont aucune tâche n’écrit le test préparé `test/shout.test.js`
+  When le candidat porte ce test tel que la préparation l’a écrit
+  Then la ligne « modifié hors de toute tâche du plan, relevé par le noyau » du rapport ne cite pas `test/shout.test.js`
+  And quand le producteur a réécrit ce test, la même ligne le cite
+
 ## 3. Sécurité
 
-Les chemins autorisés restent ceux du mandat et les tests protégés ne sont pas déverrouillés. Les sorties de l’agent sont des déclarations vérifiées ou des avis, jamais des preuves d’exécution auto-certifiées.
+Les chemins autorisés restent ceux du mandat et les tests protégés ne sont pas déverrouillés. Un test préparé que le producteur réécrit est refusé à G4 comme un test existant réécrit, même sous un répertoire protégé où un fichier ajouté est admis : cette admission ne vaut que pour un fichier que la préparation n’a pas écrit. Les sorties de l’agent sont des déclarations vérifiées ou des avis, jamais des preuves d’exécution auto-certifiées.
 
 ## 4. Tâches
 
@@ -69,6 +82,24 @@ Conduire une petite story dans Pi avec deux tâches et une dépendance. Essayer 
 - Tient : dossier de recette de `e38s08`, observations positives et négatives liées aux promesses et à la révision testée.
 - Rouge : sur le point de départ, le parcours nouveau décrit dans les promesses n’est pas disponible de bout en bout ; établir ce constat avant réalisation, sans compter une erreur d’import ou l’absence d’un fichier de test comme un rouge métier.
 
+### Tâche 5 — G4 refuse un test préparé réécrit
+
+Dans `protectedPathsChanged` (`src/domain/gates/g4.ts`), un fichier que la préparation a écrit et que le candidat porte sous une autre empreinte est altéré, qu’il soit ajouté ou non sous un répertoire protégé : la règle « ajouté sous un répertoire protégé » ne s’applique qu’à un fichier que la préparation n’a pas écrit.
+
+- Vérifie : `node --test test/v2-kernel/implementation-plan.test.ts`
+- Tient : `test/v2-kernel/implementation-plan.test.ts`, « un test préparé que le producteur réécrit en gardant le nom de son cas est refusé à G4, qui nomme son chemin, et le changement n’est pas accepté ».
+- Rouge : `protectedPathsChanged` écarte le fichier préparé dont l’empreinte a changé de la règle « gardé tel qu’écrit » (ligne 118), puis l’admet par la règle « ajouté sous un répertoire protégé » (lignes 119 à 126), puisque `test/shout.test.js` est `added` sous `test/` : il est rangé dans `allowed`, `altered` reste vide, et `evaluateG4` rend PASS.
+
+### Tâche 6 — Le rapport ne compte pas la préparation comme production
+
+`keepImplementation` (`src/application/phases/implement.ts`) ne cite parmi les chemins modifiés hors de toute tâche du plan que ceux que le producteur a changés : un fichier préparé que le candidat porte tel que la préparation l’a écrit n’y figure pas, un fichier préparé que le producteur a réécrit y figure.
+
+- Vérifie : `node --test test/v2-kernel/implementation-plan.test.ts`
+- Tient : `test/v2-kernel/implementation-plan.test.ts`, « un test préparé que le producteur n’a pas touché n’est pas cité comme modifié hors du plan, et le même test réécrit l’est ».
+- Rouge : `keepImplementation` passe à `implementationRecord` `scope.changed`, tous les chemins du candidat qui diffèrent de la référence, préparation comprise, et `implementationRecord` ne les filtre que sur les chemins des tâches : `test/shout.test.js`, ajouté par la préparation et porté inchangé, figure dans `unplanned_paths`.
+
 ## 5. Hors périmètre
 
 Aucun ordonnanceur parallèle nouveau, aucune limite universelle de taille des fonctions. Les seuils et règles de CONVENTIONS.md restent applicables.
+
+Le refus d’un test préparé réécrit ne change pas G3 : une tâche dont le chemin contient un chemin protégé reste admise avant la production, comme le registre l’inscrit. Un test que le producteur ajoute sous `test/` sans que la préparation l’ait écrit reste admis, et un test préparé supprimé reste refusé à G5, qui ne voit pas passer le cas lié. Le rapport ne dit pas en quoi un fichier réécrit diffère du fichier préparé.

@@ -695,6 +695,25 @@ export const Mandate = Type.Object(
 );
 export type Mandate = Static<typeof Mandate>;
 
+/**
+ * One task of a design's plan: what it does, the component that owns it, the requirements it serves,
+ * the tasks it waits for, the paths it writes and the local checks its producer runs. A reversible
+ * local choice is one short task; nothing here asks for a justification it does not need.
+ */
+export const DesignTask = Type.Object(
+	{
+		task_id: Identifier,
+		summary: Type.String(),
+		responsibility: Type.String({ description: "the component or module that owns what the task changes" }),
+		requirement_ids: Type.Array(Type.String(), { description: "the requirements this task serves" }),
+		depends_on: Type.Array(Type.String(), { description: "the task_id of each task that must be done first" }),
+		paths: Type.Array(Type.String(), { description: "the paths the task writes: files, or directories ending in /" }),
+		checks: Type.Array(Type.String(), { description: "the local checks run while doing the task" }),
+	},
+	{ additionalProperties: false },
+);
+export type DesignTask = Static<typeof DesignTask>;
+
 export const Design = Type.Object(
 	{
 		change_id: Identifier,
@@ -703,9 +722,7 @@ export const Design = Type.Object(
 		interfaces: Type.Array(Type.String()),
 		alternatives: Type.Array(Type.String()),
 		risks: Type.Array(Type.String()),
-		requirement_ids: Type.Array(Identifier),
-		compatible_with_mandate: Type.Boolean(),
-		executable: Type.Boolean(),
+		tasks: Type.Array(DesignTask),
 	},
 	{ $id: contractId("design"), additionalProperties: false },
 );

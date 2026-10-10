@@ -17,9 +17,9 @@ export async function design(ctx: PhaseContext, unit: Unit, cor: string): Promis
 		interfaces: spec.content.design.interfaces,
 		alternatives: [],
 		risks: [...spec.content.risks, ...spec.content.design.risks],
-		requirement_ids: unit.state.requirement_ids,
-		compatible_with_mandate: true,
-		executable: spec.content.design.summary.trim().length > 0,
+		// A report written before designs carried a plan has none: G3 then names each mandatory
+		// requirement it leaves unserved.
+		tasks: spec.content.design.tasks ?? [],
 	};
 	const ref = await ctx.artifacts.store("design", unit.state.change_id, ctx.id("dsg"), design, KERNEL_ACTOR.actor_id);
 	unit = ctx.commit(unit, { type: "artifact.propose", at: ctx.now(), actor: KERNEL_ACTOR, kind: "design", ref }, cor);

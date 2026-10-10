@@ -10,6 +10,7 @@ import { formatReport } from "../../src/presentation/structured/text.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import { EMPTY_LIMITS, type Evidence } from "../../src/contracts/v1/evidence.ts";
 import type { EvidenceEntry } from "../../src/domain/change/state.ts";
+import type { ImplementationRecord } from "../../src/domain/implementation-record.ts";
 import { AGENT, ENV, HUMAN, KERNEL, Runner, candidate, protocol, tick } from "../helpers/change-fixture.ts";
 
 const c = candidate("c1");
@@ -421,5 +422,30 @@ describe("engineering report: the recommended complements a target has not adopt
 			1,
 			"another complement adopted does not cover it",
 		);
+	});
+});
+
+describe("engineering report: what the producer declared of the plan", () => {
+	/** A declaration of the plan made on the candidate whose digest is `candidateDigest`. */
+	function declaredOn(candidateDigest: string): ImplementationRecord {
+		return {
+			candidate_digest: candidateDigest,
+			design_digest: digestValue("design"),
+			authority: "producer_declaration",
+			tasks: [{ task_id: "T1", declared_status: "done", local_checks: [], deviations: [] }],
+			unplanned_tasks: [],
+			self_review: [],
+			self_review_missing: [],
+			unplanned_paths: [],
+		};
+	}
+
+	it("keeps the declaration made on the current candidate and drops one made on another candidate", () => {
+		const r = new Runner().toDeciding(c);
+		const report = (record: ImplementationRecord) =>
+			engineeringReport(r.s, [], protocol(), null, null, "", null, record).implementation;
+		const current = declaredOn(c.manifest_digest);
+		assert.deepEqual(report(current), current);
+		assert.equal(report(declaredOn(candidate("c0").manifest_digest)), null);
 	});
 });

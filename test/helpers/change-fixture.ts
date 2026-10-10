@@ -218,9 +218,17 @@ export function design(over: Partial<Design> = {}): Design {
 		interfaces: ["greet(name)"],
 		alternatives: [],
 		risks: [],
-		requirement_ids: ["R1", "R2"],
-		compatible_with_mandate: true,
-		executable: true,
+		tasks: [
+			{
+				task_id: "T1",
+				summary: "write greet",
+				responsibility: "greet",
+				requirement_ids: ["R1", "R2"],
+				depends_on: [],
+				paths: ["src/greet.ts"],
+				checks: ["node --test"],
+			},
+		],
 		...over,
 	};
 }

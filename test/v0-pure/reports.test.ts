@@ -35,6 +35,8 @@ describe("structured output extraction (AGT-06)", () => {
 			tests_claimed: false,
 			notes: [],
 			contestations: [],
+			tasks: [],
+			self_review: [],
 		});
 		assert.equal(Value.Check(OUTPUT_SCHEMAS["producer-report"], norm), true);
 		const spec = normalizeOutput(OUTPUT_SCHEMAS["specification-report"], {

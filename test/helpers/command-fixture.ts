@@ -51,7 +51,23 @@ export const ASKS_Q1 = {
 			satisfied_by_reference: true,
 		},
 	],
-	design: { summary: "x", components: [], interfaces: [], risks: [] },
+	design: {
+		summary: "x",
+		components: [],
+		interfaces: [],
+		risks: [],
+		tasks: [
+			{
+				task_id: "T1",
+				summary: "x",
+				responsibility: "greet",
+				requirement_ids: ["R1"],
+				depends_on: [],
+				paths: ["src/greet.js"],
+				checks: ["node --test"],
+			},
+		],
+	},
 };
 
 export class FakePi {

@@ -2,9 +2,11 @@
  * Implementing: a producer works in an isolated workspace, and the candidate it leaves is frozen with
  * what it changed and what it touched of the protected paths.
  */
-import type { Mandate } from "../../contracts/v1/protocol.ts";
+import type { CandidateManifest } from "../../contracts/v1/candidate.ts";
+import type { Design, Mandate } from "../../contracts/v1/protocol.ts";
 import type { ProducerReport } from "../../contracts/v1/reports.ts";
 import { protectedPathsChanged, submodulePathsChanged } from "../../domain/gates/g4.ts";
+import { implementationRecord } from "../../domain/implementation-record.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import type { PreparedWorkspace } from "../artifacts.ts";
 import { implementObjective, resumeNote } from "../context.ts";
@@ -158,6 +160,7 @@ export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Pro
 	const producerReport = r.output_valid ? (r.output as ProducerReport) : null;
 	// What the producer contested of the frozen tests is examined once the controls have run on the candidate.
 	await keepProducerContestations(ctx, unit.state.change_id, r.intervention_id, producerReport);
+	await keepImplementation(ctx, unit, attemptId, manifest, scope.produced, producerReport);
 	const truncatedNote =
 		r.result === "truncated"
 			? [
@@ -195,4 +198,28 @@ export async function implement(ctx: PhaseContext, unit: Unit, cor: string): Pro
 		cor,
 	);
 	return unit;
+}
+
+/**
+ * Keeps, beside the candidate, the progress the producer declared on each task of the adopted plan, its
+ * local checks and its self-review, with the changed paths no task planned as the kernel reads them on the
+ * candidate. None of it is evidence: the frozen controls judge the candidate at G5.
+ */
+async function keepImplementation(
+	ctx: PhaseContext,
+	unit: Unit,
+	attemptId: string,
+	manifest: CandidateManifest,
+	produced: readonly string[],
+	report: ProducerReport | null,
+): Promise<void> {
+	const adopted = unit.state.adopted.design;
+	if (!adopted) return;
+	// A design adopted before designs carried a plan has no tasks.
+	const design = await ctx.artifacts.read<Partial<Pick<Design, "tasks">>>(adopted.ref);
+	const record = implementationRecord(design.tasks ?? [], report, produced, {
+		candidate_digest: manifest.manifest_digest,
+		design_digest: adopted.ref.content_digest,
+	});
+	await ctx.artifacts.storeImplementation(unit.state.change_id, attemptId, record, KERNEL_ACTOR.actor_id);
 }

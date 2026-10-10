@@ -26,6 +26,7 @@ import {
 	type ReviewCheck,
 } from "../domain/architecture-recommendation.ts";
 import type { ChangeState, EvidenceEntry, HumanDecisionEntry } from "../domain/change/state.ts";
+import type { ImplementationRecord } from "../domain/implementation-record.ts";
 import type { CodeAuthorship, Survey } from "../domain/survey.ts";
 
 /** Measured: a control ran on a subject and answered. No interpretation is carried here. */
@@ -165,6 +166,11 @@ export interface EngineeringReport {
 	survey: SurveySection | null;
 	observations: MechanicalObservation[];
 	judgments: Judgment[];
+	/**
+	 * Declared: what the producer said of each task of the adopted plan, its local checks and its
+	 * self-review, on the current candidate. Neither measured nor concluded, so kept out of both.
+	 */
+	implementation: ImplementationRecord | null;
 	residual_risks: ResidualRisk[];
 }
 
@@ -332,6 +338,7 @@ export function engineeringReport(
 	survey: Survey | null = null,
 	title = "",
 	recommendation: { ref: ArtifactRef; content: RecommendationProposal } | null = null,
+	implementation: ImplementationRecord | null = null,
 ): EngineeringReport {
 	const entryOf = new Map(state.evidence.map((e) => [e.evidence_id, e]));
 	const currentDigest = state.candidate?.manifest_digest;
@@ -519,6 +526,7 @@ export function engineeringReport(
 			: null,
 		observations,
 		judgments,
+		implementation: implementation?.candidate_digest === currentDigest ? implementation : null,
 		residual_risks: risks,
 	};
 }

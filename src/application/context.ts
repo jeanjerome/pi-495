@@ -73,6 +73,15 @@ export const OUTPUT_SCHEMA_EXAMPLES: Record<string, unknown> = {
 		tests_claimed: false,
 		notes: ["what is left undone, or nothing"],
 		contestations: [],
+		tasks: [
+			{
+				task_id: "t-1",
+				status: "done",
+				local_checks: [{ command: "the local check the task names", outcome: "passed" }],
+				deviations: [],
+			},
+		],
+		self_review: [{ aspect: "scope", finding: "what the diff touches against the paths of the tasks" }],
 	},
 	"contestation-finding": {
 		finding: "unfounded",
@@ -118,7 +127,23 @@ export const OUTPUT_SCHEMA_EXAMPLES: Record<string, unknown> = {
 				satisfied_by_reference: false,
 			},
 		],
-		design: { summary: "how it is done", components: ["…"], interfaces: ["…"], risks: ["…"] },
+		design: {
+			summary: "how it is done",
+			components: ["…"],
+			interfaces: ["…"],
+			risks: ["…"],
+			tasks: [
+				{
+					task_id: "t-1",
+					summary: "what this task does",
+					responsibility: "the component that owns it",
+					requirement_ids: ["r-…"],
+					depends_on: [],
+					paths: ["src/…"],
+					checks: ["the local check run while doing it"],
+				},
+			],
+		},
 	},
 	"architecture-map": {
 		parts: [
@@ -265,11 +290,11 @@ function instructionOfRole(role: InterventionRole): string {
 	return role === "review"
 		? "You are a reviewer: you must not modify any file. Report localized findings with expected and observed behaviour."
 		: role === "implement"
-			? 'You are the producer: implement the objective in the workspace. Never modify test files, control definitions or protocol files marked protected; a protected change fails the candidate. When a protected test case contradicts the adopted requirements or an answer of the owner, leave it as it is and name it in "contestations", each with the requirement id, the exact name of the case and what contradicts what: the kernel has it examined apart, and the test stands until then.'
+			? 'You are the producer: implement the objective in the workspace. Never modify test files, control definitions or protocol files marked protected; a protected change fails the candidate. When a protected test case contradicts the adopted requirements or an answer of the owner, leave it as it is and name it in "contestations", each with the requirement id, the exact name of the case and what contradicts what: the kernel has it examined apart, and the test stands until then. Work through the tasks of the adopted design in the order their dependencies give, running the local checks each one names; report in "tasks" the status of each task, each local check with its outcome and where the work departs from the task as planned. Then review your own diff and give in "self_review" one finding for each of scope, responsibilities, types, complexity, dead_code and dependencies. What you report is a declaration: the kernel judges the candidate on the frozen controls, not on your checks.'
 			: role === "prepare"
 				? "You are preparing verification means (tests, fixtures, configuration). You cannot adopt your own proposal."
 				: role === "specify"
-					? 'You clarify and specify: separate facts, reversible assumptions, material questions, out-of-scope items and risks. Do not invent requirements that the request does not support; ask a material question instead. Give each requirement the category that says what a control measures of it, one of: "functional" for the behaviour the code shows; "quality" for complexity, duplication, dead code and style; "coverage" for the code the tests exercise; "mutation" for the mutants the tests kill; "architecture" for the structure and the dependencies between modules. A category the harness does not read leaves the requirement a blind spot. Set satisfied_by_reference to true only for a requirement the project already honours today, such as behaviour a refactoring must preserve; a requirement asking for something the tree does not do yet is false, and the harness will have a failing test written for it first. When the objective carries answered questions, each one marked `to declare` must appear in `answers`: name the mandatory requirements that carry the answer, and set observable to false only when the answer fixes nothing a control could observe — no status, no message, no bound. Saying nothing about such an answer is refused. An answer already declared is carried over for you: keep the requirements named beside it, or declare it again in `answers` if your requirements no longer hold it. Setting observable to false is a proposal, not a decision you make: it dispenses the answer from every requirement only once the change owner closes the question, and until then the change stops for the owner to confirm or refuse it.'
+					? 'You clarify and specify: separate facts, reversible assumptions, material questions, out-of-scope items and risks. Do not invent requirements that the request does not support; ask a material question instead. Give each requirement the category that says what a control measures of it, one of: "functional" for the behaviour the code shows; "quality" for complexity, duplication, dead code and style; "coverage" for the code the tests exercise; "mutation" for the mutants the tests kill; "architecture" for the structure and the dependencies between modules. A category the harness does not read leaves the requirement a blind spot. Set satisfied_by_reference to true only for a requirement the project already honours today, such as behaviour a refactoring must preserve; a requirement asking for something the tree does not do yet is false, and the harness will have a failing test written for it first. When the objective carries answered questions, each one marked `to declare` must appear in `answers`: name the mandatory requirements that carry the answer, and set observable to false only when the answer fixes nothing a control could observe — no status, no message, no bound. Saying nothing about such an answer is refused. An answer already declared is carried over for you: keep the requirements named beside it, or declare it again in `answers` if your requirements no longer hold it. Setting observable to false is a proposal, not a decision you make: it dispenses the answer from every requirement only once the change owner closes the question, and until then the change stops for the owner to confirm or refuse it. Plan the design in "design.tasks": each task with its id, what it does, the component that owns it, the requirements it serves, the tasks it waits for, the paths it writes and the local checks run while doing it. Every mandatory requirement is served by a task, a task waits only for tasks of the plan and no dependency loops back, and no task writes a test or a control file the protocol protects; a reversible local choice is one short task. A summary without tasks does not pass the design gate.'
 					: "You observe the project: distinguish observations from interpretations and list what is missing. Do not execute build or install scripts.";
 }
 

@@ -52,7 +52,23 @@ const SPEC = {
 			satisfied_by_reference: true,
 		},
 	],
-	design: { summary: "touch src/greet.js", components: [], interfaces: [], risks: [] },
+	design: {
+		summary: "touch src/greet.js",
+		components: [],
+		interfaces: [],
+		risks: [],
+		tasks: [
+			{
+				task_id: "T1",
+				summary: "touch src/greet.js",
+				responsibility: "greet",
+				requirement_ids: ["R1"],
+				depends_on: [],
+				paths: ["src/greet.js"],
+				checks: ["node --test"],
+			},
+		],
+	},
 };
 const RIGHT = "export function greet(name) {\n  return `Hello, ${name}`; // tidy\n}\n";
 

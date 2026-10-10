@@ -60,6 +60,8 @@ function escapeRe(s: string): string {
 export interface ProtectedPaths {
 	/** Every path this candidate changed, whatever it is. */
 	changed: string[];
+	/** The changed paths but a prepared or complement file the candidate holds as the kernel wrote it. */
+	produced: string[];
 	/** Changes to a protected path the frozen protocol allows. */
 	allowed: string[];
 	/** Changes to a protected path nothing allows: the producer altered an oracle. */
@@ -93,8 +95,9 @@ export function inInstalledDependencies(path: string, directories: readonly stri
 /**
  * Splits what a candidate changed against the paths the frozen protocol protects (SEC-03, RM-043).
  * Three changes to a protected path are allowed: a prepared file or a file of an adopted complement
- * put back exactly as the kernel wrote it, which the producer did not touch; a file added under a
- * protected directory, which took nothing away from an oracle that already stood, unless the
+ * put back exactly as the kernel wrote it, which the producer did not touch, and which is altered
+ * under any other digest; a file the kernel did not write, added under a protected directory, which
+ * took nothing away from an oracle that already stood, unless the
  * protected directory is itself an installed dependency, where a new file can shadow a package the
  * checks load; and whatever `alsoAllowed` recognizes, which is where a target's own layout
  * conventions are read rather than written into the kernel. A file of an adopted complement that the
@@ -112,10 +115,14 @@ export function protectedPathsChanged(
 ): ProtectedPaths {
 	const entryOf = (path: string) => manifest.entries.find((e) => e.path === path);
 	const changed = manifest.entries.filter((e) => e.baseline_state !== "unchanged").map((e) => e.path);
+	const writtenAt = (path: string) => [...preparedFiles, ...complements].find((f) => f.path === path);
+	const asWritten = changed.filter((p) => {
+		const kept = writtenAt(p);
+		return kept !== undefined && kept.digest === (entryOf(p)?.content_digest ?? null);
+	});
 	const allowed = changed.filter((p) => {
 		const entry = entryOf(p);
-		const kept = [...preparedFiles, ...complements].find((f) => f.path === p);
-		if (kept && kept.digest === (entry?.content_digest ?? null)) return true;
+		if (writtenAt(p)) return asWritten.includes(p);
 		if (
 			entry?.baseline_state === "added" &&
 			protectedPaths.some(
@@ -136,5 +143,5 @@ export function protectedPathsChanged(
 		...changed.filter((p) => protectedPaths.some((pattern) => matchesScope(p, pattern)) && !allowed.includes(p)),
 		...restored,
 	];
-	return { changed, allowed, altered };
+	return { changed, produced: changed.filter((p) => !asWritten.includes(p)), allowed, altered };
 }

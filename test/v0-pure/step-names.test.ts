@@ -95,6 +95,7 @@ function report(): EngineeringReport {
 			statement: `${gate} PASS`,
 			binding: true,
 		})),
+		implementation: null,
 		residual_risks: [],
 	};
 }

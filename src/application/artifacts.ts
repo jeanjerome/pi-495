@@ -17,6 +17,7 @@ import type { SpecificationReport } from "../contracts/v1/reports.ts";
 import type { ChangeEvent } from "../domain/change/events.ts";
 import type { ArtifactKind, ChangeState } from "../domain/change/state.ts";
 import { DomainError } from "../domain/errors.ts";
+import type { ImplementationRecord } from "../domain/implementation-record.ts";
 import type { LedgerPort } from "../ports/ledger.ts";
 import type { ObjectStorePort } from "../ports/object-store.ts";
 import type { PreparationRecord } from "./preparation.ts";
@@ -64,6 +65,14 @@ export async function writeStoredFiles(
 		await writeFile(target, bytes);
 		if (f.mode !== undefined) await chmod(target, Number.parseInt(f.mode, 8));
 	}
+}
+
+/**
+ * Keyed by the attempt and not by the candidate: a candidate id is derived from its content alone, so
+ * another attempt or another change can freeze the same one, and each has a declaration of its own.
+ */
+function implementationId(attemptId: string): string {
+	return `impl_${attemptId}`;
 }
 
 export class ArtifactRepository {
@@ -228,6 +237,29 @@ export class ArtifactRepository {
 			if (report) out.push(report);
 		}
 		return out;
+	}
+
+	/** Keeps what the producer declared of the adopted plan beside the candidate its attempt froze. */
+	async storeImplementation(
+		changeId: string,
+		attemptId: string,
+		record: ImplementationRecord,
+		producerId: string,
+	): Promise<void> {
+		await this.store("candidate", changeId, implementationId(attemptId), record, producerId);
+	}
+
+	/**
+	 * What the producer declared of the plan in the attempt that froze the current candidate; none for a
+	 * candidate frozen without a plan.
+	 */
+	async currentImplementation(state: ChangeState): Promise<ImplementationRecord | null> {
+		const digest = state.candidate?.manifest_digest;
+		const froze = state.attempts.findLast((a) => digest !== undefined && a.candidate?.manifest_digest === digest);
+		if (!froze) return null;
+		const ref = { artifact_id: implementationId(froze.attempt_id), revision: 1 };
+		if (!this.deps.ledger.getArtifact(ref)) return null;
+		return this.read<ImplementationRecord>(ref);
 	}
 
 	/** The preparation the kernel adopted, when one was qualified; never a refused proposal. */

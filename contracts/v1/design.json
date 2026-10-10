@@ -8,9 +8,7 @@
     "interfaces",
     "alternatives",
     "risks",
-    "requirement_ids",
-    "compatible_with_mandate",
-    "executable"
+    "tasks"
   ],
   "properties": {
     "change_id": {
@@ -46,19 +44,63 @@
         "type": "string"
       }
     },
-    "requirement_ids": {
+    "tasks": {
       "type": "array",
       "items": {
-        "type": "string",
-        "minLength": 1,
-        "maxLength": 200
+        "type": "object",
+        "required": [
+          "task_id",
+          "summary",
+          "responsibility",
+          "requirement_ids",
+          "depends_on",
+          "paths",
+          "checks"
+        ],
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "summary": {
+            "type": "string"
+          },
+          "responsibility": {
+            "type": "string",
+            "description": "the component or module that owns what the task changes"
+          },
+          "requirement_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "the requirements this task serves"
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "the task_id of each task that must be done first"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "the paths the task writes: files, or directories ending in /"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "the local checks run while doing the task"
+          }
+        },
+        "additionalProperties": false
       }
-    },
-    "compatible_with_mandate": {
-      "type": "boolean"
-    },
-    "executable": {
-      "type": "boolean"
     }
   },
   "$id": "urn:495:contract:design:1",

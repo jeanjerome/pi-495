@@ -19,6 +19,7 @@ import { DomainError } from "../errors.ts";
 import type { ActivePolicy } from "../policy.ts";
 import { evaluateG5 } from "../gates/g5.ts";
 import { evaluateG2 } from "../gates/g2.ts";
+import { planFindings } from "../gates/g3.ts";
 import { evaluateG4 } from "../gates/g4.ts";
 import { evaluateSurvey } from "../survey.ts";
 import { invalidationFor, type InvalidationCause } from "../invalidation.ts";
@@ -724,15 +725,14 @@ class Ctx {
 		this.requirePhase("design");
 		this.requireNotBlocked();
 		const reasons: string[] = [];
-		if (!c.design.compatible_with_mandate) reasons.push("design is not compatible with the mandate");
-		if (!c.design.executable) reasons.push("design is not executable");
-		if (c.design.requirement_ids.length === 0) reasons.push("design is not linked to any requirement");
-		const known = new Set(this.state.requirement_ids);
-		for (const id of c.design.requirement_ids)
-			if (!known.has(id)) reasons.push(`design references unknown requirement ${id}`);
-		const covered = new Set(c.design.requirement_ids);
-		for (const id of this.state.mandatory_requirement_ids)
-			if (!covered.has(id)) reasons.push(`mandatory requirement ${id} is not addressed by the design`);
+		reasons.push(
+			...planFindings(c.design.tasks, {
+				known: this.state.requirement_ids,
+				mandatory: this.state.mandatory_requirement_ids,
+				allowed_paths: this.state.mandate?.allowed_paths ?? [],
+				protected_paths: this.state.protocol?.protected_paths ?? [],
+			}),
+		);
 		const evaluated = { design: c.design_ref.content_digest, protocol: this.state.protocol?.ref.content_digest ?? "" };
 		if (reasons.length > 0) {
 			this.decideGate("G3", "FAIL", evaluated, reasons, "revise_design");

@@ -79,6 +79,7 @@ function acceptedReport(): EngineeringReport {
 			statement: `${gate} PASS`,
 			binding: true,
 		})),
+		implementation: null,
 		residual_risks: [
 			{
 				code: "controls_are_not_a_proof",

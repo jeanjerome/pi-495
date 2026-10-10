@@ -2556,3 +2556,62 @@ bugs:
       Refuse in `contestationIssues` a case absent from the frozen obligation's cases, and record the failing cases of a
       run so that the reproduction names a case observed failing; with a refusal test at v0.
     status: open
+  - bug_id: BUG-2026-10-10T150000
+    date: "2026-10-10"
+    title: "G3 adopts a plan on its structure alone: no review of the design is run or read before the producer starts"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      G3 (`planFindings`, `src/domain/gates/g3.ts`, called from the G3 handler of `src/domain/change/decide.ts`) checks
+      that each task of the plan is named once, serves adopted requirements, waits only for tasks of the plan, writes
+      neither a protected path nor outside the mandate, that no dependency loops back and that every mandatory
+      requirement is served. Whether the plan is a plausible one is judged by no one before the producer starts: the
+      only reviews the protocol requires (`required_reviews`, `src/application/phases/review.ts`) read the adopted
+      design after the candidate is frozen, and G5 weighs them. Introduced by the branch of the story e38s08, whose
+      task 2 asks G3 to consume the design review when one is required.
+    what_expected: >
+      When the profile requires a review of the design, G3 does not adopt the plan before that review has concluded on
+      the exact design, and a rejection or a blocking finding sends the design back for revision.
+    steps_to_reproduce:
+      - "Configure a profile whose protocol requires a review, and conduct a change whose plan passes the structural checks: G3 passes and the producer starts with no review of the design."
+    root_cause: >
+      Reviews are run only on a frozen candidate; no review role is defined for the design, and G3 reads no review.
+    evidence: >
+      Read at the self-review of e38s08: `planFindings` and the G3 handler take the tasks, the requirements and the
+      paths only; `review.ts` runs after the candidate.
+    risk_level: low
+    follow_ups: >
+      Define a design review the profile can require, run it on the proposed design before G3, and have G3 fail on
+      its rejection or blocking finding, with a refusal test at v0 and a journey test at v2.
+    status: open
+  - bug_id: BUG-2026-10-10T160000
+    date: "2026-10-10"
+    title: "G3 passes a task whose path holds a protected path, so the incompatibility is found by G4 after the production"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      `pathFindings` (`src/domain/gates/g3.ts`) names a task only when one of its paths lies under a protected path
+      (`matchesScope(p, pp)`): the task path is matched against the protected pattern, never the reverse. A task that
+      writes `test/` while only `test/greet.test.js` is protected, or writes `**` under a mandate that allows every
+      path, is adopted, the producer starts, and only G4 refuses the candidate that actually rewrites the protected
+      test. Introduced by the branch of the story e38s08; the choice is deliberate and commented, so that a task
+      working in `src/` around Maven's `src/test/` is not refused for the place it works in.
+    what_expected: >
+      A plan whose task paths can only be honoured by rewriting a protected path is named before any production,
+      without refusing a task path that merely contains a protected directory it does not have to touch.
+    steps_to_reproduce:
+      - "Freeze a protocol protecting `test/greet.test.js` and propose a plan whose task writes `test/`: G3 passes."
+      - "Let the producer rewrite `test/greet.test.js`: G4 refuses the candidate, after the production."
+    root_cause: >
+      A task path is a scope, not a list of files: G3 cannot tell from `test/` alone whether the task will touch the
+      protected file inside it, and refusing every containing scope would refuse `src/` in a Maven project.
+    evidence: >
+      Read at the round-1 review of e38s08: `matchesScope(p, pp)` in `pathFindings` compares the task path to the
+      protected pattern only.
+    risk_level: low
+    follow_ups: >
+      Decide what a containing task path is worth before production (a warning recorded at G3, or a refusal when the
+      task path is exactly a protected directory or `**`), with a v0 test of each side of the line.
+    status: open

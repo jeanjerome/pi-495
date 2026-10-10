@@ -21,6 +21,7 @@ import { DEFAULT_POLICY, type ActivePolicy } from "../../src/domain/policy.ts";
 import type { ChangeEvent } from "../../src/domain/change/events.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { DecisionRequest } from "../../src/contracts/v1/decision.ts";
+import type { DesignTask } from "../../src/contracts/v1/protocol.ts";
 import type { SpecificationReport } from "../../src/contracts/v1/reports.ts";
 import { tuiOrigin } from "./change-fixture.ts";
 import { fixtureTs, initRepo, outputDir, removedAfterEach, tempDir } from "./fixtures.ts";
@@ -62,7 +63,31 @@ export interface TestHarness {
 	progress: string[];
 }
 
+/**
+ * A report whose plan, unless its design names one, is a single task serving every mandatory
+ * requirement: most tests are about something else than the plan G3 examines.
+ */
 export function specReport(over: Partial<SpecificationReport> = {}): SpecificationReport {
+	const report = specReportAsWritten(over);
+	return { ...report, design: { ...report.design, tasks: report.design.tasks ?? oneTaskPlan(report.requirements) } };
+}
+
+/** One task, writing under `src/`, that serves every mandatory requirement of `requirements`. */
+function oneTaskPlan(requirements: SpecificationReport["requirements"]): DesignTask[] {
+	return [
+		{
+			task_id: "T1",
+			summary: "make the change",
+			responsibility: "the module the change touches",
+			requirement_ids: requirements.filter((r) => r.mandatory).map((r) => r.requirement_id),
+			depends_on: [],
+			paths: ["src/"],
+			checks: ["the unit tests"],
+		},
+	];
+}
+
+function specReportAsWritten(over: Partial<SpecificationReport>): SpecificationReport {
 	return {
 		objective: "greet(name) must keep returning 'Hello, <name>'",
 		facts: ["greet exists in src/greet.js"],

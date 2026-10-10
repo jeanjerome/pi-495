@@ -585,6 +585,12 @@ const R = {
 		concerns: { data: "données :", cross_cutting: "préoccupations transverses :", deployment: "déploiement :" },
 		setAside: (statement: string, hint: string) =>
 			`énoncé écarté : « ${statement} », parce que son indice ${hint} ne désigne aucune ligne de la référence`,
+		declared: "Ce que le producteur a déclaré, qui n'est pas un verdict",
+		deviation: "écart déclaré :",
+		selfReview: (aspect: string, finding: string) => `autocontrôle, ${aspect} : ${finding}`,
+		selfReviewMissing: "autocontrôle muet sur :",
+		unplannedTasks: "tâches déclarées hors du plan :",
+		unplannedPaths: "modifié hors de toute tâche du plan, relevé par le noyau :",
 	},
 	en: {
 		title: "report",
@@ -638,6 +644,12 @@ const R = {
 		concerns: { data: "data:", cross_cutting: "cross-cutting concerns:", deployment: "deployment:" },
 		setAside: (statement: string, hint: string) =>
 			`statement set aside: “${statement}”, because its hint ${hint} designates no line of the reference`,
+		declared: "What the producer declared, which is no verdict",
+		deviation: "declared deviation:",
+		selfReview: (aspect: string, finding: string) => `self-review, ${aspect}: ${finding}`,
+		selfReviewMissing: "self-review silent on:",
+		unplannedTasks: "tasks declared outside the plan:",
+		unplannedPaths: "changed outside every task of the plan, as the kernel reads it:",
 	},
 };
 
@@ -808,10 +820,28 @@ export function formatReport(report: EngineeringReport, lang: "fr" | "en" = "fr"
 	if (report.survey) lines.push("", ...surveyLines(report.survey, lang));
 	lines.push("", t.measured, ...measuredLines(report, lang));
 	lines.push("", t.concluded, ...concludedLines(report, lang));
+	if (report.implementation) lines.push("", t.declared, ...declaredLines(report.implementation, lang));
 	lines.push("", t.uncertain);
 	if (report.residual_risks.length === 0) lines.push(`  ${t.none}`);
 	for (const r of report.residual_risks) lines.push(`  · ${r.statement}`);
 	return lines.join("\n");
+}
+
+/** Each task of the plan with its declared status and local checks, the self-review, and what no task planned. */
+function declaredLines(record: NonNullable<EngineeringReport["implementation"]>, lang: "fr" | "en"): string[] {
+	const t = R[lang];
+	const lines: string[] = [];
+	for (const k of record.tasks) {
+		const checks = k.local_checks.map((c) => `${c.command}: ${c.outcome}`).join("; ");
+		lines.push(`  ${k.task_id} ${k.declared_status}${checks ? ` — ${checks}` : ""}`);
+		for (const d of k.deviations) lines.push(`    ${t.deviation} ${d}`);
+	}
+	if (record.unplanned_tasks.length) lines.push(`  ${t.unplannedTasks} ${record.unplanned_tasks.join(", ")}`);
+	for (const f of record.self_review) lines.push(`  ${t.selfReview(f.aspect, f.finding)}`);
+	if (record.self_review_missing.length)
+		lines.push(`  ${t.selfReviewMissing} ${record.self_review_missing.join(", ")}`);
+	if (record.unplanned_paths.length) lines.push(`  ${t.unplannedPaths} ${record.unplanned_paths.join(", ")}`);
+	return lines;
 }
 
 /** A count in thousands or millions, at one decimal, written as the language writes it. */

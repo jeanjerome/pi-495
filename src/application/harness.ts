@@ -911,6 +911,7 @@ export class Harness {
 			survey?.content ?? null,
 			program?.increments.find((i) => i.increment_id === loaded.state.increment_id)?.title,
 			recommendation,
+			await this.artifacts.currentImplementation(loaded.state),
 		);
 	}
 

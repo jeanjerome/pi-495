@@ -5,7 +5,17 @@
 import { Type, type Static, type TSchema } from "typebox";
 import { Closed, type InterventionRole } from "./common.ts";
 import { SEVERITIES } from "./evidence.ts";
-import { ArchitectureMap, ArchitectureRecommendation } from "./protocol.ts";
+import { ArchitectureMap, ArchitectureRecommendation, DesignTask } from "./protocol.ts";
+
+/** What a producer's self-review of its diff names, each in its own finding. */
+export const SELF_REVIEW_ASPECTS = [
+	"scope",
+	"responsibilities",
+	"types",
+	"complexity",
+	"dead_code",
+	"dependencies",
+] as const;
 
 export const ProducerReport = Type.Object(
 	{
@@ -13,6 +23,39 @@ export const ProducerReport = Type.Object(
 		changed_paths: Type.Array(Type.String()),
 		tests_claimed: Type.Boolean({ description: "the producer claims it ran tests; the kernel never trusts this" }),
 		notes: Type.Array(Type.String()),
+		/** Absent from a report written before producers followed a plan, which is still read. */
+		tasks: Type.Optional(
+			Type.Array(
+				Type.Object(
+					{
+						task_id: Type.String({ description: "the task_id of a task of the adopted design" }),
+						status: Type.String({ description: "done, partial or not_started" }),
+						local_checks: Type.Array(
+							Type.Object(
+								{
+									command: Type.String(),
+									outcome: Type.String({ description: "passed, failed or not_run" }),
+								},
+								{ additionalProperties: false },
+							),
+						),
+						deviations: Type.Array(Type.String(), {
+							description: "where the work departs from the task as the design planned it",
+						}),
+					},
+					{ additionalProperties: false },
+				),
+				{
+					description:
+						"the progress of each task of the adopted design and the local checks run for it; a declaration the kernel records, never evidence",
+				},
+			),
+		),
+		self_review: Type.Optional(
+			Type.Array(Type.Object({ aspect: Type.String(), finding: Type.String() }, { additionalProperties: false }), {
+				description: `the self-review of the diff, one finding for each aspect among ${SELF_REVIEW_ASPECTS.join(", ")}; an opinion, never acceptance`,
+			}),
+		),
 		contestations: Type.Optional(
 			Type.Array(
 				Type.Object(
@@ -142,6 +185,13 @@ export const SpecificationReport = Type.Object(
 				components: Type.Array(Type.String()),
 				interfaces: Type.Array(Type.String()),
 				risks: Type.Array(Type.String()),
+				/** Absent from a report written before designs carried a plan, which is still read. */
+				tasks: Type.Optional(
+					Type.Array(DesignTask, {
+						description:
+							"the plan: each mandatory requirement served by a task, each dependency on a task of this plan, no cycle",
+					}),
+				),
 			},
 			{ additionalProperties: false },
 		),
