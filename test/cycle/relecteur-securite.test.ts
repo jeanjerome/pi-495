@@ -44,6 +44,11 @@ describe("the reviewer's prompt on the security section", () => {
 			/Marque son constat du champ `contournement`, qui cite la garantie qu'il contourne\./,
 			"the prompt asks to mark a finding that shows a bypass with the guarantee it gets around",
 		);
+		assert.match(
+			texte,
+			/Une session du cycle qui falsifie dans le dos de l'outil ce qu'il relit — son journal, la configuration git du dépôt, un processus détaché qui écrit après ses vérifications — n'est pas un contournement que la branche expose/,
+			"the prompt keeps outside the attack a session that forges what the tool reads back",
+		);
 		const constat = SCHEMA_RAPPORT.properties.constats.items.properties;
 		assert.ok("contournement" in constat, "the structured output marks a finding that shows a bypass");
 		assert.match(texte, /Le producteur ne change pas son juge\./);

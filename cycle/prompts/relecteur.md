@@ -31,6 +31,13 @@ que la réponse du tour précédent dit corrigé, ou qui a rouvert la story au r
 tant que tu ne l'as pas rejoué sur la tête de la branche : s'il ne passe plus, cite son identifiant
 sous `fermes` ; s'il passe encore, relève-le de nouveau.
 
+Les sessions du cycle tournent sans confinement, en attendant le travailleur confiné de 495 : elles
+peuvent réécrire tout ce que l'outil relit. Une session du cycle qui falsifie dans le dos de l'outil
+ce qu'il relit — son journal, la configuration git du dépôt, un processus détaché qui écrit après ses
+vérifications — n'est pas un contournement que la branche expose : ne le relève pas. Un contournement
+passe par ce que la branche expose : une commande de l'outil, une entrée qu'il lit, la sortie
+structurée d'une session qu'il croit sans la vérifier.
+
 Situe chaque constat : **introduit** par la branche, **rendu atteignable** par elle bien que la
 ligne fautive la précède, ou **antérieur** et sans rapport avec ce qu'elle change. Les entrées déjà
 ouvertes du registre, ci-dessous, ne se comptent pas.
