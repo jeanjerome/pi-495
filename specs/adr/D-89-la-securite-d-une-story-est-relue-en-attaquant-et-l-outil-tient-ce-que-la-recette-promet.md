@@ -83,5 +83,6 @@ Pour fixer la gravité d'un défaut qu'une branche introduit, l'outil doit voir 
 registre. Un découpage du fichier en lignes ne voit que la forme qu'il attend : sur `e39s04`, les relecteurs ont
 inscrit un défaut entre guillemets, en style compact, puis dans un registre réindenté, et chaque garde par expression
 régulière en a appelé une autre. Le cycle lit donc le registre avec le lecteur YAML que Pi installe déjà (`yaml`),
-déclaré en dépendance de développement à la version que Pi utilise. C'est sa deuxième dépendance après Stryker ; il
-n'en ajoute pas d'autre pour lire ses propres fichiers. Arbitrage du propriétaire, 2026-10-10.
+déclaré en dépendance de développement à la version que Pi utilise. Le cycle prend ce que
+Pi installe déjà avant d'écrire quoi que ce soit lui-même : une règle qui l'en empêcherait n'a pas de sens pour
+l'outil d'une extension Pi. Arbitrage du propriétaire, 2026-10-10.

@@ -4,9 +4,9 @@ This directory holds the way a change to 495 is made: the six steps, the review 
 the story format, and the tool that drives them all. It says nothing about the product. What 495 is,
 what it still has to do and what it has proved live in `specs/`.
 
-The cycle depends on two outside packages, both development dependencies of the repository: Stryker,
-which runs the mutation (`D-89`), and the YAML reader Pi already installs, which reads the defect
-registry. On 2026-09-28 it replaced the bigpowers skills and the script that chained them, after
+The cycle takes what Pi already installs before writing anything of its own: the YAML reader Pi
+brings reads the defect registry. Stryker, a development dependency of the repository, runs the
+mutation (`D-89`). On 2026-09-28 it replaced the bigpowers skills and the script that chained them, after
 measurement: a 3,900-line story cost 5 hours of agent time and $88, and the fix cycle for its four
 defects 7 hours and $105, stopped at a cap of five review rounds. More than half of that time went
 to reviewers who replayed mutations by hand and found another corner of the state machine at every
