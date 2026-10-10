@@ -1,0 +1,95 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/mutation.ts",
+    "ligne": 90,
+    "constat": "Stryker tourne avec `inPlace: true`, ce qui fait réécrire le fichier sur place. Si la branche commite sous `src/` un lien symbolique absolu vers un fichier de l'arbre de la branche, Stryker écrit sa version instrumentée à travers le lien. À la fin, il restaure par `rename` : le lien est remplacé dans l'arbre détaché, mais la cible garde le code instrumenté. Le fichier de l'arbre de la branche reste donc modifié après le tour. Sonde jetable : sur main, `src/cible.ts` contient `export const X = 1 + 2;`, et la branche ajoute le lien `src/lien.ts -> <racine>/src/cible.ts`. Après le premier tour, `git status` dans la racine affiche ` M src/cible.ts` et le fichier contient `stryMutAct_9fa48(\"0\") ? 1 - 2 : …`. Le tour se termine `fini`, et l'invite liste `src/lien.ts:1 ArithmeticOperator`.",
+    "contournement": "La mutation tourne dans un arbre détaché de la tête, jamais dans l'arbre de la branche, qu'elle ne modifie pas : la copie réécrite par l'outil de mutation est retirée après le tour."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Les mutants survivants des lignes introduites sont donnés aux relecteurs",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/mutation.ts",
+    "ligne": 49,
+    "constat": "Le code mute bien les lignes d'un fichier ajouté et ne mute que les lignes nouvelles d'un fichier renommé (vérifié par sonde : `src/b.ts:13-13`, `src/neuf.ts:1-1`). Mais le seul test du scénario modifie un fichier qui existe déjà. Si la mutation échoue sur tout fichier ajouté, cas le plus courant d'une ligne introduite, la relecture se rabat sur « n'a pas abouti » et aucun test ne le voit.",
+    "mutation": "`const ancien = etat === \"A\" ? null : …` → `const ancien = false ? null : …` : `git show base:<nouveau>` échoue, et les quatre tests des tâches restent verts."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Les mutants survivants des lignes introduites sont donnés aux relecteurs",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/mutation.ts",
+    "ligne": 117,
+    "constat": "Aucun test ne vérifie que la liste donnée aux relecteurs contient exactement les mutants survivants. Les deux mutations ci-dessous laissent vert le test du scénario. La première retire de l'invite les mutants d'une ligne qu'aucun test des tâches n'exécute, alors qu'ils entrent dans le Given (« une ligne qu'aucun test des tâches ne fait échouer »). La seconde présente comme survivants des mutants que les tests tuent.",
+    "mutation": "Filtre `m.status === \"Survived\" || m.status === \"NoCoverage\"` → `m.status === \"Survived\"`, puis → `m.status !== \"\"` : `test/cycle/relecture-mutation.test.ts` passe dans les deux cas."
+   }
+  ],
+  "resume": "Les trois scénarios sont tenus par le code. Les mutations ont été rejouées sur la tête, puis l'arbre a été remis en état ; les quatre tests des tâches sont verts. La garantie de sécurité est contournée (A1-1, bloquant, introduit) : avec `inPlace: true`, un lien symbolique absolu commité sous `src/` fait réécrire par Stryker un fichier de l'arbre de la branche, qui reste instrumenté après le tour. Sonde jetable : ` M src/cible.ts` dans la racine. Deux trous de test sur le scénario 1 (à corriger). Aucun test ne fait passer la mutation par un fichier ajouté (A1-2). Aucun test ne vérifie que la liste donnée aux relecteurs contient exactement les survivants : on peut retirer les mutants sans couverture ou y ajouter des mutants tués sans qu'un test échoue (A1-3). Pour le scénario 2, j'ai remplacé la raison « budget de temps » par une chaîne vide : le test du dépassement échoue. L'échec du lancement initial est tenu par « failed tests in the initial test run ». Pour le scénario 3, l'absence de contrôle `mutation` au journal et le texte « Aucune ligne n'était à muter » sont tous deux vérifiés. Les autres survivants de la liste touchent la mise en forme de la raison ou des cas que les promesses ne couvrent pas (fichier supprimé, `catch`), et n'appellent pas de constat.",
+  "fermes": []
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — la mutation tourne dans un arbre détaché de la tête, jamais dans l'arbre de la branche, qu'elle ne modifie pas",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/mutation.ts",
+    "ligne": 90,
+    "constat": "Stryker tourne en place (`inPlace: true`) sur chaque chemin introduit, y compris un lien symbolique que la branche commite sous `src/`. Il écrit le code instrumenté à travers le lien, puis restaure en déplaçant sa sauvegarde sur le lien lui-même, pas sur sa cible. Sondé par un test jetable : la branche commite `src/a.ts` et `src/zlink.ts` → lien vers `<racine du dépôt>/src/a.ts`. Après le tour, le `src/a.ts` de l'arbre de la branche contient le code instrumenté par Stryker (`// @ts-nocheck`, `stryNS_9fa48…`), et `git status` dans l'arbre de la branche affiche ` M src/a.ts`. Dans un vrai dépôt, où `node_modules` est un dossier réel, un lien relatif comme `../node_modules/../src/a.ts` atteint aussi l'arbre de la branche, par le `node_modules` lié dans l'arbre détaché.",
+    "contournement": "La mutation tourne dans un arbre détaché de la tête, jamais dans l'arbre de la branche, qu'elle ne modifie pas : la copie réécrite par l'outil de mutation est retirée après le tour."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Les mutants survivants des lignes introduites sont donnés aux relecteurs",
+    "categorie": "bloquant",
+    "placement": "rendu_atteignable",
+    "fichier": "cycle/src/mutation.ts",
+    "ligne": 59,
+    "constat": "`plagesIntroduites` filtre les chemins par `strykerScopeOf`, dont `isScriptUnderTest` écarte tout chemin qui contient un dossier `tests/`. Or `src/adapters/stacks/node/tests/*.ts` et `src/adapters/stacks/maven/tests/*.ts` sont des sources de production. Les lignes qu'une branche y introduit ne sont pas mutées. Si la branche ne touche qu'elles, aucune mutation ne tourne et l'invite affirme à tort « Aucune ligne n'était à muter : la branche n'introduit aucune ligne dans les sources TypeScript de `src/`… hors tests ». Sondé : une branche qui ajoute `src/adapters/stacks/node/tests/clamp.ts` donne cette phrase, et le journal n'a aucune mutation."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Les mutants survivants des lignes introduites sont donnés aux relecteurs",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/mutation.ts",
+    "ligne": 84,
+    "constat": "Aucun test ne vérifie que Stryker exécute les tests que les tâches nomment. Le test lit seulement le champ `tests` du journal, qui vient de `testsDesTaches`, pas de ce que Stryker a réellement lancé. Si la configuration perd `testFiles`, la recherche par défaut de Stryker retrouve, dans l'exemple de test, le seul fichier de test qui existe, et les trois tests restent verts.",
+    "mutation": "`tap: { testFiles: tests }` → `tap: {}` (mutation.ts:84) : les trois tests de la story passent (rejoué à la main, conforme au survivant listé par l'outil)."
+   },
+   {
+    "id": "B1-4",
+    "scenario": "Les mutants survivants des lignes introduites sont donnés aux relecteurs",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/mutation.ts",
+    "ligne": 117,
+    "constat": "Aucun test ne vérifie que l'invite ne nomme que les mutants survivants. Si le filtre sur `Survived`/`NoCoverage` disparaît, l'invite liste aussi les mutants tués, sous la phrase « Aucun de ces tests n'échoue quand une de ces lignes est remplacée ainsi ». Le test n'exige qu'un des deux survivants de son exemple, et n'exige l'absence d'aucun mutant tué.",
+    "mutation": "`.filter((m) => m.status === \"Survived\" || m.status === \"NoCoverage\")` → `.filter((m) => true)` : `relecture-mutation.test.ts` passe (rejoué à la main) ; l'outil donne aussi survivant la suppression du `.filter` (ligne 116)."
+   },
+   {
+    "id": "B1-5",
+    "scenario": "Une branche qui n'introduit aucune ligne de code n'est pas mutée",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/mutation.ts",
+    "ligne": 17,
+    "constat": "Aucun test ne retient trois gardes de `lignesIntroduites`. D'abord, la restriction aux dossiers `src/`, `cycle/src/` et `scripts/` : avec `SOURCES = []`, le diff porte sur tout le dépôt, et un `.ts` hors de ces dossiers serait muté. Ensuite, le saut des fichiers supprimés (ligne 48) : sans lui, `git show` échoue hors du `try` et le tour s'arrête. Enfin, la branche `catch` de `mutation()` (cycle.ts:366), qu'aucun test n'exécute. Les exemples de test ne contiennent aucun de ces cas.",
+    "mutation": "Survivants listés par l'outil : mutation.ts:17 `[]`, mutation.ts:48 `false`, cycle.ts:366 `{}`."
+   }
+  ],
+  "resume": "J'ai trouvé un contournement de la section Sécurité, plus un écart de couverture de la promesse 1 que le code ne tient pas. Si la branche commite sous `src/` un lien symbolique vers un fichier de l'arbre de la branche, Stryker, lancé en place, écrit son code instrumenté à travers le lien ; je l'ai rejoué par un test jetable. Après le tour, le fichier de la branche reste modifié (B1-1). Les lignes introduites dans de vraies sources sous `src/adapters/stacks/*/tests/` ne sont pas mutées, et l'invite dit alors qu'il n'y avait rien à muter (B1-2). Aucun test ne vérifie que Stryker lance bien les tests nommés par les tâches (B1-3), ni que l'invite ne liste que les mutants survivants (B1-4). Le reste est à peser (B1-5). La promesse 2 (mutation en échec ou hors budget) est tenue par le code et par ses tests. Pour « et elles seules », Stryker ne mute que les nœuds entièrement contenus dans une plage, ce que le test vérifie. J'ai rejoué à la main deux survivants listés par l'outil, ce que j'avais d'abord lu comme des écarts entre sa liste et le comportement réel. Les deux s'expliquent par plusieurs mutants du même opérateur sur une même ligne : la liste est correcte. Tous les fichiers de sonde et l'arbre de travail temporaire ont été retirés, et l'arbre de relecture est propre.",
+  "fermes": []
+ }
+]

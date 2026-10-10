@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: a branch that introduces no line of code before the first review round
+    # Subtest: une branche qui ne change que des tests et des stories ne lance aucune mutation et l'invite dit qu'aucune ligne n'était à muter
+    ok 1 - une branche qui ne change que des tests et des stories ne lance aucune mutation et l'invite dit qu'aucune ligne n'était à muter
+      ---
+      duration_ms: 487.752667
+      type: 'test'
+      ...
+    1..1
+ok 1 - a branch that introduces no line of code before the first review round
+  ---
+  duration_ms: 488.244667
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 617.692125

@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the mutation of the lines a branch introduces, before the first review round
+    # Subtest: l'invite du premier tour nomme le mutant survivant d'une ligne introduite, avec son fichier, sa ligne et son remplacement, et aucune ligne hors de la branche n'est mutée
+    ok 1 - l'invite du premier tour nomme le mutant survivant d'une ligne introduite, avec son fichier, sa ligne et son remplacement, et aucune ligne hors de la branche n'est mutée
+      ---
+      duration_ms: 1360.208959
+      type: 'test'
+      ...
+    1..1
+ok 1 - the mutation of the lines a branch introduces, before the first review round
+  ---
+  duration_ms: 1360.698833
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1492.22325

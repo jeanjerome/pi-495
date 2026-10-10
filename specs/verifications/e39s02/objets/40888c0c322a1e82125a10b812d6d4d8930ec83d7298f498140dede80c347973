@@ -1,0 +1,106 @@
+TAP version 13
+# Subtest: a branch that introduces no line of code before the first review round
+    # Subtest: une branche qui ne change que des tests et des stories ne lance aucune mutation et l'invite dit qu'aucune ligne n'était à muter
+    not ok 1 - une branche qui ne change que des tests et des stories ne lance aucune mutation et l'invite dit qu'aucune ligne n'était à muter
+      ---
+      duration_ms: 507.204291
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-xpo3I6/test/cycle/relecture-mutation-vide.test.ts:6:2'
+      failureType: 'testCodeFailure'
+      error: 'A: the prompt says no line was to be mutated'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: |-
+        Tu es le relecteur A, tour 1, de la story e01s05. Tu travailles seul, sans
+        contexte commun avec l'auteur ni avec l'autre relecteur, dans ta copie de l'arbre : le répertoire
+        courant, un arbre détaché à `27898b4b8a3bdf9cf18bd7a969c827ac91eccf6d` avec `node_modules` lié. Le diff relu est
+        `git diff 7b0b3461413be9bbb36298056c1d9dbc10241d04...27898b4b8a3bdf9cf18bd7a969c827ac91eccf6d`. Preflight est verte à cette révision : ne la relance pas, lance
+        seulement les tests que tes sondes et tes mutations demandent.
+        
+        Ce que tu vérifies, et rien d'autre : les promesses de la story et sa section Sécurité, ci-dessous.
+        Pour chaque scénario :
+        
+        1. **Le code le tient-il ?** Lis le chemin que le scénario décrit, et sonde-le au besoin par un test
+           jetable que tu ne commites pas.
+        2. **Un test le tient-il ?** Trouve le test qui assert ce que le `Then` dit, dans les mots de la
+           story. Les mutants que l'outil a vus survivre sur les lignes que la branche introduit sont
+           listés plus bas : pars d'eux. Ailleurs, mute une ligne du code qui tient la promesse (inverse une
+           condition, retire un appel, change une constante) et vérifie que ce test échoue ; remets la ligne.
+           Une promesse qu'aucune mutation ne fait échouer n'est tenue par aucun test.
+        
+        Une promesse que le code ne tient pas est **bloquant**. Une promesse qu'aucun test ne tient est
+        **à corriger**. Tout le reste est **à peser**. Conventions, conception et odeurs reviennent à
+        l'autocontrôle, qui est passé avant : ne les relève pas. Pour les promesses, ne propose ni scénario,
+        ni état, ni entrelacement de ton cru : un chemin qu'aucune promesse ne couvre n'est pas ton sujet.
+        
+        La section Sécurité se relit en attaquant : pour chaque garantie de la section Sécurité, cherche un
+        chemin concret, par les entrées publiques que la branche expose, qui obtient ce que la garantie
+        refuse. Sonde-le par un test jetable que tu ne commites pas. Un chemin trouvé est un contournement :
+        il est **bloquant**, retient la porte quel que soit son placement et ne part jamais au registre.
+        Marque son constat du champ `contournement`, qui cite la garantie qu'il contourne. Un contournement
+        que la réponse du tour précédent dit corrigé, ou qui a rouvert la story au rouge-vert, reste ouvert
+        tant que tu ne l'as pas rejoué sur la tête de la branche : s'il ne passe plus, cite son identifiant
+        sous `fermes` ; s'il passe encore, relève-le de nouveau.
+        
+        Situe chaque constat : **introduit** par la branche, **rendu atteignable** par elle bien que la
+        ligne fautive la précède, ou **antérieur** et sans rapport avec ce qu'elle change. Les entrées déjà
+        ouvertes du registre, ci-dessous, ne se comptent pas.
+        
+        
+        
+        
+        
+        Ta sortie structurée : le verdict (`pass` si aucun constat introduit ou rendu atteignable n'est
+        bloquant ou à corriger, et si aucun constat ne montre un contournement), et chaque constat avec son
+        identifiant `A1-<n>`, le scénario, la catégorie, le placement, le fichier et la
+        ligne, le constat en une ou deux phrases, la mutation essayée quand il y en a une, la garantie
+        contournée sous `contournement` quand il en montre un, et sous `fermes` les contournements dits
+        corrigés que tu as rejoués sans qu'ils passent.
+        
+        ---
+        
+        ## Promesses
+        
+        Scenario: greet shouts
+          Given a name
+          When greet is called
+          Then the greeting is upper case
+        
+        ## Sécurité
+        
+        Sans objet : nothing sensitive.
+        
+        ---
+        
+        Entrées ouvertes du registre :
+        
+        aucune
+        
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-xpo3I6/test/cycle/relecture-mutation-vide.test.ts:17:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - a branch that introduces no line of code before the first review round
+  ---
+  duration_ms: 507.905583
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-xpo3I6/test/cycle/relecture-mutation-vide.test.ts:5:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 647.823625

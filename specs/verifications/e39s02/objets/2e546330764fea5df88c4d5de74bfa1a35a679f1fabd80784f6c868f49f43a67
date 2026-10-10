@@ -1,0 +1,42 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Sécurité",
+    "categorie": "a_corriger",
+    "placement": "rendu_atteignable",
+    "fichier": "cycle/src/controls.ts",
+    "ligne": 163,
+    "constat": "No test checks the half of the guarantee that says the copy Stryker rewrites is removed after the round. The mutation's detached tree is removed only by `retirerArbre` in `executerA`, and with that call gone every test of the mutation and of the controls stays green: the tree stays registered and on disk, and nothing looks at it. This code was already there, but the branch now relies on it for its security guarantee.",
+    "mutation": "`retirerArbre(depot, arbre);` commented out in the `finally` of `executerA` (controls.ts:163): relecture-mutation.test.ts, relecture-mutation-echec.test.ts and controls.test.ts all pass, 10/10."
+   }
+  ],
+  "fermes": [
+   "A1-1",
+   "B1-1"
+  ],
+  "resume": "Both symlink bypasses were replayed on d2f767d0 and no longer get through. A1-1 is replayed by the third test of relecture-mutation.test.ts (`src/lien.ts` → `<racine>/src/calc.ts`, plus `.stryker-tmp` as a link into the tree): `git status` stays empty and calc.ts unchanged. B1-1 was replayed with a throwaway test (`src/a.ts` + `src/zlink.ts` → `<racine>/src/a.ts`): the tree is clean and only `src/a.ts` is mutated. A link is now skipped because its git mode is not that of a regular file. Three mutations each make the tree test fail: dropping that mode filter, dropping the absolute `tempDirName`, and dropping `disableTypeChecks: false`. I also tried a case collision on macOS (regular `src/A.ts` and link `src/a.ts` → the branch's calc.ts): it is not a bypass, because Stryker matches no file and writes nothing. The three scenarios are kept by the code and held by tests. Each of these mutations is killed: dropping the restriction to `src/`, `cycle/src/` and `scripts/`, dropping the early return when there are no ranges, and changing the wording of the time budget. The second test compares the exact list of survivors with the report, so the earlier gaps are closed: an added file, a directory named tests, the test files passed to Stryker, killed mutants left out. One gap remains (A2-1): no test checks that the detached tree of the mutation is removed after the round, which is one half of the security guarantee."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Sécurité : la copie réécrite par l'outil de mutation est retirée après le tour",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/controls.ts",
+    "ligne": 163,
+    "constat": "Aucun test ne vérifie que l'arbre détaché où Stryker réécrit les sources est retiré après le tour. La mutation passe par `executerA`, qui retire cet arbre avec `retirerArbre`. Si on supprime cet appel, l'arbre réécrit reste dans le dossier temporaire et reste inscrit comme worktree. Pourtant les 7 tests de relecture-mutation*, controls.test.ts et toute la suite `npm run test:cycle` (192 tests) restent verts. La ligne date d'avant la branche, mais la garantie appartient à la story, et la branche s'appuie sur cette ligne sans la tester.",
+    "mutation": "Suppression de `retirerArbre(depot, arbre);` dans le `finally` de `executerA` (cycle/src/controls.ts:163) : relecture-mutation*.test.ts 7/7 verts, test:cycle 192/192 verts."
+   }
+  ],
+  "fermes": [
+   "A1-1",
+   "B1-1"
+  ],
+  "resume": "Les trois scénarios sont tenus par le code et par des tests. J'ai appliqué 20 mutations à mutation.ts, à cycle.ts (mutation()) et au lecteur Stryker. Toutes sont tuées sauf deux. Mutations tuées : filtre des modes git, disableTypeChecks, tempDirName, testFiles, filtre Survived/NoCoverage (y compris sans NoCoverage), `() => true`, SOURCES vide, branche catch, rapport dans le journal, RIEN_A_MUTER et retour anticipé, calcul de l'ancien chemin, remplacement, ligne, incident de budget, lecture des ERROR, filtre des fichiers de test. Rejeu de A1-1 et B1-1 sur d2f767d0 : le test « la mutation ne modifie pas l'arbre de la branche » commite `src/lien.ts` → `<racine>/src/calc.ts` et un `.stryker-tmp` lié dans l'arbre. Il passe : arbre de la branche propre, cible intacte, lien non muté. Chacune des trois protections (mode 100644/100755, disableTypeChecks: false, tempDirName hors de l'arbre) est nécessaire, car la retirer fait échouer ce test. Les deux contournements sont donc fermés. Sondes d'attaque supplémentaires, par des tests jetables non commités, sous macOS insensible à la casse. Un fichier ordinaire `src/A.ts` avec un lien `src/a.ts` vers un fichier de la racine : Stryker ne trouve pas `src/A.ts` (le rapport n'a aucun fichier) et la cible reste intacte. Un lien `src/D` avec un fichier `src/d/x.ts` : git remplace le lien par un dossier. Aucun contournement trouvé. Les deux mutations qui survivent : la suppression du rmSync du dossier de configuration, qui ne contient pas la copie réécrite et n'est donc pas relevée, et la suppression du retrait de l'arbre détaché après la mutation. Cette dernière n'est tenue par aucun test, alors que la section Sécurité promet que cette copie est retirée (B2-1, à corriger)."
+ }
+]

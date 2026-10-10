@@ -2,7 +2,7 @@
 
 Story : e39s02
 Epic : e39
-Statut : en cours
+Statut : versée
 
 ## 1. Ce que le lecteur gagne
 

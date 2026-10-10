@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: a mutation that cannot complete before the first review round
+    # Subtest: quand la mutation échoue, le tour a lieu et l'invite dit qu'elle n'a pas abouti et pourquoi
+    ok 1 - quand la mutation échoue, le tour a lieu et l'invite dit qu'elle n'a pas abouti et pourquoi
+      ---
+      duration_ms: 1210.837375
+      type: 'test'
+      ...
+    # Subtest: quand la mutation dépasse son budget de temps, le tour a lieu et l'invite dit qu'elle n'a pas abouti et pourquoi
+    ok 2 - quand la mutation dépasse son budget de temps, le tour a lieu et l'invite dit qu'elle n'a pas abouti et pourquoi
+      ---
+      duration_ms: 570.880792
+      type: 'test'
+      ...
+    1..2
+ok 1 - a mutation that cannot complete before the first review round
+  ---
+  duration_ms: 1782.312708
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1913.22675
