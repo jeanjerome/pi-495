@@ -509,7 +509,7 @@ epics:
       - { id: e38s06, status: "versée", title: "Une exigence ne franchit la qualification que si son propre oracle a été éprouvé" }
       - { id: e38s07, status: "versée", title: "Un test erroné se conteste et se révise sans laisser le producteur changer son juge" }
       - { id: e38s08, status: "versée", title: "La conception relie les propriétés à des tâches vérifiables avant l’implémentation" }
-      - { id: e38s09, status: "à faire", title: "La revue des promesses et la recette réelle alimentent l’acceptation du candidat exact" }
+      - { id: e38s09, status: "versée", title: "La revue des promesses et la recette réelle alimentent l’acceptation du candidat exact" }
       - { id: e38s10, status: "à faire", title: "Un contrôle formel optionnel est qualifié et gelé avec les autres contrôles de pi-495" }
       - { id: e38s11, status: "à faire", title: "Lean vérifie une règle de décision stable et le TypeScript est comparé à cette référence" }
       - { id: e38s12, status: "à faire", title: "Un résultat coûteux est réutilisé seulement quand toutes ses entrées pertinentes sont identiques" }
