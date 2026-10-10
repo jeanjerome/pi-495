@@ -15,6 +15,13 @@ import {
 	estUnRouge,
 	explorationFormelle,
 } from "./controls.ts";
+import {
+	CAMPAGNES,
+	campagneEnCause,
+	campagnesExigees,
+	commandeDeCampagne,
+	controleDeCampagne,
+} from "./campagnes-exigees.ts";
 import { exporterDossier } from "./export.ts";
 import {
 	arbreDetache,
@@ -23,6 +30,7 @@ import {
 	commiter,
 	commitsEntre,
 	estCommitDeTestSeul,
+	fichiersChanges,
 	git,
 	retirerArbre,
 	revision,
@@ -71,6 +79,8 @@ export interface Contexte {
 	preflight: Controle;
 	/** The control that explores the model a manifest pins; `scripts/check-formal.ts` when unset. */
 	exploration?: (manifeste: string) => Controle;
+	/** The command that plays the reference campaign of a technology; `npm run campagne -- <technologie>` when unset. */
+	campagne?: (technologie: string) => string[];
 	claude?: string;
 	/** Each line a session streams, with the session's name, for whoever watches the story run. */
 	suivi?: (nom: string, ligne: string) => void;
@@ -592,6 +602,24 @@ async function pasRelecture(ctx: Contexte): Promise<Issue> {
 
 // --- 5. la recette ----------------------------------------------------------------------------------
 
+/**
+ * Whether the branch touches what 495 executes, from the base the tool recorded when the story's branch started:
+ * a session can move `main` to the head and empty the diff, not that record.
+ */
+function exigeLesCampagnes(ctx: Contexte): boolean {
+	const inscrite = ctx.journal.dernier("branche", "story")?.base;
+	return campagnesExigees(fichiersChanges(ctx.root, typeof inscrite === "string" ? inscrite : base(ctx)));
+}
+
+/** The reference campaigns, played by the tool at the head when the branch touches what 495 executes. */
+async function jouerCampagnes(ctx: Contexte): Promise<void> {
+	if (!exigeLesCampagnes(ctx)) return;
+	const tete = revision(ctx.root);
+	const commande = ctx.campagne ?? commandeDeCampagne;
+	for (const technologie of CAMPAGNES)
+		await controle(ctx, "recette", controleDeCampagne(technologie, commande(technologie)), tete);
+}
+
 async function pasRecette(ctx: Contexte): Promise<Issue> {
 	const events = ctx.journal.depuisReouverture();
 	if (events.some((e) => e.genre === "acceptee")) return FINI;
@@ -601,6 +629,7 @@ async function pasRecette(ctx: Contexte): Promise<Issue> {
 			statut: "proprietaire",
 			question: `${String(preparee.compte_rendu)}\n\nAccepter : \`cycle ${ctx.story.id} accepte [note]\`. Nommer un écart : \`cycle ${ctx.story.id} ecart "<ce qui manque>"\`.`,
 		};
+	await jouerCampagnes(ctx);
 	const s = await session(
 		ctx,
 		"recette",
@@ -676,7 +705,16 @@ export function rouvrir(
 	ctx.journal.inscrire("story", "fini");
 }
 
-export function accepter(ctx: Contexte, note: string): void {
+/**
+ * Records the agreement of the owner or of the arbitration on the code at `code`, the head unless the arbitration
+ * committed the registry alone since. A branch that touches what 495 executes is refused it, naming the campaign at
+ * fault, until both reference campaigns are green at that revision.
+ */
+export function accepter(ctx: Contexte, note: string, code = revision(ctx.root)): void {
+	if (exigeLesCampagnes(ctx)) {
+		const enCause = campagneEnCause(ctx.journal.depuisReouverture(), code);
+		if (enCause) throw new Blocage(`l'accord est refusé : ${enCause}`);
+	}
 	// The owner who lands a story whose review handed them an unkept promise closes that review too.
 	const attente = ctx.journal.lire().at(-1);
 	if (attente?.pas === "relecture" && attente.genre === "proprietaire") ctx.journal.inscrire("relecture", "fini");

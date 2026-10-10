@@ -2,7 +2,7 @@
 
 Story : e39s03
 Epic : e39
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -34,9 +34,12 @@ Scenario: L'accord est refusé sans les deux campagnes vertes à la tête
 
 ## 3. Sécurité
 
-L'accord, qu'il vienne du propriétaire ou de l'arbitrage, ne s'inscrit pas sans les preuves que la story exige : ni
-la session de recette ni l'arbitrage ne peuvent tenir pour jouée une campagne que l'outil n'a pas jouée lui-même à la
-tête. Une campagne ouvre le réseau pour installer ce que sa cible déclare, comme aujourd'hui, et pour rien d'autre.
+L'accord, qu'il vienne du propriétaire ou de l'arbitrage, ne s'inscrit pas sans les preuves que la story exige : ce
+que la session de recette ou l'arbitrage déclare dans sa sortie ne tient jamais lieu d'une campagne que l'outil n'a
+pas jouée lui-même à la tête. Une session qui falsifierait le journal ou la configuration git dans le dos de l'outil
+reste hors de cette garantie, tant que les sessions du cycle tournent sans confinement (`D-89`, précision du
+2026-10-10). Une campagne ouvre le réseau pour installer ce que sa cible déclare, comme aujourd'hui, et pour rien
+d'autre.
 
 ## 4. Tâches
 

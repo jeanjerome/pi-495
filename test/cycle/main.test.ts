@@ -1,11 +1,11 @@
 import { describe, it } from "node:test";
 import { strict as assert } from "node:assert";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 import { brancheCourante } from "../../cycle/src/git.ts";
-import { tempDir, removedAfterEach } from "../helpers/fixtures.ts";
+import { gitCmd, tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 import { NODE, STORY, depotDe } from "../helpers/cycle.ts";
 
 const MAIN = join(import.meta.dirname, "..", "..", "cycle", "src", "main.ts");
@@ -223,6 +223,20 @@ describe("the entry point of the cycle", () => {
 		if (code === "toujours là") enfant.kill("SIGKILL");
 		assert.equal(code, 130);
 		assert.doesNotMatch(sortie, /npm run cycle -- e28s01/);
+	});
+
+	it("refuses the owner's agreement on a branch that touches the executor without its campaigns, naming the campaign, and records none", () => {
+		const b = banc("en cours");
+		gitCmd(b.root, ["checkout", "-q", "-b", "e01s05"]);
+		mkdirSync(join(b.root, "src", "adapters", "execution"), { recursive: true });
+		writeFileSync(join(b.root, "src", "adapters", "execution", "runner.js"), "export const runner = 1;\n");
+		gitCmd(b.root, ["add", "-A"]);
+		gitCmd(b.root, ["commit", "-q", "-m", "feat: the executor changes"]);
+		const r = cycle(["e01s05", "accepte", "vu"], b);
+		assert.equal(r.code, 1);
+		assert.match(r.erreur, /⛔ l'accord est refusé : la campagne npm n'a pas été jouée/);
+		assert.doesNotMatch(r.sortie, /recette acceptée/);
+		assert.equal(existsSync(join(b.racine, "e01s05", "journal.jsonl")), false, "no step runs after the refusal");
 	});
 
 	it("leaves on Ctrl-C while it follows a story from another terminal", async () => {

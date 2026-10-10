@@ -3,7 +3,7 @@
  * carries and what each touched, a detached tree at one commit to replay a red in, and the one
  * squashed commit a branch lands as.
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -29,6 +29,13 @@ export function brancheCourante(cwd: string): string {
 /** The commit the branch forked from `cible` at. */
 export function baseDe(cwd: string, cible: string): string {
 	return git(cwd, ["merge-base", cible, "HEAD"]);
+}
+
+/** Whether `ancetre` is `HEAD` or one of its ancestors. */
+export function estAncetre(cwd: string, ancetre: string): boolean {
+	const r = spawnSync("git", ["merge-base", "--is-ancestor", ancetre, "HEAD"], { cwd, encoding: "utf8" });
+	if (r.status === 0 || r.status === 1) return r.status === 0;
+	throw new Error(`git merge-base --is-ancestor ${ancetre} HEAD failed: ${r.stderr}`, { cause: r.error });
 }
 
 export function arbrePropre(cwd: string): boolean {
@@ -61,9 +68,17 @@ export function estCommitDeTestSeul(commit: Commit): boolean {
 	);
 }
 
+/**
+ * The files the branch changes since `base`; a moved file counts at its source and at its destination. The names are
+ * read NUL-separated and untrimmed, as they are on disk: git quotes a name with a non-ASCII byte, a quote or a tab.
+ */
 export function fichiersChanges(cwd: string, base: string): string[] {
-	const out = git(cwd, ["diff", "--name-only", `${base}...HEAD`]);
-	return out === "" ? [] : out.split("\n");
+	const out = execFileSync("git", ["diff", "--name-only", "-z", "--no-renames", `${base}...HEAD`], {
+		cwd,
+		encoding: "utf8",
+		stdio: ["ignore", "pipe", "pipe"],
+	});
+	return out.split("\0").filter((f) => f !== "");
 }
 
 /** A detached worktree at `sha`, with the repository's `node_modules` linked so the suite can run. */

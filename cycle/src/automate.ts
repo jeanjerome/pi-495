@@ -9,7 +9,7 @@
 import { readFileSync } from "node:fs";
 import { messageOf } from "../../src/domain/errors.ts";
 import { type Contexte, type Issue, Blocage, accepter, rouvrir, session } from "./cycle.ts";
-import { arbrePropre, baseDe, fichiersChanges, git, revision } from "./git.ts";
+import { arbrePropre, baseDe, estAncetre, fichiersChanges, git, revision } from "./git.ts";
 import { invite } from "./invite.ts";
 import type { Pas } from "./journal.ts";
 import type { Constat } from "./relecture.ts";
@@ -92,11 +92,16 @@ async function arbitrer(ctx: Contexte, question: string): Promise<Poursuite> {
 	const sortie = s.sortie as { decision: string; note: string; ecart: string; raisons: string };
 	// The arbitration may record in the registry a defect it finds missing there, and nothing else.
 	if (!arbrePropre(ctx.root)) return arret("the arbitration left the tree modified");
+	// A rewound branch leaves the diff since `avant` empty, and would land a head no campaign was played at.
+	if (!estAncetre(ctx.root, avant)) return arret("the arbitration moved the branch off the head it was given");
 	const autres = fichiersChanges(ctx.root, avant).filter((f) => f !== REGISTRE);
 	if (autres.length > 0) return arret(`the arbitration changed files beyond the registry: ${autres.join(", ")}`);
-	ctx.journal.inscrire("recette", "arbitrage", { ...sortie, origine: "automate" });
+	// Only the fields of the decision: what else the output carries would land in the event, its genre included.
+	const { decision, note, ecart, raisons } = sortie;
+	ctx.journal.inscrire("recette", "arbitrage", { decision, note, ecart, raisons, origine: "automate" });
 	if (sortie.decision === "accepte") {
-		accepter(ctx, `arbitrage automatique : ${sortie.note}`);
+		// The tool checked that the arbitration committed the registry alone: the code it accepts is the one at `avant`.
+		accepter(ctx, `arbitrage automatique : ${sortie.note}`, avant);
 		return CONTINUER;
 	}
 	if (sortie.ecart.trim() === "") return arret("the arbitration names a gap but does not say which");

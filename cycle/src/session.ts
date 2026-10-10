@@ -137,7 +137,8 @@ export async function lancerSession(demande: Demande, journal: Journal): Promise
 
 /**
  * Runs one session named `nom` and records it as a `session` event of `pas`, whatever its outcome:
- * the cost ceiling, the state, the display and the export all read this event.
+ * the cost ceiling, the state, the display and the export all read this event. A session that writes to the journal
+ * fails, and what it wrote there is taken back out.
  */
 export async function sessionInscrite(
 	journal: Journal,
@@ -146,7 +147,8 @@ export async function sessionInscrite(
 	demande: { invite: string; schema: Record<string, unknown>; cwd: string },
 	o: { claude?: string; suivi?: (nom: string, ligne: string) => void },
 ): Promise<Session> {
-	const s = await lancerSession(
+	const releve = journal.releve();
+	const lancee = await lancerSession(
 		{
 			...demande,
 			...(o.claude ? { claude: o.claude } : {}),
@@ -154,6 +156,13 @@ export async function sessionInscrite(
 		},
 		journal,
 	);
+	const s = journal.retirerEcritsEtrangers(releve)
+		? {
+				...lancee,
+				ok: false,
+				resume: "the session wrote to the story's journal, which only the tool writes: its lines were taken back out",
+			}
+		: lancee;
 	journal.inscrire(pas, "session", {
 		nom,
 		ok: s.ok,

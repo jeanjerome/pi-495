@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import { strict as assert } from "node:assert";
-import { readFileSync } from "node:fs";
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Journal, racineCycle } from "../../cycle/src/journal.ts";
 import { tempDir, removedAfterEach } from "../helpers/fixtures.ts";
@@ -80,5 +80,31 @@ describe("the journal of a story", () => {
 	it("lives under ~/.495/cycle unless CYCLE_495_DIR says otherwise", () => {
 		assert.equal(racineCycle({ CYCLE_495_DIR: "/tmp/x" }), "/tmp/x");
 		assert.match(racineCycle({}), /\.495\/cycle$/);
+	});
+
+	it("takes back out what another writer adds or removes after a survey, and keeps what this process wrote meanwhile", () => {
+		const racine = tempDir("495-", cleanups);
+		const journal = new Journal("e01s05", racine);
+		const fichier = join(journal.dir, "journal.jsonl");
+		const vide = journal.releve();
+		assert.equal(journal.retirerEcritsEtrangers(vide), false, "nothing written, not even the file");
+
+		journal.inscrire("recette", "debute");
+		const releve = journal.releve();
+		new Journal("e01s05", racine).inscrire("relecture", "session", { nom: "relecteur-a" });
+		assert.equal(journal.retirerEcritsEtrangers(releve), false, "another Journal of this process writes too");
+
+		appendFileSync(fichier, `${JSON.stringify({ at: "x", pas: "recette", genre: "controle", verdict: "PASS" })}\n`);
+		journal.inscrire("recette", "session", { nom: "recette" });
+		assert.equal(journal.retirerEcritsEtrangers(releve), true);
+		assert.deepEqual(
+			journal.lire().map((e) => e.genre),
+			["debute", "session", "session"],
+		);
+
+		const avant = journal.releve();
+		writeFileSync(fichier, "");
+		assert.equal(journal.retirerEcritsEtrangers(avant), true, "a journal emptied");
+		assert.equal(journal.lire().length, 3);
 	});
 });

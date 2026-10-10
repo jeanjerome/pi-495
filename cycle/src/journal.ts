@@ -7,7 +7,7 @@
  * The dossier lives under `~/.495/cycle/<story>/` while the story runs, and is exported once, at
  * the landing, under `specs/verifications/<story>/`.
  */
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ObjectRef } from "../../src/contracts/v1/common.ts";
@@ -24,6 +24,18 @@ export interface Evenement {
 	genre: string;
 	[detail: string]: unknown;
 }
+
+/** The journal as a session found it: its text, and how many lines this process had written to it then. */
+interface Releve {
+	texte: string;
+	ecrits: number;
+}
+
+/**
+ * The lines this process wrote to each journal file, whatever `Journal` wrote them: two reviewers run at once, and
+ * the tool records the first one's session while the second still runs.
+ */
+const ECRITS = new Map<string, string[]>();
 
 export function racineCycle(env: NodeJS.ProcessEnv = process.env): string {
 	return env.CYCLE_495_DIR ?? join(homedir(), ".495", "cycle");
@@ -47,14 +59,45 @@ export class Journal {
 
 	inscrire(pas: Etape, genre: string, detail: Record<string, unknown> = {}): Evenement {
 		const evenement: Evenement = { at: new Date().toISOString(), pas, genre, ...detail };
-		appendFileSync(this.fichier, `${JSON.stringify(evenement)}\n`);
+		const ligne = `${JSON.stringify(evenement)}\n`;
+		appendFileSync(this.fichier, ligne);
+		this.ecrits().push(ligne);
 		this.observateur?.(evenement);
 		return evenement;
 	}
 
+	/** The journal as it stands before a session, for `retirerEcritsEtrangers` once it ends. */
+	releve(): Releve {
+		return { texte: this.texte(), ecrits: this.ecrits().length };
+	}
+
+	/**
+	 * Puts back the journal as `releve` found it plus the lines this process wrote since, when another writer changed
+	 * it in between, and says whether it had to. Only the tool records a story's events: a session runs with the
+	 * owner's rights, and a line it adds — a campaign said green — would be read as evidence.
+	 */
+	retirerEcritsEtrangers(releve: Releve): boolean {
+		const attendu = releve.texte + this.ecrits().slice(releve.ecrits).join("");
+		if (this.texte() === attendu) return false;
+		writeFileSync(this.fichier, attendu);
+		return true;
+	}
+
+	private texte(): string {
+		return existsSync(this.fichier) ? readFileSync(this.fichier, "utf8") : "";
+	}
+
+	private ecrits(): string[] {
+		let lignes = ECRITS.get(this.fichier);
+		if (!lignes) {
+			lignes = [];
+			ECRITS.set(this.fichier, lignes);
+		}
+		return lignes;
+	}
+
 	lire(): Evenement[] {
-		if (!existsSync(this.fichier)) return [];
-		return readFileSync(this.fichier, "utf8")
+		return this.texte()
 			.split("\n")
 			.filter((l) => l.length > 0)
 			.map((l) => JSON.parse(l) as Evenement);

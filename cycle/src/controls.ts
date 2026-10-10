@@ -21,8 +21,11 @@ import { arbreDetache, retirerArbre, revision } from "./git.ts";
 export interface Controle {
 	id: string;
 	commande: string[];
-	/** Preflight forks workers that talk to it over a socket; a task's test does not. */
-	reseau: "denied" | "loopback";
+	/**
+	 * Preflight forks workers that talk to it over a socket; a task's test does not; a reference campaign installs
+	 * what its target declares and calls its model.
+	 */
+	reseau: "denied" | "loopback" | "allowed";
 	timeout_ms: number;
 }
 

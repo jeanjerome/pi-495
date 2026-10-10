@@ -114,10 +114,16 @@ A story starts on a branch from `main`, on a green Preflight, and comes back to 
    model or a scripted agent declared as such, a campaign carried to its verdict, then the record
    read back from SQLite and the object store. A negative control goes with the green campaign: the
    same setup deprived of what the story adds, and the refusal it produces. A list backed by tests is
-   not an acceptance run. A story that touches `src/application/stacks/`, the controls or the
-   executor adds to its acceptance run the two reference campaigns of `cycle/campagnes/`
-   (`npm run campagne -- npm` and `-- maven`), which were not cut to fit it; they also run before
-   every release. The owner accepts, or names the gap.
+   not an acceptance run. When the branch changes a file under `src/application/stacks/`,
+   `src/adapters/stacks/`, `src/adapters/execution/`, `src/adapters/sandbox/` or `src/domain/gates/`
+   (a technology, a control or the executor; the list lives in `cycle/src/campagnes-exigees.ts`), the
+   tool itself plays the two reference campaigns of `cycle/campagnes/` (`npm run campagne -- npm` and
+   `-- maven`), which were not cut to fit it, at the head of the branch, before the acceptance
+   session, and keeps each verdict in the record with its revision (`D-89`); they also run before
+   every release. The owner accepts, or names the gap. On such a branch the tool refuses the
+   agreement, the owner's or the arbitration's, naming the campaign at fault, while one is missing,
+   failed or played at another revision than the head: a campaign the acceptance session says it
+   played does not count.
 6. **Landing.** The branch reaches `main` as one squashed commit, whose message states the resulting
    behaviour, in English, on one line. The branch is kept: the record cites its commits. The story's
    record is exported under `specs/verifications/<story>/`, the story becomes `versée`, and nothing
@@ -324,7 +330,12 @@ ordinary session.
 What the tool checks itself, without trusting the session: each test-only commit of the pass,
 replayed in a detached tree, fails on a test it reads; each task command passes at the branch head;
 Preflight is green at the cited revision; review stops at two rounds; the branch reaches `main` in
-one commit; the record is exported at landing.
+one commit; both reference campaigns are green at the head the agreement accepts, when the branch
+requires them, which it judges from the base it recorded when the story's branch started; no session
+writes the story's record, and what one adds or removes there while it runs is taken back out and
+blocks its step; the record is exported at landing. A session that forges what the tool reads back
+behind its back — the record, the repository's git configuration, a detached process writing after
+these checks — stays outside them while the sessions run unconfined.
 
 Before the first review round, the tool mutates the lines the branch introduces in the TypeScript
 sources of `src/`, `cycle/src/` and `scripts/`, with Stryker and the test files the tasks' commands

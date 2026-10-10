@@ -17,6 +17,9 @@ Une recette est une exécution réelle, pas une liste adossée à des tests :
 4. Ce qui est feint se déclare : un fournisseur servi localement sous un autre nom, un agent scripté,
    une étape non exercée.
 
+Les deux campagnes de référence (`npm run campagne -- npm` et `-- maven`), quand la branche touche ce
+que 495 exécute, l'outil les a jouées lui-même à cette révision avant toi : ne les rejoue pas.
+
 Ne modifie pas le code ; un écart entre une promesse et ce que tu observes est ton résultat, pas
 quelque chose à corriger ici. Ne pousse rien.
 

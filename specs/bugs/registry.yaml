@@ -2872,6 +2872,152 @@ bugs:
     status: open
   - bug_id: BUG-2026-10-10T230000
     date: "2026-10-10"
+    title: "A reference campaign that fails for a passing cause can only be replayed by sending the story back to the red-green"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      The tool plays the reference campaigns in the acceptance step (`jouerCampagnes`, `cycle/src/cycle.ts`) only
+      when no acceptance run is prepared since the last reopening: once the acceptance session has recorded
+      `preparee`, `pasRecette` returns the owner's question before reaching the campaigns. A campaign that fails for a
+      cause foreign to the branch — the network while its target installs, the model's API — or a head moved after the
+      campaigns ran therefore leaves the agreement refused (`campagneEnCause`, `cycle/src/campagnes-exigees.ts`) with no
+      way to play the campaigns again but `cycle <story> ecart`, which reopens the story to the red-green and runs the
+      review and the acceptance session again. In an unattended run the story stops at the refused arbitration.
+    what_expected: >
+      The owner, or the unattended run, can have the tool play the reference campaigns again at the current head
+      without reopening the story, the agreement still refused until both are green at the revision it accepts.
+    steps_to_reproduce:
+      - "On a branch that changes a file under `src/adapters/execution/`, run the acceptance step with a campaign command that fails for `maven`."
+      - "Run `cycle <story> accepte`: refused, naming the maven campaign."
+      - "Run `cycle <story>` again: the step answers the prepared question and plays no campaign; only `cycle <story> ecart` leads to a new play."
+    root_cause: >
+      `pasRecette` keys the whole acceptance step on the `preparee` event, and the campaigns were placed before the
+      acceptance session within that step; nothing reads a refused or outdated campaign as a reason to play them again.
+    evidence: >
+      Read in `pasRecette` and `jouerCampagnes` (`cycle/src/cycle.ts`) during the self-review of the branch that makes
+      the tool play the campaigns; not run against a real failing campaign.
+    risk_level: low
+    follow_ups: >
+      Decide whether a refused agreement replays the campaigns at the head on the next run of the step, or whether a
+      command of the owner asks for it; either is a new mechanism of the acceptance step, with its own test.
+    status: open
+  - bug_id: BUG-2026-10-10T233000
+    date: "2026-10-10"
+    title: "No test tells a reference campaign played in a detached tree at the head from one played in the working tree"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `jouerCampagnes` (`cycle/src/cycle.ts`) passes the head's revision to `controle`, which then runs the campaign
+      through `executerA` in a detached tree of that revision rather than through `executer` in the working tree. With
+      that argument removed, `recette-campagnes`, `accord-campagnes` and `main.test` stay green: both paths record the
+      head's revision, and on a clean tree the two are equivalent.
+    what_expected: >
+      The story e39s03 promises the campaigns are played by the tool at the head; a test should fail when a campaign
+      runs in the working tree, so that uncommitted changes present when the acceptance run is prepared never stand for
+      the head.
+    steps_to_reproduce:
+      - "Remove the `tete` argument of `controle(ctx, \"recette\", controleDeCampagne(...), tete)` in `jouerCampagnes`."
+      - "Run `node --test test/cycle/recette-campagnes.test.ts test/cycle/accord-campagnes.test.ts`: all pass."
+    root_cause: >
+      The tests run the campaigns on a clean tree, where the working tree and the detached tree of the head hold the
+      same files; nothing makes them differ.
+    evidence: >
+      Introduced by the branch of the story e39s03. Found by mutation in the first review round; the last round leaves
+      it to the registry.
+    risk_level: low
+    follow_ups: >
+      In `recette-campagnes.test.ts`, leave an uncommitted change in the working tree that the campaign command would
+      see (a file it reads, or a fake campaign that fails on it) and assert the campaign is played on the committed head;
+      the mutation removing `tete` must make it fail.
+    status: open
+  - bug_id: BUG-2026-10-10T234000
+    date: "2026-10-10"
+    title: "The story e39s03 cites a precision of D-89 that the decision record does not carry"
+    severity: low
+    priority: p3
+    scope: specs
+    what_happened: >
+      The security section of `specs/stories/e39/e39s03-l-accord-exige-les-campagnes-de-reference.md` leaves out a
+      session forging the journal or the git configuration behind the tool's back while the cycle's sessions run
+      unconfined, and cites for it "`D-89`, précision du 2026-10-10". `specs/adr/D-89-…md` holds no such text: nothing
+      under `specs/adr/` records that the attack of a security section leaves out a session forging what the tool reads
+      back. The narrowing is carried only by the story, the reviewer prompt (`cycle/prompts/relecteur.md`) and the cycle
+      README, changed by hand by the owner.
+    what_expected: >
+      A product decision is written in its record: the precision the story cites is stated in `D-89`, or the story cites
+      the record that does carry it.
+    steps_to_reproduce:
+      - "Read section 3 of the story e39s03: it cites a precision of `D-89` dated 2026-10-10."
+      - "Run `grep -n -i 'falsif\\|forg\\|confinement' specs/adr/D-89-*.md`: no match."
+    root_cause: >
+      The owner narrowed the security attack between two launches of the review by editing the reviewer prompt and the
+      story; the decision record was not amended in the same change.
+    evidence: >
+      Introduced by the branch of the story e39s03. Found by a reviewer of its first review round; the last round leaves
+      it to the registry. A product decision is written by hand by the owner, so the session does not amend `D-89` itself.
+    risk_level: low
+    follow_ups: >
+      Add to `D-89` the precision that a session forging the journal, the git configuration or a later write behind the
+      tool's back stays outside the guarantees of a security section while the cycle's sessions run unconfined.
+    status: open
+  - bug_id: BUG-2026-10-10T235000
+    date: "2026-10-10"
+    title: "The acceptance step plays both reference campaigns again at a head they already ran at, after its session fails or blocks"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `pasRecette` (`cycle/src/cycle.ts`) calls `jouerCampagnes` every time it runs without a `preparee` event since the
+      last reopening. When the acceptance session fails, blocks, or writes to the journal, the next run of the step plays
+      `npm run campagne -- npm` and `-- maven` again, each under a budget of an hour, even when the head has not moved
+      and the journal already holds their verdicts at that revision.
+    what_expected: >
+      A campaign whose verdict the journal holds at the current head is not played again by the same step, as Preflight
+      is not run again on a content it found green.
+    steps_to_reproduce:
+      - "On a branch that changes a file under `src/adapters/execution/`, run the acceptance step with an acceptance session that returns `bloque`."
+      - "Run `cycle <story>` again without committing: the fake campaign's log shows npm and maven launched twice at the same revision."
+    root_cause: >
+      `jouerCampagnes` reads nothing of the journal before playing: it decides only from the files the branch changes.
+    evidence: >
+      Read in `pasRecette` and `jouerCampagnes` during the self-review of the branch that makes the tool play the
+      campaigns; not run.
+    risk_level: low
+    follow_ups: >
+      Decide whether `jouerCampagnes` skips a campaign the journal shows played at the head since the last reopening;
+      it is a new rule of the step, with its own test.
+    status: open
+  - bug_id: BUG-2026-10-10T236000
+    date: "2026-10-10"
+    title: "No test tells the latest verdict of a reference campaign played twice at the head from the first one"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `campagneEnCause` (`cycle/src/campagnes-exigees.ts`) reads the last record of each campaign with `findLast`. With
+      `findLast` replaced by `find`, `recette-campagnes` and `accord-campagnes` stay green (9 pass, 0 fail): no test
+      records a campaign twice, so reading the first record and reading the last one never differ.
+    what_expected: >
+      The story e39s03 refuses the agreement unless both campaigns are green at the head; when a campaign is played twice
+      at the same head, a test should fail if the agreement is decided on the earlier verdict rather than the latest.
+    steps_to_reproduce:
+      - "Replace `evenements.findLast(` with `evenements.find(` in `campagneEnCause`."
+      - "Run `node --test test/cycle/recette-campagnes.test.ts test/cycle/accord-campagnes.test.ts`: all pass."
+    root_cause: >
+      The tests record each campaign once per scenario; none holds a FAIL followed by a PASS, or a PASS followed by a
+      FAIL, of the same campaign at the same revision.
+    evidence: >
+      Introduced by the branch of the story e39s03. Found by mutation in the first review round; the mutant was run again
+      on the branch and survives; the last round leaves it to the registry.
+    risk_level: low
+    follow_ups: >
+      In `accord-campagnes.test.ts`, journal a campaign FAIL then PASS at the head and assert the agreement is accepted,
+      and PASS then FAIL and assert it is refused; the mutation `findLast` → `find` must make one of them fail.
+    status: open
+  - bug_id: BUG-2026-10-10T231500
+    date: "2026-10-10"
     title: "An unconfined cycle session can forge what the cycle tool reads back, its journal or the repository's git configuration, so no check of the tool holds against a session that cheats"
     severity: medium
     priority: p2

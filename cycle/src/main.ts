@@ -164,6 +164,30 @@ const USAGE =
 	"usage: cycle suite | cycle defauts [gravité] | cycle reprises | cycle <story> [etat | suivre | auto | accepte [note] | ecart <texte>]";
 const COMMANDES = ["etat", "suivre", "auto", "accepte", "ecart"];
 
+/**
+ * Records the owner's verdict on the acceptance run that `commande` carries — the agreement, or the gap that sends the
+ * story back to the red-green — and returns the exit code to stop with when it cannot be recorded.
+ */
+function inscrireVerdict(ctx: Contexte, id: string, commande: string | undefined, reste: string[]): number | undefined {
+	if (commande === "accepte") {
+		try {
+			accepter(ctx, reste.join(" "));
+		} catch (e) {
+			console.error(`⛔ ${messageOf(e)}`);
+			return 1;
+		}
+		console.log(`${id} : recette acceptée.`);
+	} else if (commande === "ecart") {
+		if (reste.length === 0) {
+			console.error("cycle <story> ecart <ce qui manque>");
+			return 2;
+		}
+		rouvrir(ctx, reste.join(" "));
+		console.log(`${id} : rouverte au rouge-vert.`);
+	}
+	return undefined;
+}
+
 async function main(argv: string[]): Promise<number> {
 	const [id, commande, ...reste] = argv;
 	if (!id) {
@@ -196,17 +220,8 @@ async function main(argv: string[]): Promise<number> {
 		return 0;
 	}
 	if (commande === "suivre") return await suivre(direct, id);
-	if (commande === "accepte") {
-		accepter(ctx, reste.join(" "));
-		console.log(`${id} : recette acceptée.`);
-	} else if (commande === "ecart") {
-		if (reste.length === 0) {
-			console.error("cycle <story> ecart <ce qui manque>");
-			return 2;
-		}
-		rouvrir(ctx, reste.join(" "));
-		console.log(`${id} : rouverte au rouge-vert.`);
-	}
+	const refus = inscrireVerdict(ctx, id, commande, reste);
+	if (refus !== undefined) return refus;
 	const code = await derouler(ctx, id, commande === "auto");
 	// The suite marks the plan itself after each story it drives; a story driven alone is marked here.
 	if (code === 0 && ctx.journal.prochainPas() === null && marquerStoryListee(ctx.root, id)) {
