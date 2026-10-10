@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "story": "e39s03",
+  "promesses": [
+    {
+      "id": "P1",
+      "scenario": "Les campagnes sont jouées par l'outil quand la branche touche ce que 495 exécute",
+      "categorie": "nouveau-comportement",
+      "observation": "les verdicts des deux campagnes au journal, avec leur révision",
+      "oracles": [
+        {
+          "tache": 1,
+          "cas": "test/cycle/recette-campagnes.test.ts",
+          "assertion": "une branche qui touche l'exécuteur fait jouer les deux campagnes à la tête et le journal garde leurs verdicts, une branche de documentation n'en joue aucune"
+        }
+      ],
+      "dependances": [],
+      "interactions": [
+        { "genre": "effet-externe", "description": "une campagne lance un vrai Pi et un vrai modèle, et ouvre le réseau pour installer sa cible" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "une branche par famille de chemins, avec une campagne factice" },
+        { "moyen": "proprietes", "retenu": false, "raison": "la liste des chemins est fermée et écrite en un endroit" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "une étape de la recette, sans entrelacement" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P2",
+      "scenario": "Une branche qui ne touche pas ce que 495 exécute ne joue aucune campagne",
+      "categorie": "comportement-conserve",
+      "observation": "l'absence de campagne au journal et l'accord inscrit",
+      "oracles": [
+        {
+          "tache": 1,
+          "cas": "test/cycle/recette-campagnes.test.ts",
+          "assertion": "une branche qui touche l'exécuteur fait jouer les deux campagnes à la tête et le journal garde leurs verdicts, une branche de documentation n'en joue aucune"
+        }
+      ],
+      "dependances": ["P1"],
+      "interactions": [],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "une branche de documentation montre l'absence de campagne" },
+        { "moyen": "proprietes", "retenu": false, "raison": "aucune entrée à faire varier" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "aucun état" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P3",
+      "scenario": "L'accord est refusé sans les deux campagnes vertes à la tête",
+      "categorie": "nouveau-comportement",
+      "observation": "le refus de l'accord qui nomme la campagne en cause",
+      "oracles": [
+        {
+          "tache": 2,
+          "cas": "test/cycle/accord-campagnes.test.ts",
+          "assertion": "l'accord du propriétaire et celui de l'arbitrage sont refusés quand une campagne exigée manque, échoue ou date d'une autre révision"
+        }
+      ],
+      "dependances": ["P1"],
+      "interactions": [
+        { "genre": "revision", "description": "une campagne jouée avant un nouveau commit date d'une autre révision que la tête" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "trois cas, manquante, en échec et périmée, pour deux sources d'accord" },
+        { "moyen": "proprietes", "retenu": false, "raison": "six combinaisons écrites en cas" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "l'accord est un seul événement jugé sur le journal" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision au-delà de ces cas" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "story": "e39s04",
+  "promesses": [
+    {
+      "id": "P1",
+      "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+      "categorie": "nouveau-comportement",
+      "observation": "la gravité du registre et les deux gravités au journal après l'arbitrage",
+      "oracles": [
+        {
+          "tache": 1,
+          "cas": "test/cycle/arbitrage-gravite.test.ts",
+          "assertion": "la gravité que l'arbitrage retient pour un défaut de la branche est celle du registre et du journal, et un défaut sans gravité retenue arrête la story"
+        }
+      ],
+      "dependances": [],
+      "interactions": [
+        { "genre": "ordre-des-evenements", "description": "la branche inscrit le défaut avant que l'arbitrage décide" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "un défaut faible relevé à moyen par l'arbitrage montre le registre et le journal" },
+        { "moyen": "proprietes", "retenu": false, "raison": "quatre gravités, écrites en cas" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "un seul arbitrage par recette" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P2",
+      "scenario": "Un arbitrage qui ne se prononce pas sur un défaut de la branche arrête la story",
+      "categorie": "nouveau-comportement",
+      "observation": "l'arrêt qui nomme le défaut sans gravité retenue, sans accord inscrit",
+      "oracles": [
+        {
+          "tache": 1,
+          "cas": "test/cycle/arbitrage-gravite.test.ts",
+          "assertion": "la gravité que l'arbitrage retient pour un défaut de la branche est celle du registre et du journal, et un défaut sans gravité retenue arrête la story"
+        }
+      ],
+      "dependances": ["P1"],
+      "interactions": [],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "deux défauts dont un seul jugé montrent l'arrêt" },
+        { "moyen": "proprietes", "retenu": false, "raison": "aucune entrée à faire varier au-delà du cas" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "aucun état" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P3",
+      "scenario": "Le propriétaire voit la gravité des défauts de la branche avant d'accepter",
+      "categorie": "nouveau-comportement",
+      "observation": "le texte de la question de la recette",
+      "oracles": [
+        {
+          "tache": 2,
+          "cas": "test/cycle/recette-gravite.test.ts",
+          "assertion": "la question de la recette nomme chaque défaut que la branche inscrit au registre, avec sa gravité"
+        }
+      ],
+      "dependances": [],
+      "interactions": [],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "une branche qui inscrit un défaut montre la question" },
+        { "moyen": "proprietes", "retenu": false, "raison": "aucune entrée à faire varier" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "aucun état" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P4",
+      "scenario": "La dernière story d'une epic conduite seule lance la phase des défauts moyens",
+      "categorie": "nouveau-comportement",
+      "observation": "la correction des défauts moyens lancée après le versement de la dernière story",
+      "oracles": [
+        {
+          "tache": 3,
+          "cas": "test/cycle/auto-fin-d-epic.test.ts",
+          "assertion": "verser en auto la dernière story d'une epic lance la correction des défauts moyens, verser une autre story ne la lance pas"
+        }
+      ],
+      "dependances": [],
+      "interactions": [
+        { "genre": "ordre-des-evenements", "description": "la phase suit le marquage de la story au plan, qui fait de l'epic une epic terminée" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "une epic à deux stories montre la phase après la seconde et pas après la première" },
+        { "moyen": "proprietes", "retenu": false, "raison": "deux cas, dernière ou non, écrits" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "le plan est lu après le marquage, sans entrelacement" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    }
+  ]
+}

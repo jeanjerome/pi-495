@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "story": "e39s01",
+  "promesses": [
+    {
+      "id": "P1",
+      "scenario": "Le relecteur cherche un contournement de chaque garantie de la section Sécurité",
+      "categorie": "nouveau-comportement",
+      "observation": "le texte de l'invite d'un relecteur",
+      "oracles": [
+        {
+          "tache": 1,
+          "cas": "test/cycle/relecteur-securite.test.ts",
+          "assertion": "l'invite du relecteur demande un contournement de chaque garantie de la section Sécurité et garde l'interdit pour les promesses"
+        }
+      ],
+      "dependances": [],
+      "interactions": [],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "l'invite rendue pour une story donnée montre la consigne" },
+        { "moyen": "proprietes", "retenu": false, "raison": "un texte d'invite n'a pas d'entrée à faire varier" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "aucun état ni ordre d'événements" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P2",
+      "scenario": "Un contournement retient la porte quel que soit son placement",
+      "categorie": "nouveau-comportement",
+      "observation": "la porte et la destination des constats d'un tour trié",
+      "oracles": [
+        {
+          "tache": 2,
+          "cas": "test/cycle/relecture-contournement.test.ts",
+          "assertion": "un contournement placé avant la branche retient la porte et va à la réponse, pas au registre"
+        }
+      ],
+      "dependances": [],
+      "interactions": [],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "trois placements et deux catégories se couvrent par des cas" },
+        { "moyen": "proprietes", "retenu": false, "raison": "les combinaisons de placement et de catégorie sont six, toutes écrites" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "le tri d'un tour est une fonction sans état" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "une règle de tri de six cas se tient par exemples" }
+      ]
+    },
+    {
+      "id": "P3",
+      "scenario": "Un contournement que le dernier tour laisse ne part jamais au registre",
+      "categorie": "nouveau-comportement",
+      "observation": "ce que la clôture de la relecture rend au propriétaire et au registre",
+      "oracles": [
+        {
+          "tache": 3,
+          "cas": "test/cycle/relecture-dernier-tour.test.ts",
+          "assertion": "après le dernier tour, un contournement classé à corriger va au propriétaire et non au registre"
+        }
+      ],
+      "dependances": ["P2"],
+      "interactions": [
+        { "genre": "ordre-des-evenements", "description": "le contournement arrive au dernier tour, après lequel aucun tour ne suit" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "un dernier tour avec un contournement montre la destination" },
+        { "moyen": "proprietes", "retenu": false, "raison": "aucune entrée à faire varier au-delà des cas écrits" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "deux tours au plus, sans entrelacement" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    }
+  ]
+}

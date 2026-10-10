@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "story": "e39s02",
+  "promesses": [
+    {
+      "id": "P1",
+      "scenario": "Les mutants survivants des lignes introduites sont donnés aux relecteurs",
+      "categorie": "nouveau-comportement",
+      "observation": "l'invite du premier tour et le rapport de mutation gardé au journal",
+      "oracles": [
+        {
+          "tache": 1,
+          "cas": "test/cycle/relecture-mutation.test.ts",
+          "assertion": "l'invite du premier tour nomme le mutant survivant d'une ligne introduite, avec son fichier, sa ligne et son remplacement, et aucune ligne hors de la branche n'est mutée"
+        }
+      ],
+      "dependances": [],
+      "interactions": [
+        { "genre": "effet-externe", "description": "Stryker écrit sa copie réécrite sous l'arbre détaché, jamais dans l'arbre de la branche" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "une branche témoin avec une garde non testée montre le survivant" },
+        { "moyen": "proprietes", "retenu": false, "raison": "les plages de lignes se tiennent par des cas ; la mutation elle-même est l'outil" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "une étape linéaire avant le premier tour" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P2",
+      "scenario": "Une mutation qui ne peut pas aboutir n'arrête pas la relecture et le dit",
+      "categorie": "nouveau-comportement",
+      "observation": "l'invite du premier tour quand la mutation échoue",
+      "oracles": [
+        {
+          "tache": 2,
+          "cas": "test/cycle/relecture-mutation-echec.test.ts",
+          "assertion": "quand la mutation échoue, le tour a lieu et l'invite dit qu'elle n'a pas abouti et pourquoi"
+        }
+      ],
+      "dependances": ["P1"],
+      "interactions": [
+        { "genre": "effet-externe", "description": "l'outil de mutation peut échouer ou dépasser son budget" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "un échec provoqué montre le tour et le message" },
+        { "moyen": "proprietes", "retenu": false, "raison": "deux issues, échec et dépassement, écrites en cas" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "aucun entrelacement" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P3",
+      "scenario": "Une branche qui n'introduit aucune ligne de code n'est pas mutée",
+      "categorie": "nouveau-comportement",
+      "observation": "l'invite du premier tour d'une branche sans code",
+      "oracles": [
+        {
+          "tache": 3,
+          "cas": "test/cycle/relecture-mutation-vide.test.ts",
+          "assertion": "une branche qui ne change que des tests et des stories ne lance aucune mutation et l'invite dit qu'aucune ligne n'était à muter"
+        }
+      ],
+      "dependances": ["P1"],
+      "interactions": [],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "une branche de tests et de stories montre l'absence de mutation" },
+        { "moyen": "proprietes", "retenu": false, "raison": "aucune entrée à faire varier" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "aucun état" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    }
+  ]
+}
