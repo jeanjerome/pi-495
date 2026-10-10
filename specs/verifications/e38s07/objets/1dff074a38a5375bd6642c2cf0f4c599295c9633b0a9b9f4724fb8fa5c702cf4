@@ -1,0 +1,33 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Tour 2, relecteur A, sur 6c9a3f98...f7d8d3e9. Les corrections du tour 1 tiennent toutes, chacune retenue par son propre test ; chaque mutation a été remise et l'arbre est propre.\n\n- A1-2, filtre par protocole dans onCandidate : le retirer fait échouer « le constat d'une contestation de P1 ne fait plus réviser la préparation sous P2, même sur un candidat identique ».\n- A1-3, identité du protocole dans G5 : réduire la condition de g5.ts à la seule révision fait échouer le nouveau test de change-rules-gates sur un protocole remplacé à la même révision.\n- A1-5, autorité du noyau sur contestation.conclude : retirer requireKernelAuthority fait échouer le test v0 de la contestation infondée, qui exige maintenant le refus sous AGENT.\n- A1-4 et B1-1, condition passed_cases de la reproduction : la retirer fait échouer le test qui refuse chaque identité seule, cas passé dans l'exécution citée compris.\n- A1-1, réponses IH-04 : faire révoquer les IH-04 par la révision de préparation fait échouer « une revue de modèle qui fait réviser la préparation ne révoque aucune réponse du propriétaire sur le besoin ».\n- B1-2 est consigné au registre (BUG-2026-10-10T090000) et ne se recompte pas.\n\nLes promesses mêmes restent tenues et testées :\n- Scénario 1 : passer l'examinateur au rôle implement fait échouer 7 tests v2.\n- Scénario 2 : faire réviser la préparation sur un constat unfounded fait échouer le test v2 de la contestation infondée.\n- Scénario 3 : laisser valides les décisions du candidat à la révision de préparation fait échouer « une décision liée à P1 ne contribue plus à l'acceptation sous P2 et reste consultable ».\n\nAucun nouveau constat bloquant ni à corriger."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Le producteur signale sans modifier les tests protégés",
+    "categorie": "a_peser",
+    "placement": "rendu_atteignable",
+    "fichier": "src/contracts/v1/reports.ts",
+    "ligne": 261,
+    "constat": "No test holds that the examiner of a contestation runs without write rights. The code keeps the examiner read-only today: the review role has no write or edit tool, and profileFor gives it no write path. The branch runs this intervention in the frozen candidate's workspace (src/application/phases/contestation.ts:140-142), but the only test on the examiner checks that its role is `review`, not what that role is allowed to do. The producer side of the promise is held: the protocol and protected paths stay unchanged, and G4 fails a candidate that rewrites the contested test.",
+    "mutation": "TOOLS_FOR_ROLE.review += \"write\", \"edit\" and, separately, `const writes = role === \"implement\" || role === \"prepare\" || role === \"review\"` in src/application/intervention.ts:271. With both mutations together, v0 to v3 stay green (1243 tests on v0–v2, 129 on v3)."
+   },
+   {
+    "id": "B2-2",
+    "scenario": "Le producteur signale sans modifier les tests protégés",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/change/contestation.ts",
+    "ligne": 45,
+    "constat": "Round 2 added a test that refuses a contestation on each identity separately. Three checks on the cited run still survive it: that the run's control is the one the contestation names, that its subject is the contested candidate, and that it ran under the contested protocol. A contestation citing a run of another control, candidate or protocol than the one it claims would be kept. No path through the application reaches this case, because reproductionOf always builds a consistent pair. The Then concerns only the reproducible contestation, which stays held.",
+    "mutation": "Replacing `run.control_id === f.reproduction.control_id`, `run.subject_digest === f.candidate_digest` or `ranUnderProtocol(run, f.protocol)` with `true`, one at a time, leaves all 35 contestation, G5 and revision tests green."
+   }
+  ],
+  "resume": "The code keeps all three promises, and a test holds each line that keeps them. Every round-1 finding is now held by a test: reverting the protocol filter in onCandidate makes the new P2 test fail on an identical candidate (A1-2). Removing passed_cases, the FAIL verdict, the protocol, the candidate, the control or the producer from the admission checks makes the per-identity refusal test fail (A1-4, B1-1). Removing requireKernelAuthority from conclude makes the unfounded-contestation test fail (A1-5). Having the preparation revision also revoke IH-04 makes the new owner-answer test fail (A1-1, B1-3). Removing protocol_id from ranUnderProtocol, or reducing G5 to a revision-only check, makes the new G5 test fail (A1-3). I also mutated the promise paths themselves: the examination run as implement, examineContestations skipped, no revision on test_correction, no note on unfounded, the preparation revision no longer invalidating P1 evidence, and the P1 decisions not revoked. Each mutation makes at least one test fail. Two findings remain, both to weigh (a_peser). First, no test holds that the examiner is read-only: the code holds it through the review role, which predates the branch. Second, three consistency checks on the cited run survive the per-identity test, and no path through the application reaches them. The tree is clean: every mutation was put back."
+ }
+]

@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: the examination of a contested frozen test
+    # Subtest: le signalement seul ne rouvre pas les tests et l’examen épuisé s’arrête avec une issue explicite
+    ok 1 - le signalement seul ne rouvre pas les tests et l’examen épuisé s’arrête avec une issue explicite
+      ---
+      duration_ms: 765.363833
+      type: 'test'
+      ...
+    # Subtest: une contestation jugée infondée laisse protocole et tests identiques et renvoie à la correction du code
+    ok 2 - une contestation jugée infondée laisse protocole et tests identiques et renvoie à la correction du code
+      ---
+      duration_ms: 873.548042
+      type: 'test'
+      ...
+    # Subtest: l’examinateur reçoit le cas contesté, l’exigence qu’il vérifie et l’objection du producteur
+    ok 3 - l’examinateur reçoit le cas contesté, l’exigence qu’il vérifie et l’objection du producteur
+      ---
+      duration_ms: 862.802625
+      type: 'test'
+      ...
+    1..3
+ok 1 - the examination of a contested frozen test
+  ---
+  duration_ms: 2502.377958
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2768.985875

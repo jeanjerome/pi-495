@@ -2,7 +2,7 @@
 
 Story : e38s07
 Epic : e38
-Statut : en cours
+Statut : versée
 
 Surface : pi-495 — reprise de préparation et invalidation
 Dépendances : e38s06

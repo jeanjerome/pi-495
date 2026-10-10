@@ -1,0 +1,93 @@
+TAP version 13
+# Subtest: a revision obtained by a contestation
+    # Subtest: P2 doit être requalifié et une preuve P1 reçue après reprise reste inapplicable
+    ok 1 - P2 doit être requalifié et une preuve P1 reçue après reprise reste inapplicable
+      ---
+      duration_ms: 15.2605
+      type: 'test'
+      ...
+    # Subtest: une décision liée à P1 ne contribue plus à l’acceptation sous P2 et reste consultable
+    ok 2 - une décision liée à P1 ne contribue plus à l’acceptation sous P2 et reste consultable
+      ---
+      duration_ms: 0.98475
+      type: 'test'
+      ...
+    # Subtest: une revue de modèle qui fait réviser la préparation ne révoque aucune réponse du propriétaire sur le besoin
+    ok 3 - une revue de modèle qui fait réviser la préparation ne révoque aucune réponse du propriétaire sur le besoin
+      ---
+      duration_ms: 0.593
+      type: 'test'
+      ...
+    # Subtest: une contestation fondée fait écrire de nouveau la préparation, qualifier et geler P2, et les preuves de P1 cessent de compter
+    ok 4 - une contestation fondée fait écrire de nouveau la préparation, qualifier et geler P2, et les preuves de P1 cessent de compter
+      ---
+      duration_ms: 1126.41375
+      type: 'test'
+      ...
+    # Subtest: le constat d'une contestation de P1 ne fait plus réviser la préparation sous P2, même sur un candidat identique
+    ok 5 - le constat d'une contestation de P1 ne fait plus réviser la préparation sous P2, même sur un candidat identique
+      ---
+      duration_ms: 1074.191375
+      type: 'test'
+      ...
+    # Subtest: une exigence que le propriétaire garde laisse le cas et le protocole gelés et renvoie à la correction du code
+    ok 6 - une exigence que le propriétaire garde laisse le cas et le protocole gelés et renvoie à la correction du code
+      ---
+      duration_ms: 855.285125
+      type: 'test'
+      ...
+    # Subtest: un cas que le propriétaire a fait garder n’est pas réécrit sur le constat d’un modèle : l’examinateur reçoit sa réponse et le constat contraire lui est reposé en IH-04
+    ok 7 - un cas que le propriétaire a fait garder n’est pas réécrit sur le constat d’un modèle : l’examinateur reçoit sa réponse et le constat contraire lui est reposé en IH-04
+      ---
+      duration_ms: 897.831
+      type: 'test'
+      ...
+    # Subtest: deux cas contestés dont un gardé : la révision qu’appelle l’autre attend la réponse du propriétaire, ne lui fait pas réécrire le cas gardé, et sous le protocole gelé ensuite le constat contraire sur le cas gardé lui est reposé en IH-04
+    ok 8 - deux cas contestés dont un gardé : la révision qu’appelle l’autre attend la réponse du propriétaire, ne lui fait pas réécrire le cas gardé, et sous le protocole gelé ensuite le constat contraire sur le cas gardé lui est reposé en IH-04
+      ---
+      duration_ms: 1289.603042
+      type: 'test'
+      ...
+    # Subtest: un cas gardé contesté de nouveau sous un nom que l’obligation gelée ne porte pas est refusé par le noyau : ni examen, ni révision de la préparation, ni second protocole, et la réponse « garder » reste valide
+    not ok 9 - un cas gardé contesté de nouveau sous un nom que l’obligation gelée ne porte pas est refusé par le noyau : ni examen, ni révision de la préparation, ni second protocole, et la réponse « garder » reste valide
+      ---
+      duration_ms: 1259.455875
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bMJ9AE/test/v2-kernel/verification-revision.test.ts:513:2'
+      failureType: 'testCodeFailure'
+      error: 'the kernel refuses the contestation naming the case absent from the frozen cases of R1: capturing the reference | intervention specify started (scripted/scripted-1) | intervention prepare started (scripted/scripted-1) | qualifying control unit | intervention implement started (scripted/scripted-1) | freezing the candidate | running control unit on the reference | running control unit | intervention review started (scripted/scripted-1) | intervention implement started (scripted/scripted-1) | freezing the candidate | running control unit | intervention review started (scripted/scripted-1) | intervention prepare started (scripted/scripted-1) | control unit keeps its qualification | intervention implement started (scripted/scripted-1) | freezing the candidate | running control unit on the reference | running control unit'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bMJ9AE/test/v2-kernel/verification-revision.test.ts:545:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: un besoin qui change est tranché par le propriétaire et repasse par G1
+    ok 10 - un besoin qui change est tranché par le propriétaire et repasse par G1
+      ---
+      duration_ms: 966.662
+      type: 'test'
+      ...
+    1..10
+not ok 1 - a revision obtained by a contestation
+  ---
+  duration_ms: 7487.117625
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-bMJ9AE/test/v2-kernel/verification-revision.test.ts:150:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 10
+# suites 1
+# pass 9
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7746.616292

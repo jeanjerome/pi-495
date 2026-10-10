@@ -1,0 +1,94 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité — Une revue de modèle ne révoque aucune décision humaine",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/domain/invalidation.ts",
+    "ligne": 78,
+    "constat": "When the examination of a model finds a case wrong (test_correction), the kernel revises the preparation without asking the owner. Today that revision revokes only the decisions on the candidate (IH-10, IH-11, IH-08) and keeps the owner's IH-04 answers. No test holds this: a mutation that makes the revision also revoke the owner's IH-04 answers leaves every test green. None of the dossiers the tests build holds a valid IH-04 answer when the preparation is revised.",
+    "mutation": "In the `preparation` case of invalidationFor, `human_decisions: candidateDecisions` → `human_decisions: [...candidateDecisions, ...verifiabilityDecisions]`: the 10 tests of the three story files pass."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Probe (throwaway test, removed): conductContestedChange with prepare=[WRONG_TEST] (the second preparation writes the same case again), implement=[implementing(true), implementing(false)], review=[test_correction], max_attempts 6. Result: two protocols frozen, two `artifact.revised` events that both cite the same P1 contestation ctt_0039 (protocol prt_0026), candidate_history=[d, d] (same digest), only one review intervention, and the change ends in decision_required (IH-04) in qualification.",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/contestation.ts",
+    "ligne": 62,
+    "constat": "onCandidate selects contestations by candidate digest alone, not by protocol. Under P2, a candidate with the same digest as the one contested under P1 brings back the P1 contestation, already found test_correction. settleFindings then revises the preparation again on that P1 finding: no new contestation is filed and no examination runs. The P1 finding keeps steering the change under P2, although it does not count towards acceptance.",
+    "mutation": ""
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Une révision autorisée invalide les résultats périmés",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/gates/g5.ts",
+    "ligne": 45,
+    "constat": "The protocol-identity check that G5 now applies through ranUnderProtocol is held by no test. It is redundant today: the revision invalidates every P1 piece of evidence, and verification.record refuses any P1 evidence that arrives late. Both of those are tested. If one of them weakened, this check would be the last line of defence, and nothing would detect it if it went missing.",
+    "mutation": "`!ranUnderProtocol(e, protocol.ref)` → `e.protocol_revision !== protocol.ref.revision` in evaluateG5: 10/10 green. The same mutation in verification.record (decide.ts) makes « P2 doit être requalifié… » fail."
+   },
+   {
+    "id": "A1-4",
+    "scenario": "Le producteur signale sans modifier les tests protégés",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/change/contestation.ts",
+    "ligne": 49,
+    "constat": "No test covers a contestation that cites a failing run in which the contested case itself passed. The reproduction condition `!(run.passed_cases ?? []).includes(f.case_name)` can be removed with no test failing, so a non-reproducible contestation would be kept. The scenario's Then covers only the reproducible one, which is kept and examined, and that case is held.",
+    "mutation": "Removing `&& !(run.passed_cases ?? []).includes(f.case_name)` from contestationIssues: 10/10 green. By contrast, removing both the candidate checks, or both the protocol checks, or the FAIL check together with the control check, makes the v0 test fail."
+   },
+   {
+    "id": "A1-5",
+    "scenario": "Une contestation rejetée ne desserre pas le contrôle",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/change/decide.ts",
+    "ligne": 1194,
+    "constat": "The kernel-authority check on contestation.conclude is held by no test. The equivalent check on contestation.file is held: the v0 test refuses a filing made under AGENT. Without this check, a non-kernel actor could record the finding (unfounded or test_correction) that the application then acts on.",
+    "mutation": "Removing `this.requireKernelAuthority();` from contestationConclude: 10/10 green."
+   }
+  ],
+  "resume": "I ran 32 mutations against the three story files (10 tests); every mutant was restored and the tree is clean.\n\nScenario 1 (signal without write rights) holds. If the call that keeps the producer's contestations, the examination, or the `review` role of the examiner is removed, 6 tests fail. Lifting the protected paths when a contestation is filed fails the v0 and v2 tests. The examiner runs with the read-only tools of the review role. A filing under AGENT is refused.\n\nScenario 2 (unfounded) holds. Treating an unfounded finding as test_correction, dropping the note to the producer, or skipping the correction each makes the kernel test fail.\n\nScenario 3 (P2 invalidates P1) holds for acceptance. The record-time check on protocol identity, the protocol_id carried by the evidence, and the invalidation of evidence, decisions and G2 by the preparation revision are each held by a test.\n\nSecurity: the paths where the owner must decide (IH-04 answered keep or revise, no accept option) are held. But nothing holds that a revision triggered by a model's finding leaves the owner's IH-04 answers standing (A1-1, à corriger). That drives the verdict to fail.\n\nTo weigh:\n- A1-2: under P2, a P1 finding revises the preparation again whenever the candidate digest is unchanged; reproduced by a throwaway test, since removed.\n- A1-3: G5's protocol-identity check is redundant and untested.\n- A1-4: the passed_cases reproduction condition is untested.\n- A1-5: authority on contestation.conclude is untested."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le producteur signale sans modifier les tests protégés",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/change/contestation.ts",
+    "ligne": 48,
+    "constat": "Aucun test ne retient seul un des contrôles d'admission d'une contestation. Le cas « reproduced by a run that passed » repose sur l'exécution de `lint`, qui ne juge pas R1 : la vérification du verdict FAIL et celle du contrôle se couvrent l'une l'autre. Aucun test ne conteste un cas que l'exécution de reproduction a vu passer. Les contrôles du protocole et du candidat sont eux aussi rattrapés par la vérification de la reproduction. Le chemin applicatif n'atteint pas ces cas, puisque `reproductionOf` ne retient qu'une exécution FAIL du contrôle de l'obligation où le cas n'a pas passé. Ce que la promesse affirme (garder une contestation reproductible, sans accorder de droit) reste tenu.",
+    "mutation": "Six mutations, chacune seule, laissent les 10 tests verts : retrait de `run.verdict === \"FAIL\"`, retrait de `!(run.passed_cases ?? []).includes(f.case_name)`, `if (false)` sur la vérification `obligation.control_ids.includes`, sur celle du protocole, sur celle du candidat et sur `producer?.role !== \"implement\"`."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Le producteur signale sans modifier les tests protégés",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/change/decide.ts",
+    "ligne": 1194,
+    "constat": "Aucun test ne retient que seul le noyau enregistre le constat d'un examen. Le noyau ne vérifie pas non plus que `examiner_id` désigne une intervention `review` distincte du producteur. Le chemin applicatif passe toujours par le noyau, après une intervention en lecture seule, donc rien n'est atteignable aujourd'hui.",
+    "mutation": "Retrait de `this.requireKernelAuthority()` dans `contestationConclude` : les 10 tests restent verts."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Une révision autorisée invalide les résultats périmés",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/contestation.ts",
+    "ligne": 248,
+    "constat": "Un constat `test_correction` vient du seul modèle examinateur. Il révise la préparation sans décision humaine, et la règle reprise de la révision de protocole (`src/domain/invalidation.ts:78`) révoque alors les décisions IH-10, IH-11 et IH-08 du propriétaire. La promesse 3 demande que ces décisions cessent de compter, mais la clause de sécurité dit qu'« une revue de modèle ne révoque aucune décision humaine ». La story laisse cette tension à trancher.",
+    "mutation": "`human_decisions: []` pour la cause `preparation` : « une décision liée à P1 ne contribue plus à l'acceptation sous P2 » échoue. Le comportement est donc voulu et tenu par un test."
+   }
+  ],
+  "resume": "Les trois promesses sont tenues, chacune par un test qui échoue sous mutation. Promesse 1 : le noyau garde la contestation (le court-circuit de l'examen, du dépôt ou de la conservation fait échouer 6 tests) ; l'examinateur est une intervention `review`, aux outils en lecture seule ; G4 refuse un candidat qui réécrit le test contesté ; un dépôt hors autorité du noyau est refusé. Promesse 2 : traiter un constat `unfounded` comme `test_correction`, ou retirer la note au producteur, fait échouer le test d'application. Promesse 3 : quatre mutations font chacune échouer un test : `ranUnderProtocol` réduit à la révision, le contrôle de `verification.record` ramené à la révision, l'invalidation des preuves ou des décisions de P1 vidée, l'oubli de `protocol_id` dans `factOf`. L'historique reste consultable : preuves P1 invalides, décision révoquée et constat conservés. Sécurité : la décision IH-04 sur un cas contesté ne propose que réviser ou garder ; une révision de l'exigence sans réponse du propriétaire fait échouer deux tests. 26 mutations essayées, toutes défaites ; arbre propre à 6c9a3f98. Restent trois points à peser : des contrôles d'admission qui se masquent l'un l'autre, une autorité du constat d'examen qu'aucun test ne retient, et la révocation de décisions humaines sur le seul constat d'un modèle."
+ }
+]

@@ -1,0 +1,3 @@
+distribution violations:
+dist/ is not what the sources build (run `npm run build`):
+  differing (4): application/phases/contestation.js.map, domain/change/contestation.d.ts, domain/change/contestation.js, domain/change/contestation.js.map

@@ -1,0 +1,47 @@
+TAP version 13
+# Subtest: a revision obtained by a contestation
+    # Subtest: P2 doit être requalifié et une preuve P1 reçue après reprise reste inapplicable
+    ok 1 - P2 doit être requalifié et une preuve P1 reçue après reprise reste inapplicable
+      ---
+      duration_ms: 14.691875
+      type: 'test'
+      ...
+    # Subtest: une décision liée à P1 ne contribue plus à l’acceptation sous P2 et reste consultable
+    ok 2 - une décision liée à P1 ne contribue plus à l’acceptation sous P2 et reste consultable
+      ---
+      duration_ms: 1.044667
+      type: 'test'
+      ...
+    # Subtest: une contestation fondée fait écrire de nouveau la préparation, qualifier et geler P2, et les preuves de P1 cessent de compter
+    ok 3 - une contestation fondée fait écrire de nouveau la préparation, qualifier et geler P2, et les preuves de P1 cessent de compter
+      ---
+      duration_ms: 1113.64425
+      type: 'test'
+      ...
+    # Subtest: une exigence que le propriétaire garde laisse le cas et le protocole gelés et renvoie à la correction du code
+    ok 4 - une exigence que le propriétaire garde laisse le cas et le protocole gelés et renvoie à la correction du code
+      ---
+      duration_ms: 857.797166
+      type: 'test'
+      ...
+    # Subtest: un besoin qui change est tranché par le propriétaire et repasse par G1
+    ok 5 - un besoin qui change est tranché par le propriétaire et repasse par G1
+      ---
+      duration_ms: 963.196708
+      type: 'test'
+      ...
+    1..5
+ok 1 - a revision obtained by a contestation
+  ---
+  duration_ms: 2951.113583
+  type: 'suite'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3220.576416

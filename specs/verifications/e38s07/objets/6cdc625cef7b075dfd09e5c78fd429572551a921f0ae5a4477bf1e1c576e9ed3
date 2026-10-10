@@ -1,0 +1,77 @@
+TAP version 13
+# Subtest: a revision obtained by a contestation
+    # Subtest: P2 doit être requalifié et une preuve P1 reçue après reprise reste inapplicable
+    ok 1 - P2 doit être requalifié et une preuve P1 reçue après reprise reste inapplicable
+      ---
+      duration_ms: 13.711375
+      type: 'test'
+      ...
+    # Subtest: une décision liée à P1 ne contribue plus à l’acceptation sous P2 et reste consultable
+    ok 2 - une décision liée à P1 ne contribue plus à l’acceptation sous P2 et reste consultable
+      ---
+      duration_ms: 1.068792
+      type: 'test'
+      ...
+    # Subtest: une revue de modèle qui fait réviser la préparation ne révoque aucune réponse du propriétaire sur le besoin
+    ok 3 - une revue de modèle qui fait réviser la préparation ne révoque aucune réponse du propriétaire sur le besoin
+      ---
+      duration_ms: 0.589958
+      type: 'test'
+      ...
+    # Subtest: une contestation fondée fait écrire de nouveau la préparation, qualifier et geler P2, et les preuves de P1 cessent de compter
+    ok 4 - une contestation fondée fait écrire de nouveau la préparation, qualifier et geler P2, et les preuves de P1 cessent de compter
+      ---
+      duration_ms: 1128.589542
+      type: 'test'
+      ...
+    # Subtest: le constat d'une contestation de P1 ne fait plus réviser la préparation sous P2, même sur un candidat identique
+    ok 5 - le constat d'une contestation de P1 ne fait plus réviser la préparation sous P2, même sur un candidat identique
+      ---
+      duration_ms: 1094.8335
+      type: 'test'
+      ...
+    # Subtest: une exigence que le propriétaire garde laisse le cas et le protocole gelés et renvoie à la correction du code
+    ok 6 - une exigence que le propriétaire garde laisse le cas et le protocole gelés et renvoie à la correction du code
+      ---
+      duration_ms: 870.995083
+      type: 'test'
+      ...
+    # Subtest: un cas que le propriétaire a fait garder n’est pas réécrit sur le constat d’un modèle : l’examinateur reçoit sa réponse et le constat contraire lui est reposé en IH-04
+    ok 7 - un cas que le propriétaire a fait garder n’est pas réécrit sur le constat d’un modèle : l’examinateur reçoit sa réponse et le constat contraire lui est reposé en IH-04
+      ---
+      duration_ms: 896.868625
+      type: 'test'
+      ...
+    # Subtest: deux cas contestés dont un gardé : la révision qu’appelle l’autre attend la réponse du propriétaire, ne lui fait pas réécrire le cas gardé, et sous le protocole gelé ensuite le constat contraire sur le cas gardé lui est reposé en IH-04
+    ok 8 - deux cas contestés dont un gardé : la révision qu’appelle l’autre attend la réponse du propriétaire, ne lui fait pas réécrire le cas gardé, et sous le protocole gelé ensuite le constat contraire sur le cas gardé lui est reposé en IH-04
+      ---
+      duration_ms: 1312.353417
+      type: 'test'
+      ...
+    # Subtest: un cas gardé contesté de nouveau sous un nom que l’obligation gelée ne porte pas est refusé par le noyau : ni examen, ni révision de la préparation, ni second protocole, et la réponse « garder » reste valide
+    ok 9 - un cas gardé contesté de nouveau sous un nom que l’obligation gelée ne porte pas est refusé par le noyau : ni examen, ni révision de la préparation, ni second protocole, et la réponse « garder » reste valide
+      ---
+      duration_ms: 1011.385125
+      type: 'test'
+      ...
+    # Subtest: un besoin qui change est tranché par le propriétaire et repasse par G1
+    ok 10 - un besoin qui change est tranché par le propriétaire et repasse par G1
+      ---
+      duration_ms: 977.838042
+      type: 'test'
+      ...
+    1..10
+ok 1 - a revision obtained by a contestation
+  ---
+  duration_ms: 7309.184208
+  type: 'suite'
+  ...
+1..1
+# tests 10
+# suites 1
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7579.721209

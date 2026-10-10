@@ -1,0 +1,81 @@
+TAP version 13
+# Subtest: the examination of a contested frozen test
+    # Subtest: le signalement seul ne rouvre pas les tests et l’examen épuisé s’arrête avec une issue explicite
+    not ok 1 - le signalement seul ne rouvre pas les tests et l’examen épuisé s’arrête avec une issue explicite
+      ---
+      duration_ms: 858.533458
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-csIBkG/test/v2-kernel/verification-contestation.test.ts:75:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the kernel keeps the producer's signal, reproduced on the frozen candidate
+        + actual - expected
+        
+        + undefined
+        - [
+        -   [
+        -     'R1',
+        -     'R1 shout upper-cases the greeting',
+        -     'the case expects shout("x") to be "HELLO X!" where R1 says it returns greet("x") upper-cased, "HELLO, X"',
+        -     null
+        -   ]
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          0: 'R1'
+          1: 'R1 shout upper-cases the greeting'
+          2: 'the case expects shout("x") to be "HELLO X!" where R1 says it returns greet("x") upper-cased, "HELLO, X"'
+          3: ~
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-csIBkG/test/v2-kernel/verification-contestation.test.ts:79:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: une contestation jugée infondée laisse protocole et tests identiques et renvoie à la correction du code
+    not ok 2 - une contestation jugée infondée laisse protocole et tests identiques et renvoie à la correction du code
+      ---
+      duration_ms: 797.881625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-csIBkG/test/v2-kernel/verification-contestation.test.ts:123:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the examiner's finding is recorded
+        + actual - expected
+        
+        + undefined
+        - 'unfounded'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'unfounded'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-csIBkG/test/v2-kernel/verification-contestation.test.ts:132:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - the examination of a contested frozen test
+  ---
+  duration_ms: 1656.950916
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-csIBkG/test/v2-kernel/verification-contestation.test.ts:74:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1928.0485

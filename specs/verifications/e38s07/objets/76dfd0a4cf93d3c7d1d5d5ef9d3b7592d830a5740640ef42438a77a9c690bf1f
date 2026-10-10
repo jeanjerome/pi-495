@@ -1,0 +1,23 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "The code keeps all four promises, and a test fails under each mutation of the code that keeps them. No finding is introduced or made reachable by the branch.\n\nScenario 4 (a case the owner kept): there are three steps.\n- `keptBy` (`src/application/phases/contestation.ts:258`) finds the owner's valid \"keep\" on an earlier contestation of the same case.\n- `examine` passes that answer to `contestationObjective` (`src/application/context.ts:470`).\n- `settleFindings` stops a `test_correction` finding on a kept case from revising the preparation. It asks a new IH-04 instead. The facts of that IH-04 name the case, the \"keep\" answer and the examination's finding, and its question carries `kept`.\n\nThe new test in `test/v2-kernel/verification-revision.test.ts` fails under each of these mutations:\n- owner text removed from the objective;\n- `false` passed to `contestationObjective`;\n- `!kept.has` removed from `wrong` (an `artifact.revised` is written);\n- the \"keep\" fact removed;\n- `kept: true` removed from `contested`;\n- `kept.has` removed from the IH-04 loop (no IH-04 is asked);\n- `keptBy` looking for \"revise\" instead of \"keep\";\n- a reducer that revokes earlier IH-04 answers when a new IH-04 is asked (fails on \"reste valide\").\n\nScenarios 1 to 3 come from before this branch. Their tests in `verification-contestation.test.ts` and `verification-revision.test.ts` still pass, and they fail when the code the branch touches is mutated:\n- the examiner run as `implement`;\n- a `test_correction` finding that never revises;\n- the `unfounded` note dropped;\n- an `unfounded` finding that revises the preparation.\n\nNot counted, because the registry already holds them: the kept case still listed by `foundWrongNotes`, a revision drawn from another case, and `keptBy` limited to one protocol revision (BUG-2026-10-10T014900). The working tree was restored after each mutation."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un cas que le propriétaire a fait garder n’est pas réécrit sur le seul constat d’un modèle",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/decisions.ts",
+    "ligne": 439,
+    "constat": "No test reads the English question of the IH-04 asked again on a kept case: the test runs in French and checks only the French question. The promise still holds in English, because the facts of the decision name the case, the answer \"keep\" and the finding in every language, and the test checks those facts.",
+    "mutation": "Replacing the English `kept ? … : …` with the question used when the case was not kept leaves every test green (the fixture runs in French)."
+   }
+  ],
+  "resume": "The code keeps all four promises, and a test catches every mutation tried on them. Scenario 4, added by this branch: the examiner's objective carries the owner's \"keep\", because examine passes the result of keptBy to contestationObjective (mutated to false, the test fails on \"the examiner is handed the owner's answer keep\"). A test_correction finding on a kept case no longer revises the preparation: removing `!kept.has` from settleFindings makes the test fail on \"no preparation is revised…\". An IH-04 is put to the owner: removing `|| kept.has` from the loop's filter makes the test fail on \"put to the owner\". That IH-04 names the case, the earlier \"keep\" (in the facts and through `kept: true` in the question) and the contrary finding; removing any one of these makes its assertion fail. The \"keep\" decision stays valid: making candidate_replaced revoke IH-04 decisions makes the test fail. Changing the option checked by keptBy also makes the test fail. Scenarios 1 to 3 come from before this branch and are held by their tests. Skipping the examination fails 6 tests. Treating an unfounded finding as test_correction, or removing the notes sent back to the producer, makes « une contestation jugée infondée… » fail. Removing the invalidation of evidence and of decisions on a revised preparation makes « P2 doit être requalifié… » and « une décision liée à P1… » fail. One point to weigh: no test reads the English question; the promise holds through the facts. Every mutation was put back; the tree is clean apart from the node_modules link."
+ }
+]
