@@ -1,0 +1,60 @@
+TAP version 13
+# Subtest: the explorations of a preparation are reused across stories without changing a verdict
+    # Subtest: activer la réutilisation ne change aucun verdict du corpus et réduit les appels effectivement observés
+    ok 1 - activer la réutilisation ne change aucun verdict du corpus et réduit les appels effectivement observés
+      ---
+      duration_ms: 150.693625
+      type: 'test'
+      ...
+    # Subtest: an altered output, an inconclusive exploration or a changed model is explored again, with the reason
+    ok 2 - an altered output, an inconclusive exploration or a changed model is explored again, with the reason
+      ---
+      duration_ms: 189.681125
+      type: 'test'
+      ...
+    # Subtest: a module TLC reports it processed that the reading of the imports missed forbids citing its exploration
+    ok 3 - a module TLC reports it processed that the reading of the imports missed forbids citing its exploration
+      ---
+      duration_ms: 77.02025
+      type: 'test'
+      ...
+    # Subtest: a checker that differs from HEAD forbids citing an exploration, and the journal says so
+    ok 4 - a checker that differs from HEAD forbids citing an exploration, and the journal says so
+      ---
+      duration_ms: 95.895791
+      type: 'test'
+      ...
+    1..4
+ok 1 - the explorations of a preparation are reused across stories without changing a verdict
+  ---
+  duration_ms: 513.988041
+  type: 'suite'
+  ...
+# Subtest: the identity of an exploration changes with everything it reads, and is withheld for what nobody identifies
+    # Subtest: a property, the jar, the Java, a variable, the command, Node or the platform changing changes the identity
+    ok 1 - a property, the jar, the Java, a variable, the command, Node or the platform changing changes the identity
+      ---
+      duration_ms: 157.736875
+      type: 'test'
+      ...
+    # Subtest: a jar or a Java not found, or a module found nowhere, leaves the exploration without an identity
+    ok 2 - a jar or a Java not found, or a module found nowhere, leaves the exploration without an identity
+      ---
+      duration_ms: 66.10575
+      type: 'test'
+      ...
+    1..2
+ok 2 - the identity of an exploration changes with everything it reads, and is withheld for what nobody identifies
+  ---
+  duration_ms: 224.02175
+  type: 'suite'
+  ...
+1..2
+# tests 6
+# suites 2
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 869.764792

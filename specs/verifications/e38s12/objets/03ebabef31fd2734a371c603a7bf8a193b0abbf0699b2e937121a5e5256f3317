@@ -1,0 +1,51 @@
+TAP version 13
+# Subtest: a proof of the model is cited for another candidate only while it is intact and its inputs unchanged
+    # Subtest: la seconde demande cite la preuve originale et sa corruption interdit cette réutilisation
+    not ok 1 - la seconde demande cite la preuve originale et sa corruption interdit cette réutilisation
+      ---
+      duration_ms: 430.393
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-b3BQJz/test/v2-kernel/formal-result-reuse.test.ts:178:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the second request explores nothing
+        
+        2 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 2
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-b3BQJz/test/v2-kernel/formal-result-reuse.test.ts:185:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: a changed import, another tool or environment, an unidentified module or an inconclusive exploration is explored again
+    ok 2 - a changed import, another tool or environment, an unidentified module or an inconclusive exploration is explored again
+      ---
+      duration_ms: 3264.936292
+      type: 'test'
+      ...
+    1..2
+not ok 1 - a proof of the model is cited for another candidate only while it is intact and its inputs unchanged
+  ---
+  duration_ms: 3695.98975
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-b3BQJz/test/v2-kernel/formal-result-reuse.test.ts:177:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3976.684458

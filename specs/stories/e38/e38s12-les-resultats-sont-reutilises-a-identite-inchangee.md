@@ -2,7 +2,7 @@
 
 Story : e38s12
 Epic : e38
-Statut : en cours
+Statut : versée
 
 Surface : cycle/ puis services de vérification de pi-495
 Dépendances : e38s05, e38s10

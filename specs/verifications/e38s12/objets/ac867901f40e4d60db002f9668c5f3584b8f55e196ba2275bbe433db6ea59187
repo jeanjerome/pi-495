@@ -1,0 +1,143 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Une propriété ou un outil modifié force une nouvelle exécution (module importé) — Sécurité",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/application/formal-reuse.ts",
+    "ligne": 76,
+    "constat": "The check on the modules TLC reports, meant to catch what the import reading missed, compares module names with the base names of every input key, the Java tool included (`/…/bin/java` → `java`). So a module named `java` that TLC processed but the import reading missed counts as read. Here is a working path: a module the producer may write (one the package does not pin, like `Bornes.tla` in the fixture) holds `S == \"(*\"`, then `I == INSTANCE java`, then `T == \"*)\"`. `importedModules` strips that span as a comment, so `spec/java.tla` is outside the closure; TLC 2.19 still reports `Semantic processing of module java`, which the check counts as read. The producer then changes only `spec/java.tla` in a later candidate: the key stays the same and the old PASS is cited for a model that now reads another module.",
+    "contournement": "Conserver l'invalidation prudente actuelle ; aucun calcul automatique de périmètre indépendant n'est supposé fiable — the automatic closure plus its backstop is fooled, and an imported module that changed is cited without a new exploration",
+    "mutation": "Throwaway probe, not committed (test/v2-kernel, removed afterwards): formalInputsOf over spec/M.tla built as above, then spec/java.tla edited (Max == 3 → 4). controlInputsDigest stays identical, and establishedExploration returns { original } for an evidence whose facts.tlc.modules = [Naturals, java, M]. The real TLC (`$TLA2TOOLS_JAR`, -tool) on that model prints `Semantic processing of module java` and `Model checking completed. No error has been found.`"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Une propriété ou un outil modifié force une nouvelle exécution (cycle)",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/explorations.ts",
+    "ligne": 87,
+    "constat": "In the cycle, no test holds that a property, the tool or the environment changing makes the exploration run again. The only changes the cycle tests make are the root model and the checker. Each of these mutations of the identity leaves test/cycle/verification-reuse.test.ts green, even though the code itself keeps the promise.",
+    "mutation": "Each tried alone, all survived: `option()` → `return undefined` (the --java/--jar tool leaves the identity); `tools: []`; `env_allowlist: VARIABLES` → `[]`; removing `node`/`plateforme`; removing `manifeste: digestBytes(...)` (required_properties live in the manifest); removing `commande`."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Une propriété ou un outil modifié force une nouvelle exécution (environnement, noyau)",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/formal-reuse.ts",
+    "ligne": 68,
+    "constat": "The variables the formal control passes (PATH, HOME, TMPDIR, JAVA_HOME) enter the key only through this loop; 495's environment digest does not carry them. Removing the loop leaves every named test green: the kernel test changes only the environment digest. So a JAVA_HOME that switches the JDK behind a /usr/bin/java launcher is held by no test.",
+    "mutation": "Removing `for (const name of reads.env_allowlist) inputs[`env:${name}`] = …` → formal-result-reuse, formal-result-identity and verification-reuse stay green."
+   },
+   {
+    "id": "A1-4",
+    "scenario": "Sécurité — conserver l'invalidation prudente actuelle",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/formal-reuse.ts",
+    "ligne": 113,
+    "constat": "The code keeps a revised requirements or preparation from bringing back an exploration it invalidated: the protocol is frozen again under a new protocol_id, and the lookup requires the same protocol id and revision. But no test holds that condition: removing it leaves the tests green. Without it, an evidence that the requirements revision or preparation revision invalidated would be cited under the new protocol.",
+    "mutation": "Removing `e.protocol_revision.protocol_id === context.protocol.protocol_id &&` → survived (the tool also reports lines 113 and 114 → true as survivors)."
+   },
+   {
+    "id": "A1-5",
+    "scenario": "Une preuve perdue ou une entrée inconnue empêche la réutilisation",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/formal-reuse.ts",
+    "ligne": 83,
+    "constat": "The tests hold refusing a citation when an object is altered, but not when the sealed record itself is altered (evidenceDigest ≠ integrity.content_digest). That check can be removed without a failure.",
+    "mutation": "`if (evidenceDigest(original) !== original.integrity.content_digest)` → `if (false)` → survived."
+   },
+   {
+    "id": "A1-6",
+    "scenario": "Un modèle identique ne dispense pas de tester le nouveau candidat",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/verification.ts",
+    "ligne": 574,
+    "constat": "The citation is stored in the ledger, but no test holds that it joins the facts the run commits to the change, the ones G5 reads. Without that push, the model's result is cited in the ledger and missing from the change; G5 would then say the model was not explored on the candidate, a failure toward safety.",
+    "mutation": "Removing `facts.push(factOf(planned.cited, blockingOf(planned.cited)));` → formal-result-reuse, formal-control-acceptance and formal-control-qualification stay green."
+   },
+   {
+    "id": "A1-7",
+    "scenario": "Une propriété ou un outil modifié force une nouvelle exécution (outil, cycle)",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/explorations.ts",
+    "ligne": 23,
+    "constat": "The checker's identity covers `scripts/check-formal.ts` and `src` at HEAD. But check-formal also loads `typebox` and `@rgrove/parse-xml` from node_modules, as a resolve hook shows, and an upgrade of either does not change the identity. A verdict changing because of these two libraries is unlikely, but the file header says the identity covers the code it loads."
+   }
+  ],
+  "resume": "Reviewer A, round 1, e38s12. Verdict: fail, for one bypass and two promises no test holds.\n\n**Bypass (A1-1).** The backstop that compares TLC's processed modules with the inputs read goes by base names, so the Java tool `java` passes for a module. A module the producer may write can hide `INSTANCE java` behind a `\"(*\"` string. In a later candidate the producer changes only `spec/java.tla`: the key stays the same and the old PASS is cited. A throwaway probe confirmed it, and so did the real TLC 2.19, which reports `Semantic processing of module java`.\n\n**Code that holds, tests that don't.**\n- **Cycle (A1-2).** Tool, environment, manifest/properties and command can each be removed from the identity with the cycle tests still green.\n- **Kernel (A1-3).** The same holds for the variables passed to TLC.\n\n**Held by tests.**\n- Program controls run again on every candidate.\n- An altered object, an unidentified module, an inconclusive exploration, another environment digest, a changed import, another jar and a checker that differs from HEAD all trigger a rerun, in both surfaces.\n\n**Untested, to weigh.**\n- The protocol check that keeps the existing invalidation (A1-4).\n- The integrity of the sealed record (A1-5).\n- The citation being committed to the change's facts (A1-6).\n- Third-party libraries the checker loads are not in its identity (A1-7).\n\nNo bypass the previous round called fixed was there to replay."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un modèle identique ne dispense pas de tester le nouveau candidat",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/verification.ts",
+    "ligne": 574,
+    "constat": "Only this line puts the citation of the model's result into the facts the verification records for the new candidate (`verification.record` in phases/verify.ts). Removing it leaves the citation in the ledger but out of the candidate's verification, so G5 would find no exploration of the model on that candidate. No test checks that the model's result is referenced in the second candidate's verification: the bench only reads `ledger.listEvidence`.",
+    "mutation": "`facts.push(factOf(planned.cited, blockingOf(planned.cited)));` replaced by `;` → the 29 tests of test/v0-pure/formal-*.test.ts and test/v2-kernel/formal-*.test.ts stay green (Stryker had already seen it survive on the named tests)."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Une propriété ou un outil modifié force une nouvelle exécution",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/explorations.ts",
+    "ligne": 73,
+    "constat": "The code holds. A throwaway probe on `identiteDExploration` shows the identity changes with the jar's bytes and with JAVA_HOME. But no test holds a tool or environment change on the cycle side: the exploration in test/cycle/verification-reuse.test.ts passes no `--jar`, and no case changes a variable or the Java. When the jar or the variables leave the identity, every test stays green, so a later preparation would cite an exploration run with another TLC or another Java.",
+    "mutation": "`option(controle.commande, \"--jar\")` → `option(controle.commande, \"--nojar\")`, then `VARIABLES = [\"PATH\", …]` → `[]` (line 21): test/cycle/verification-reuse.test.ts passes 3/3 both times."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Une preuve perdue ou une entrée inconnue empêche la réutilisation",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/explorations.ts",
+    "ligne": 85,
+    "constat": "On the cycle side, the rerun for an unidentified module or tool (a jar or java that cannot be found, a module found nowhere) is not tested. The probe shows the code holds it: `non_identifiees` comes back with the missing jar or `java`. Only the other kind of unknown input, a checker that differs from HEAD, is held by a test. The kernel side is held (the `Inconnu` module).",
+    "mutation": "`if (non_identifiees.length > 0)` → `if (false)`: test/cycle/verification-reuse.test.ts passes 3/3."
+   },
+   {
+    "id": "B1-4",
+    "scenario": "Une preuve perdue ou une entrée inconnue empêche la réutilisation",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/verification.ts",
+    "ligne": 657,
+    "constat": "On the kernel side, the exploration does run again and is not presented as a reuse (`run: candidate`, no `reused_from`, both asserted). But no kernel test reads the recorded reason `rerun_because`, and none checks the comparison of the record against its `integrity.content_digest` (formal-reuse.ts:83). An altered record would be cited without any test catching it.",
+    "mutation": "Stryker survivors: `facts: { rerun_because }` → `{}` (line 657); `evidenceDigest(original) !== original.integrity.content_digest` → `false` (formal-reuse.ts:83)."
+   },
+   {
+    "id": "B1-5",
+    "scenario": "Un modèle identique ne dispense pas de tester le nouveau candidat",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/formal-reuse.ts",
+    "ligne": 110,
+    "constat": "The filter `e.facts.run === \"candidate\"` is what keeps the cited proof the original execution rather than an earlier citation. It is not tested: a citation of a citation would name the citation, not the proof, and the tests would not see it. The protocol-revision filters (lines 113–114) are not tested either. The key already covers the package, so they are redundant for the promises.",
+    "mutation": "Stryker survivors: line 110 → `true`; lines 113 and 114 → `true`."
+   },
+   {
+    "id": "B1-6",
+    "scenario": "Une preuve perdue ou une entrée inconnue empêche la réutilisation",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/formal-package.ts",
+    "ligne": 17,
+    "constat": "The modules in `TLC_STANDARD_MODULES` count as identified by the jar. But the `TLC` module gives a model the clock (`JavaTime`) and a randomly seeded draw (`RandomElement`), which no key covers. A model whose verdict depends on them would be cited unchanged even though running it again could conclude otherwise. Not demonstrated by a run: it needs a model the owner would adopt with such a dependency."
+   }
+  ],
+  "resume": "I checked the three promises and the Security section against the kernel side (formal-reuse.ts, verification.ts, baseline.ts) and the cycle side (explorations.ts, preparation.ts), using throwaway probes and my own mutations; the tree is left clean. The code keeps all three promises. On the kernel side, a changed import, jar or environment, an unidentified module or an interrupted exploration runs TLC again. Program controls run on each candidate. An altered output forbids the citation. On the cycle side, the probe shows the identity changes with the jar and JAVA_HOME and refuses a missing tool.\n\nTwo promises are partly held by no test, both introduced by the branch:\n- B1-1: removing the line that puts the citation into the facts recorded for the new candidate leaves the 29 formal tests green.\n- B1-2: on the cycle side, removing the jar or the variables from the identity leaves test/cycle/verification-reuse.test.ts green.\n\nI found no bypass of the Security section. The closure of the modules is checked against the modules TLC reports it processed. A module that cannot be identified runs again. On the cycle side, check-formal copies only the files the manifest pins. Explicit invalidation (`evidence.invalidate`) is not issued by any public entry point.\n\nFour points to weigh: B1-3 to B1-6. The verdict is fail because of the two \"à corriger\" findings."
+ }
+]

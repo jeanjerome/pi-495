@@ -1,0 +1,52 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un modèle identique ne dispense pas de tester le nouveau candidat",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/explorations.ts",
+    "ligne": 109,
+    "constat": "No cycle test cites an exploration whose output has a `modules:` line that the closure fully covers. The stand-in output of the reuse tests has no such line, and only the hidden-module test has one, where it expects a rerun. Yet the real `check-formal.ts` always prints that line, so misreading it would quietly end every citation in the cycle. It fails on the safe side (the model is explored again), and no rerun promise is broken.",
+    "mutation": "`ligne.slice(\"modules: \".length)` → `ligne.slice(\"\".length)` (the tool's survivors at 109): test/cycle/verification-reuse.test.ts and affichage.test.ts stay green, 21/21."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Une propriété ou un outil modifié force une nouvelle exécution",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/formal-reuse.ts",
+    "ligne": 65,
+    "constat": "The surviving mutants of `moduleClosure` (48, 62, 63, 65) and `processedModules` (102) are either equivalent or only make the closure bigger, or mark a module unidentified. None drops a module that TLC reads, so the key still changes and the model is explored again. Only the citation of a model whose module is found in the working directory and not in the model's directory goes untested: under `if (true)` at 65 that model is never cited again, and no test sees it.",
+    "mutation": "Reasoned on the tool's mutants: 48 `true`/`false`/`===`, 62 `false`, 63 removed, 65 `true`, 102 `true`/`tlc.modules`/`[\"Stryker was here\"]`."
+   }
+  ],
+  "fermes": [
+   "A2-1",
+   "B2-1"
+  ],
+  "resume": "The code and the tests hold the three promises. Replayed at the head of the branch, the two bypasses that sent the story back to the red-green no longer pass.\n\nA2-1: the real `check-formal.ts`, run with tla2tools 2.19 on the model whose `INSTANCE Cache` hides between the string delimiters, prints `modules: Cache, Masque`. The closure holds only `Masque.tla` and `Masque.cfg`, so `modulesNonCouverts` finds Cache and `anterieure` explores again with a motif naming that module. The new test in verification-reuse.test.ts holds it: emptying the motif fails it on /Cache/.\n\nB2-1: real TLC run from the root of the copy on `spec/Compteur.tla` reads the root `Bornes.tla`. The closure, built with `cwd: control.cwd` (\".\") and lookups first in the run directory then in the model's, holds that very `Bornes.tla` and leaves `uncoveredModules` empty. The key therefore changes, and the kernel test (root Bornes.tla, root Naturals.tla) has the model explored again.\n\nExtra probe: a `Naturals.tla` planted in TLC's tmpdir `.495-tlc/states` is overwritten by the one from the jar and then removed, so it opens no bypass.\n\nScenario 3 is held on both sides: neutralising the refusal of an unidentified input fails a kernel test and a cycle test. Scenario 2 is held by `programRuns() === 2`.\n\nThe surviving mutants are equivalent, only enlarge the closure or force a rerun, or touch wording (the `\\\", \\\"` separator of the motif). Two points remain to weigh (à peser), both untested on the citation side and failing safe: a fully covered `modules:` line in the cycle, and a module found only in the working directory in the kernel."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un modèle identique ne dispense pas de tester le nouveau candidat",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/explorations.ts",
+    "ligne": 109,
+    "constat": "No test has the cycle cite an exploration whose output carries a `modules:` line that the closure fully covers: the stand-in outputs that get cited (COMPLETED) carry no such line. If the `modules: ` prefix is kept when the line is read, the first module listed (`modules: Naturals`) is counted as uncovered, so the cycle never cites a real `check-formal.ts` output again. This fails safe and breaks no invalidation, but the reuse the promise allows ('peut être référencé') rests on no test with real output.",
+    "mutation": "explorations.ts:109 `ligne.slice(\"modules: \".length)` → `ligne` (and StringLiteral `\"modules: \"` → `\"\"`): test/cycle/verification-reuse.test.ts stays green; the motif still matches /Cache/."
+   }
+  ],
+  "fermes": [
+   "A2-1",
+   "B2-1"
+  ],
+  "resume": "Reviewer B, round 1, of e38s12 at 0306ab2b. A2-1 replayed: the real `scripts/check-formal.ts` with tla2tools 2.19 on the Masque model (`S == \\\"(*\\\"`, `I == INSTANCE Cache`, `T == \\\"*)\\\"`) ends PASS and prints `modules: Cache, Masque`, while `importedModules` returns [] for that model. The output matches the stand-in in the new cycle test. `anterieure` now compares that line with `lu` and runs the exploration again, naming Cache; removing the check (`if (false && manques.length > 0)`) fails test/cycle/verification-reuse.test.ts. A2-1 is closed. B2-1 replayed with the real jar: with a `Bornes.tla` at the root and one in `spec/`, TLC parses `/…/Bornes.tla`, the working directory first, and its verdict changes. The closure now searches `[cwd, model's directory]`, and the kernel passes `control.cwd`. Reducing `directories` to `[modelDirectory]` fails the new kernel test `a module at the root of the copy…`. B2-1 is closed. Further attack probes on the identity found no bypass: TLC overwrites a stale `Naturals.tla` left in its `java.io.tmpdir`, does not look up a module it doesn't ship in tmpdir, and the jar ships exactly the ten modules of TLC_STANDARD_MODULES. On the cycle side, check-formal copies only the files the manifest pins and checks their digests, and the manifest is in the identity. Surviving mutants: preparation.ts:168 is the never-run fallback and :171 changes the separator of a one-module list, so both are wording only. formal-reuse.ts:48/62/63/65 are equivalent or only widen the closure, which fails safe. formal-reuse.ts:102 is robustness of a reading that is always an array. explorations.ts:109 leaves reuse with real output untested, but fails safe (B1-1, à peser). No blocking finding, nothing to fix, no bypass."
+ }
+]

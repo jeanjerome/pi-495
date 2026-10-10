@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: a formal result is identified by everything it read, and a program result by its exact candidate
+    # Subtest: changer un import transitif ou une propriété change la clé, changer seulement le candidat ne conserve que le modèle
+    ok 1 - changer un import transitif ou une propriété change la clé, changer seulement le candidat ne conserve que le modèle
+      ---
+      duration_ms: 0.467083
+      type: 'test'
+      ...
+    1..1
+ok 1 - a formal result is identified by everything it read, and a program result by its exact candidate
+  ---
+  duration_ms: 0.843208
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 124.701916

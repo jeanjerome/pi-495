@@ -1,0 +1,60 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Une propriété ou un outil modifié force une nouvelle exécution",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/preparation.ts",
+    "ligne": 156,
+    "constat": "The cycle can cite an earlier exploration even though a module TLC reads has changed. Its identity for an exploration rests only on reading the imports with `importedModules`. Unlike the kernel, `anterieure` never compares that reading with the modules TLC reports it processed. A model with `S == \"(*\"`, `I == INSTANCE Cache`, `T == \"*)\"` hides `Cache.tla` from the closure, yet TLC 2.19 reads it: run on this machine, it ends PASS with `Ok == TRUE` and FAIL with `Ok == FALSE`. A throwaway probe through `preparer` ran story e01s05, which explored and kept its result. It then changed only `Cache.tla` and ran e01s06: the preparation is green, `completed`, `reutilise: e01s05`, and TLC is never run again (`lancements` is empty). This is the round-1 A1-1 path, which the round-2 fix closed in the kernel only, replayed on the cycle side.",
+    "contournement": "Conserver l'invalidation prudente actuelle ; aucun calcul automatique de périmètre indépendant n'est supposé fiable — the cycle's reuse trusts the import reading as the perimeter of what an exploration reads, with no check against TLC's own account."
+   },
+   {
+    "id": "A2-2",
+    "scenario": "Une propriété ou un outil modifié force une nouvelle exécution",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/explorations.ts",
+    "ligne": 92,
+    "constat": "The cycle's identity for an exploration covers the checker as committed (`git ls-tree HEAD -- scripts/check-formal.ts src`). The code is right, but no test checks that a committed change to the checker makes the exploration run again. The cycle tests only cover a checker that differs from HEAD (the `git status` check). Remove that field and every test stays green; a later story whose branch commits another `check-formal.ts` would then cite an exploration that an older checker ran and read.",
+    "mutation": "`verificateur: git(root, [\"ls-tree\", \"HEAD\", \"--\", ...VERIFICATEUR]),` → `verificateur: \"\",`: the formal-result-reuse, formal-result-identity and verification-reuse tests all stay green (fail 0)."
+   }
+  ],
+  "fermes": [
+   "A1-1"
+  ],
+  "resume": "Round 2 of review A on e38s12 ends in fail: one bypass on the cycle side (A2-1, blocking) and one promise no test holds (A2-2, to fix). A1-1 is closed in the kernel. `uncovered` now counts only `.tla` keys of the closure, so a module named `java` that TLC processed sends the model back to TLC. The closure now takes in any file of the model's directory named after a module TLC ships. Both round-2 lines are held by a test: mutating either makes formal-result-reuse.test.ts fail. A2-1: the same perimeter trick passes on the cycle side, because the cycle's reuse never checks what TLC processed. A real TLC run showed a hidden module flipping the verdict from PASS to FAIL, and a probe through `preparer` showed a second story citing the first story's `completed` without running TLC. A2-2: dropping the committed checker (`verificateur`) from the cycle's identity leaves every test green. All other mutations tried (protocol, environment, record integrity, citation filter, variables, jar, Java, command, Node, platform, unidentified inputs, lost output) make a test fail. The surviving `control_id` filter is redundant with the key, so it is not reported."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Une propriété ou un outil modifié force une nouvelle exécution",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/application/formal-reuse.ts",
+    "ligne": 44,
+    "constat": "The closure looks for a model's modules only in the model's directory, but the kernel's formal control runs TLC with `cwd: \".\"` and the model at a path such as `spec/Compteur.tla`, and TLC 2.19 searches its working directory first. A `Bornes.tla` at the root of the copy is read instead of `spec/Bornes.tla`, yet the key still holds the unchanged `spec/Bornes.tla`, and `uncovered` (line 82) counts `Bornes` as read because it compares base names only. Played through `VerificationCoordinator` with the real `tla2tools.jar` and the control built by `withFormalControl`: candidate 1 explores `PASS` (modules Naturals, Bornes, Compteur). Candidate 2 adds only a root `Bornes.tla` with `Plafond == 5` and is cited (`run: reused`, `reused_from: evd_1`, verdict PASS), while the same candidate explored on a fresh ledger gives FAIL, `Borne is violated`. A root file named after a module TLC ships, such as `Naturals.tla`, escapes the identity the same way, since only the model's directory is seeded with those names. Throwaway probe, not committed: a shadowing module changed, the key unchanged, the control not run again.",
+    "contournement": "Conserver l'invalidation prudente actuelle ; aucun calcul automatique de périmètre indépendant n'est supposé fiable — the closure computed from the model's directory is trusted as the scope of what TLC read, and TLC's own account is matched only by module name, so a module the producer places at the copy root changes what TLC explores without changing the key, and a PASS is cited for a model that now fails."
+   },
+   {
+    "id": "B2-2",
+    "scenario": "Une propriété ou un outil modifié force une nouvelle exécution",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/explorations.ts",
+    "ligne": 47,
+    "constat": "Removing the PATH lookup in `javaDe` leaves every test green. This fails safe: a `java` named without a path then stays unidentified, and every exploration runs again. No promise is broken, but no test holds that reuse still works when `--java` is not given.",
+    "mutation": "removed `if (dir !== \"\" && existsSync(chemin)) return chemin;` in javaDe: 11/11 tests pass"
+   }
+  ],
+  "fermes": [
+   "A1-1"
+  ],
+  "resume": "A1-1 is closed. On the branch head, the real TLC 2.19 lists `java` among the modules it processed, and `establishedExploration`, given a `java` tool key, now refuses the citation (`evd_1 read java, which its identity does not cover`). Removing the `.tla` filter makes the kernel test fail. On the cycle side the same trick does not get through: `check-formal` copies only the files the manifest pins, and the manifest's digest is part of the identity. The 27 mutations on the lines that keep the three promises were all caught by test/v2-kernel/formal-result-reuse.test.ts, test/cycle/verification-reuse.test.ts or test/v0-pure/formal-result-identity.test.ts, apart from the two below. They covered the record and object checks, the run/protocol/environment filters, the citation committed to the facts, program controls keyed on their candidate, rerun reasons, VARIABLES, jar, Java, checker, cycle trace and unidentified inputs. Survivors: M15, equivalent because formal inputs are only computed for a control with a formal package, and the fail-safe PATH lookup (B2-2). A revision of the requirements or the preparation refreezes the protocol under a new id, so an exploration it invalidated cannot be cited again. Nothing in production issues `evidence.invalidate` or `environment.change`. A new bypass blocks the gate (B2-1). The kernel runs TLC from the copy root, and TLC reads a module file there before the one in the model's directory, while the identity and the check on TLC's module list only look at the model's directory and at names. Played with the real TLC through the coordinator: a candidate that only adds a root `Bornes.tla` is cited PASS, and the same candidate explored fresh gives FAIL."
+ }
+]

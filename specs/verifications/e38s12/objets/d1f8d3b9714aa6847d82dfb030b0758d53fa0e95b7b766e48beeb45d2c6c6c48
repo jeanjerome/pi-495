@@ -1,0 +1,85 @@
+TAP version 13
+# Subtest: the explorations of a preparation are reused across stories without changing a verdict
+    # Subtest: activer la réutilisation ne change aucun verdict du corpus et réduit les appels effectivement observés
+    ok 1 - activer la réutilisation ne change aucun verdict du corpus et réduit les appels effectivement observés
+      ---
+      duration_ms: 148.5455
+      type: 'test'
+      ...
+    # Subtest: an altered output, an inconclusive exploration or a changed model is explored again, with the reason
+    ok 2 - an altered output, an inconclusive exploration or a changed model is explored again, with the reason
+      ---
+      duration_ms: 174.584292
+      type: 'test'
+      ...
+    # Subtest: a module TLC reports it processed that the reading of the imports missed forbids citing its exploration
+    not ok 3 - a module TLC reports it processed that the reading of the imports missed forbids citing its exploration
+      ---
+      duration_ms: 71.411792
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q17GbN/test/cycle/verification-reuse.test.ts:169:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        a module TLC read outside the identity has the model explored again
+        + actual - expected
+        
+        + []
+        - [
+        -   'specs/formal/masque/manifest.json'
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'specs/formal/masque/manifest.json'
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q17GbN/test/cycle/verification-reuse.test.ts:190:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: a checker that differs from HEAD forbids citing an exploration, and the journal says so
+    ok 4 - a checker that differs from HEAD forbids citing an exploration, and the journal says so
+      ---
+      duration_ms: 87.438
+      type: 'test'
+      ...
+    1..4
+not ok 1 - the explorations of a preparation are reused across stories without changing a verdict
+  ---
+  duration_ms: 482.62575
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-q17GbN/test/cycle/verification-reuse.test.ts:116:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: the identity of an exploration changes with everything it reads, and is withheld for what nobody identifies
+    # Subtest: a property, the jar, the Java, a variable, the command, Node or the platform changing changes the identity
+    ok 1 - a property, the jar, the Java, a variable, the command, Node or the platform changing changes the identity
+      ---
+      duration_ms: 141.083625
+      type: 'test'
+      ...
+    # Subtest: a jar or a Java not found, or a module found nowhere, leaves the exploration without an identity
+    ok 2 - a jar or a Java not found, or a module found nowhere, leaves the exploration without an identity
+      ---
+      duration_ms: 59.150959
+      type: 'test'
+      ...
+    1..2
+ok 2 - the identity of an exploration changes with everything it reads, and is withheld for what nobody identifies
+  ---
+  duration_ms: 200.393833
+  type: 'suite'
+  ...
+1..2
+# tests 6
+# suites 2
+# pass 5
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 807.660459
