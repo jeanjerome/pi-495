@@ -16,6 +16,7 @@ import { DecisionRequest, DecisionResponse, HumanDecision, HumanOrigin } from ".
 import { BaselineComparison, Evidence, EvidenceCandidate, Finding } from "./v1/evidence.ts";
 import { OperationRequest, OperationResult } from "./v1/operation.ts";
 import {
+	AcceptanceReport,
 	BaselinePolicy,
 	ControlDefinition,
 	Design,
@@ -57,5 +58,6 @@ export const CONTRACTS: Record<string, TSchema> = {
 	mandate: Mandate,
 	design: Design,
 	"harness-config": HarnessConfigFile,
+	"acceptance-report": AcceptanceReport,
 	trajectory: TrajectoryDocument,
 };

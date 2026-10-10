@@ -7,7 +7,7 @@
  */
 import { Type, type Static } from "typebox";
 import { Closed, contractId, Identifier, NonNegativeInt, Revision } from "./common.ts";
-import { BaselinePolicy } from "./protocol.ts";
+import { AcceptanceRecipe, BaselinePolicy } from "./protocol.ts";
 
 /** A bound that allows nothing at 0. */
 const PositiveInt = Type.Integer({ minimum: 1 });
@@ -37,6 +37,25 @@ const Adoption = Type.Object(
 	{ additionalProperties: false },
 );
 
+/**
+ * The acceptance run the profile asks of every candidate: the recipe, and the command that drives it from the copy
+ * of the candidate, `{candidate}` replaced by the identity of the candidate it runs on, writing its report at
+ * `report_path`. `network` defaults to `denied`; a recipe that reads outside data says so in `external_data`.
+ */
+export const AcceptanceRecipeDeclaration = Type.Object(
+	{
+		...AcceptanceRecipe.properties,
+		command: Type.Array(Type.String(), { minItems: 1 }),
+		report_path: Type.String({ minLength: 1 }),
+		timeout_ms: PositiveInt,
+		network: Type.Optional(Closed(["denied", "loopback", "allowed"] as const)),
+		/** The files of the target the recipe runs, which a producer may not modify. */
+		protected_paths: Type.Optional(Type.Array(Type.String())),
+	},
+	{ additionalProperties: false },
+);
+export type AcceptanceRecipeDeclaration = Static<typeof AcceptanceRecipeDeclaration>;
+
 const Policy = Type.Object(
 	{
 		policy_id: Type.Optional(Identifier),
@@ -49,6 +68,10 @@ const Policy = Type.Object(
 		/** 0 turns stagnation detection off. */
 		stagnation_identical_candidates: Type.Optional(NonNegativeInt),
 		required_reviews: Type.Optional(Type.Array(Type.String())),
+		/** What each required review is asked to judge, by role. */
+		review_missions: Type.Optional(Type.Record(Type.String(), Type.String({ minLength: 1 }))),
+		/** null asks no acceptance run, as the default policy does. */
+		acceptance_recipe: Type.Optional(Type.Union([AcceptanceRecipeDeclaration, Type.Null()])),
 	},
 	{ additionalProperties: false },
 );

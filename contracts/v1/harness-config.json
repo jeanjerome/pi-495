@@ -126,6 +126,172 @@
           "items": {
             "type": "string"
           }
+        },
+        "review_missions": {
+          "type": "object",
+          "patternProperties": {
+            "^.*$": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "acceptance_recipe": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "journey",
+                "preconditions",
+                "entry",
+                "observations",
+                "negative_control",
+                "negative_not_applicable",
+                "simulations",
+                "not_exercised",
+                "external_data",
+                "command",
+                "report_path",
+                "timeout_ms"
+              ],
+              "properties": {
+                "journey": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "preconditions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "entry": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "observations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "observation_id",
+                      "requirement_id",
+                      "expected"
+                    ],
+                    "properties": {
+                      "observation_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "requirement_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "expected": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "negative_control": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "requirement_id",
+                        "deprived_of",
+                        "expected"
+                      ],
+                      "properties": {
+                        "requirement_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "deprived_of": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "expected": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "negative_not_applicable": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "simulations": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "not_exercised": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "external_data": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "command": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1
+                },
+                "report_path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "timeout_ms": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "network": {
+                  "type": "string",
+                  "enum": [
+                    "denied",
+                    "loopback",
+                    "allowed"
+                  ]
+                },
+                "protected_paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false

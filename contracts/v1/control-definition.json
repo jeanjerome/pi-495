@@ -511,6 +511,124 @@
       "$id": "urn:495:contract:architecture-map:1",
       "additionalProperties": false
     },
+    "acceptance_recipe": {
+      "type": "object",
+      "required": [
+        "journey",
+        "preconditions",
+        "entry",
+        "observations",
+        "negative_control",
+        "negative_not_applicable",
+        "simulations",
+        "not_exercised",
+        "external_data"
+      ],
+      "properties": {
+        "journey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preconditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "entry": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "observation_id",
+              "requirement_id",
+              "expected"
+            ],
+            "properties": {
+              "observation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "requirement_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "expected": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "negative_control": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "requirement_id",
+                "deprived_of",
+                "expected"
+              ],
+              "properties": {
+                "requirement_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "deprived_of": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "expected": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "negative_not_applicable": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "simulations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "not_exercised": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "external_data": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "provides": {
       "type": "array",
       "items": {

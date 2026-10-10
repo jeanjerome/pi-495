@@ -713,6 +713,7 @@ class Ctx {
 				required_reviews: [...new Set([...c.protocol.required_reviews, ...this.policy.required_reviews])],
 				arbitration: c.protocol.arbitration,
 				environment_digest: c.protocol.environment_digest,
+				acceptance_recipe_control_id: c.protocol.acceptance?.recipe_control_id ?? null,
 			},
 		});
 		// A survey has no candidate to design: the frozen controls run on the reference next.

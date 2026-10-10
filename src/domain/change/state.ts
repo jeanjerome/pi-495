@@ -283,6 +283,8 @@ export interface FrozenProtocol {
 	required_reviews: string[];
 	arbitration: "human_decision" | "reject";
 	environment_digest: string;
+	/** The control of the acceptance run G5 requires on the candidate; absent from a protocol frozen before it could. */
+	acceptance_recipe_control_id?: string | null;
 }
 
 export interface IntegrationState {

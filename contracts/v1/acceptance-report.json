@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "candidate",
+    "built_version",
+    "entry",
+    "simulations",
+    "observations",
+    "negative_control"
+  ],
+  "properties": {
+    "candidate": {
+      "type": "string",
+      "minLength": 1
+    },
+    "built_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "entry": {
+      "type": "string",
+      "minLength": 1
+    },
+    "simulations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "summary": {
+      "type": "string"
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "observation_id",
+          "requirement_id",
+          "observed",
+          "outcome"
+        ],
+        "properties": {
+          "observation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "requirement_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "observed": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "negative_control": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "requirement_id",
+            "observed",
+            "outcome"
+          ],
+          "properties": {
+            "requirement_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "observed": {
+              "type": "string"
+            },
+            "outcome": {
+              "type": "string",
+              "enum": [
+                "refused",
+                "accepted"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$id": "urn:495:contract:acceptance-report:1",
+  "additionalProperties": false
+}

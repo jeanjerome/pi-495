@@ -1,7 +1,9 @@
 /**
- * Reviewing: each required reviewer role reads the candidate and records its conclusion.
+ * Reviewing: each required reviewer role reads the candidate, with its own mission and the observations of the
+ * acceptance run when the frozen protocol carries them, and records its conclusion.
  */
 import type { CandidateManifest } from "../../contracts/v1/candidate.ts";
+import type { Protocol } from "../../contracts/v1/protocol.ts";
 import type { ReviewReport } from "../../contracts/v1/reports.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
@@ -14,6 +16,10 @@ export async function review(ctx: PhaseContext, unit: Unit, cor: string): Promis
 		throw new DomainError("PRECONDITION_FAILED", "candidate and protocol required");
 	const candidate = state.candidate;
 	const workspacePath = ctx.workspace.workspacePath(candidate.workspace_id);
+	const frozen = (await ctx.artifacts.latest<Protocol>(state, "protocol"))?.content;
+	const plan = frozen?.acceptance;
+	const observations =
+		frozen?.controls.find((c) => c.control_id === plan?.recipe_control_id)?.acceptance_recipe?.observations ?? [];
 	for (const role of state.protocol.required_reviews) {
 		if (
 			state.reviews.some((r) => r.valid && r.reviewer_role === role && r.subject_digest === candidate.manifest_digest)
@@ -27,7 +33,12 @@ export async function review(ctx: PhaseContext, unit: Unit, cor: string): Promis
 			unit,
 			cor,
 			"review",
-			reviewObjective(role, manifest.selected_paths),
+			reviewObjective(
+				role,
+				manifest.selected_paths,
+				plan?.review_missions.find((m) => m.role === role)?.mission ?? null,
+				observations,
+			),
 			workspacePath,
 			{ adopted: ["mandate", "requirements", "design"] },
 		);

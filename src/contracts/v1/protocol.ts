@@ -238,6 +238,111 @@ export const ArchitectureRecommendation = Type.Object(
 );
 export type ArchitectureRecommendation = Static<typeof ArchitectureRecommendation>;
 
+/** What an acceptance run must observe of a requirement on the built candidate, through its real entry. */
+export const RecipeObservation = Type.Object(
+	{ observation_id: Identifier, requirement_id: Identifier, expected: Type.String({ minLength: 1 }) },
+	{ additionalProperties: false },
+);
+export type RecipeObservation = Static<typeof RecipeObservation>;
+
+/**
+ * The run an acceptance recipe makes on a private copy deprived of the mechanism a requirement adds, and the
+ * refusal or the gap it must observe there: what tells the delivered behaviour apart. The judged candidate is never
+ * the copy it alters.
+ */
+export const RecipeNegativeControl = Type.Object(
+	{
+		requirement_id: Identifier,
+		deprived_of: Type.String({ minLength: 1 }),
+		expected: Type.String({ minLength: 1 }),
+	},
+	{ additionalProperties: false },
+);
+export type RecipeNegativeControl = Static<typeof RecipeNegativeControl>;
+
+/**
+ * An acceptance run of the assembled software through its real entry: the journey, its preconditions, the entry it
+ * drives, what it observes, its negative control or why none applies, what it simulates, what it leaves unexercised
+ * and the external data it reads. Declared by the owner's profile before G2 and frozen with the control that runs
+ * it; a deterministic control yields the facts, a reviewer judges the rest.
+ */
+export const AcceptanceRecipe = Type.Object(
+	{
+		journey: Type.String({ minLength: 1 }),
+		preconditions: Type.Array(Type.String()),
+		entry: Type.String({ minLength: 1 }),
+		observations: Type.Array(RecipeObservation),
+		negative_control: Type.Union([RecipeNegativeControl, Type.Null()]),
+		/** Why no negative control applies, when there is none. */
+		negative_not_applicable: Type.Union([Type.String(), Type.Null()]),
+		simulations: Type.Array(Type.String()),
+		not_exercised: Type.Array(Type.String()),
+		/** Data the recipe reads from outside the copy; the network stays under the control's own policy. */
+		external_data: Type.Array(Type.String()),
+	},
+	{ additionalProperties: false },
+);
+export type AcceptanceRecipe = Static<typeof AcceptanceRecipe>;
+
+/** The control id, and the reader, of the acceptance run the profile asks for, in every protocol it is frozen into. */
+export const ACCEPTANCE_RECIPE = "acceptance-recipe";
+
+/** What the runner puts the identity of the candidate a control runs on in place of. */
+export const CANDIDATE_PLACEHOLDER = "{candidate}";
+
+/**
+ * What an acceptance run writes at the report path of its control: the candidate it was given in place of
+ * `{candidate}`, the version it built and the entry it drove, what it simulated, what it observed of each declared
+ * observation, and what its negative control observed on the private copy.
+ */
+export const AcceptanceReport = Type.Object(
+	{
+		candidate: Type.String({ minLength: 1 }),
+		built_version: Type.String({ minLength: 1 }),
+		entry: Type.String({ minLength: 1 }),
+		simulations: Type.Array(Type.String()),
+		summary: Type.Optional(Type.String()),
+		observations: Type.Array(
+			Type.Object(
+				{
+					observation_id: Identifier,
+					requirement_id: Identifier,
+					observed: Type.String(),
+					outcome: Closed(["passed", "failed"] as const),
+				},
+				{ additionalProperties: false },
+			),
+		),
+		negative_control: Type.Union([
+			Type.Object(
+				{
+					requirement_id: Identifier,
+					observed: Type.String(),
+					outcome: Closed(["refused", "accepted"] as const),
+				},
+				{ additionalProperties: false },
+			),
+			Type.Null(),
+		]),
+	},
+	{ $id: contractId("acceptance-report"), additionalProperties: false },
+);
+export type AcceptanceReport = Static<typeof AcceptanceReport>;
+
+/** What one required review is asked to judge: roles follow the risks of the change, and each has its own mission. */
+export const ReviewMission = Type.Object(
+	{ role: Type.String({ minLength: 1 }), mission: Type.String({ minLength: 1 }) },
+	{ additionalProperties: false },
+);
+export type ReviewMission = Static<typeof ReviewMission>;
+
+/** The missions of the required reviews and the control that runs the required acceptance recipe, if any. */
+export const AcceptancePlan = Type.Object(
+	{ review_missions: Type.Array(ReviewMission), recipe_control_id: Type.Union([Identifier, Type.Null()]) },
+	{ additionalProperties: false },
+);
+export type AcceptancePlan = Static<typeof AcceptancePlan>;
+
 export const ControlDefinition = Type.Object(
 	{
 		control_id: Identifier,
@@ -267,6 +372,8 @@ export const ControlDefinition = Type.Object(
 		 * applies at each run; absent for every other sensor.
 		 */
 		architecture_map: Type.Optional(ArchitectureMap),
+		/** The acceptance recipe an acceptance control runs and its reader checks; absent for every other control. */
+		acceptance_recipe: Type.Optional(AcceptanceRecipe),
 		/**
 		 * Reports this control leaves in the workspace, named so that another one may read them: the
 		 * Surefire reports and the JaCoCo report a single `mvn test` writes are two of them.
@@ -611,6 +718,8 @@ export const Protocol = Type.Object(
 		quality_referential: Type.Optional(AdoptedQualityReferential),
 		/** Present when the owner adopted the architecture map a model proposed for the target. */
 		architecture_map: Type.Optional(AdoptedArchitectureMap),
+		/** Absent from a protocol frozen before the profile could declare review missions and an acceptance recipe. */
+		acceptance: Type.Optional(AcceptancePlan),
 	},
 	{ $id: contractId("protocol"), additionalProperties: false },
 );

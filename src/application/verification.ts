@@ -27,7 +27,7 @@ import type {
 	RecommendedComplement,
 	RequirementsDocument,
 } from "../contracts/v1/protocol.ts";
-import { ObservedCases } from "../contracts/v1/protocol.ts";
+import { ACCEPTANCE_RECIPE, ObservedCases } from "../contracts/v1/protocol.ts";
 import {
 	applyInstability,
 	blockingCount,
@@ -155,6 +155,51 @@ export interface VerificationOutcome {
 	facts: EvidenceFact[];
 	/** The frozen candidate was written to while the controls ran: these facts prove nothing. */
 	candidate_moved: boolean;
+}
+
+/**
+ * The control that drives the acceptance recipe the profile declares, read by the reader of the same name, or null
+ * when the profile asks none. Its report is the only path it writes in the copy of the candidate.
+ */
+function recipeControlOf(policy: ActivePolicy, revision: number): ControlDefinition | null {
+	const declared = policy.acceptance_recipe;
+	if (!declared) return null;
+	const { command, report_path, timeout_ms, network, protected_paths, ...recipe } = declared;
+	const requirements = [
+		...new Set([
+			...recipe.observations.map((o) => o.requirement_id),
+			...(recipe.negative_control ? [recipe.negative_control.requirement_id] : []),
+		]),
+	];
+	return {
+		control_id: ACCEPTANCE_RECIPE,
+		version: "1",
+		title: recipe.journey,
+		command,
+		cwd: ".",
+		env_allowlist: ["PATH", "HOME"],
+		env: {},
+		timeout_ms,
+		parser: ACCEPTANCE_RECIPE,
+		report_path,
+		structure_rules: [],
+		provides: [],
+		requires: [],
+		scope_argument: null,
+		network: network ?? "denied",
+		writable_paths: [report_path],
+		requirement_refs: requirements.map((requirement_id) => ({ requirement_id, revision })),
+		protected: true,
+		protected_paths: protected_paths ?? [],
+		acceptance_recipe: recipe,
+	};
+}
+
+/** The acceptance plan the profile declares, frozen with the protocol; nothing when it declares none. */
+function acceptanceOf(policy: ActivePolicy, recipe: ControlDefinition | null): Pick<Protocol, "acceptance"> {
+	const missions = Object.entries(policy.review_missions).map(([role, mission]) => ({ role, mission }));
+	if (missions.length === 0 && !recipe) return {};
+	return { acceptance: { review_missions: missions, recipe_control_id: recipe?.control_id ?? null } };
 }
 
 /** Writes the files a witness workspace carries on top of the reference. */
@@ -451,10 +496,11 @@ export class VerificationCoordinator {
 				...(oracle ? { oracle } : {}),
 			};
 		});
+		const recipe = recipeControlOf(this.deps.policy, input.requirements_revision);
 		return {
 			protocol_id: this.deps.id("prt"),
 			change_id: input.change_id,
-			controls,
+			controls: recipe ? [...controls, recipe] : controls,
 			qualifications: input.qualifications,
 			capability_diagnosis:
 				input.recommendations.length > 0
@@ -469,6 +515,7 @@ export class VerificationCoordinator {
 			...(input.installed.length > 0 ? { installed_packages: [...input.installed] } : {}),
 			...(input.quality_referential ? { quality_referential: input.quality_referential } : {}),
 			...(input.architecture_map ? { architecture_map: input.architecture_map } : {}),
+			...acceptanceOf(this.deps.policy, recipe),
 		};
 	}
 
@@ -597,7 +644,9 @@ export class VerificationCoordinator {
 		if (!protocol.baseline.compare_to_reference) return passes;
 		const established = this.deps.ledger.listEvidence(changeId);
 		const pending: ControlDefinition[] = [];
-		for (const control of protocol.controls) {
+		// An acceptance run judges the candidate on its own observations; its negative control is the run on a
+		// deprived copy it makes itself, so no failure the reference shares is ever tolerated.
+		for (const control of protocol.controls.filter((c) => !c.acceptance_recipe)) {
 			const reused = reusableReferencePass(
 				established,
 				control,

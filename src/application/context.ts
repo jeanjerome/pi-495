@@ -21,6 +21,7 @@ import type {
 	ArchitectureMap,
 	ArchitectureRecommendation,
 	ControlDefinition,
+	RecipeObservation,
 } from "../contracts/v1/protocol.ts";
 import type { OutputSchemaId } from "../contracts/v1/reports.ts";
 import {
@@ -501,9 +502,26 @@ export function contestationObjective(
 	return `Examine the frozen case "${contestation.case_name}" of requirement ${contestation.requirement_id}${statement ? ` (${statement})` : ""}, which failed in control ${contestation.reproduction.control_id} on the candidate. The producer contests it: ${contestation.observation}${owner}`;
 }
 
-/** What a reviewer is asked, and on which paths. */
-export function reviewObjective(reviewerRole: string, changedPaths: readonly string[]): string {
-	return `Review the candidate as the ${reviewerRole} reviewer. Changed paths: ${changedPaths.join(", ")}`;
+/**
+ * What a required reviewer is asked: its own mission when the protocol gives one, and, when an acceptance run
+ * observes the candidate, its observations, so that each finding ties a requirement to the code that keeps it, the
+ * assertion that holds it and the observation that shows it. The facts the run observed are the run's; the reviewer
+ * judges what needs a judgement.
+ */
+export function reviewObjective(
+	reviewerRole: string,
+	changedPaths: readonly string[],
+	mission: string | null,
+	observations: readonly RecipeObservation[],
+): string {
+	const lines = [`Review the candidate as the ${reviewerRole} reviewer. Changed paths: ${changedPaths.join(", ")}`];
+	if (mission) lines.push(`Your mission: ${mission}`);
+	if (observations.length > 0)
+		lines.push(
+			"For each requirement, name the code that keeps it, the assertion that holds it and the observation of the acceptance run that shows it:",
+			...observations.map((o) => `- ${o.observation_id} (${o.requirement_id}): ${o.expected}`),
+		);
+	return lines.join("\n");
 }
 
 /**

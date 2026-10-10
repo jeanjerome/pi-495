@@ -2488,6 +2488,9 @@ bugs:
       sha256:21cb4f5a…; two identical candidates, then `stagnation`. The same frozen case reaches main, whose single
       preparation also covers every requirement; the branch makes it likelier by running a second preparation for a
       mandatory requirement without a case. The stop is safe: nothing is accepted. Neighbour of BUG-2026-10-05T103037.
+      Reproduced on 2026-10-10 at 64b0d1d3 (story e38s09) in campaigns `~/.495/campagnes/npm-20261010T033652` and
+      `npm-20261010T040754`: a prepared `r-lastfit-quality` case bounding the body of `lastFit` to 15 lines reads 19 in
+      Stryker's sandbox, and the mutation control fails on every candidate.
     risk_level: low
     follow_ups: >
       Run the adopted preparation of a stack whose mutation control executes the test suite once in Stryker's sandbox
@@ -2614,4 +2617,73 @@ bugs:
     follow_ups: >
       Decide what a containing task path is worth before production (a warning recorded at G3, or a refusal when the
       task path is exactly a protected directory or `**`), with a v0 test of each side of the line.
+    status: open
+  - bug_id: BUG-2026-10-10T061500
+    date: "2026-10-10"
+    title: "A coverage report the producer writes under coverage/ joins the candidate, and the mutation control mutates its scripts as introduced code"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      On the npm reference target, the producer of the second attempt ran the suite with coverage in its workspace,
+      and vitest wrote its default report directory `coverage/` there (`coverage-final.json`, `lcov-report/*.html`,
+      `block-navigation.js`, `prettify.js`, `sorter.js`…). The target's `.gitignore` names `coverage/`, but the
+      candidate is the walked tree minus the outputs the technology declares, and `NODE_OUTPUTS` names `target/`,
+      `dist/`, `build/` and the tool caches, not `coverage/`: 13 of the 16 selected paths of the candidate were under
+      `coverage/`. The mutation control then judged `coverage/lcov-report/*.js` as introduced lines and failed with
+      more than 200 surviving mutants, so G5 refused the attempt for files no requirement asked for.
+    what_expected: >
+      What a tool of the project writes when the producer runs it is not part of the candidate, or at least is not
+      judged as code the change introduced.
+    steps_to_reproduce:
+      - "Run `npm run campagne -- npm` with a real model until a producer runs `vitest run --coverage` in its workspace (the content depends on the model)."
+      - "Read the candidate manifest of that attempt: its selected paths list `coverage/…`; read its `mutation` evidence: the findings name `coverage/lcov-report/*.js`."
+    root_cause: >
+      `snapshotCandidate` (`src/adapters/workspace/git-workspace.ts`) keeps every walked path that the reference
+      exclusions, the policy exclusions and the declared outputs of the technology leave in; vitest's default
+      coverage directory is none of them, and the project's own ignore file is not read.
+    evidence: >
+      Observed in the acceptance run of the story e38s09 at 64b0d1d3, campaign `~/.495/campagnes/npm-20261010T033652`:
+      the candidate of the second attempt selects 16 paths, 13 under `coverage/`, and its mutation evidence reports
+      `coverage/lcov-report/block-navigation.js:2 introduced line whose mutation no test notices`. The branch does not
+      touch the candidate inventory nor the outputs of a technology. The stop is safe: nothing is accepted.
+    risk_level: low
+    follow_ups: >
+      Decide whether the declared outputs of the Node technology name vitest's default `coverage/`, or whether the
+      candidate leaves out what the project ignores, with a v2 test where a producer writes `coverage/` beside its code.
+    status: open
+  - bug_id: BUG-2026-10-10T044125
+    date: "2026-10-10"
+    title: "An acceptance recipe whose network is opened while it declares no external data passes G2, and the external data it declares reach neither its evidence nor its reviewers"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      The acceptance recipe a profile declares carries `external_data`, the data it reads from outside the copy, and a
+      `network` of its own (`denied` by default, `loopback` or `allowed`). Nothing reads `external_data`: the G2 check of
+      the acceptance plan (`acceptancePlanFindings`, `src/domain/acceptance-plan.ts`) judges the observations, the
+      negative control and the review missions, never the network against the declared data, so a recipe with
+      `network: "allowed"` and `external_data: []` is frozen; the reader of the run (`ACCEPTANCE_RECIPE_READER`) copies
+      the entry, the simulations and the observations into the evidence, not the external data; and `reviewObjective`
+      hands a reviewer the observations, not the external data.
+    what_expected: >
+      The data an acceptance run reads from outside the copy are declared where they are judged: a recipe that opens the
+      network without naming any external data is refused before the freeze, or at least the declared data appear in
+      the evidence of the run, as its entry and simulations do.
+    steps_to_reproduce:
+      - "Declare in `policy.acceptance_recipe` a recipe with `network: \"allowed\"`, `external_data: []`, one observation and a negative control."
+      - "Run a change to G2: the protocol is frozen with no finding about the network or the external data."
+      - "Run it to G5: the evidence of `acceptance-recipe` lists `entry` and `simulations` and nothing about external data."
+    root_cause: >
+      `external_data` is a field of the contract `AcceptanceRecipe` (`src/contracts/v1/protocol.ts`) that no function of
+      `src/` reads; its doc comment leaves the network to the control's own policy, and no rule ties the two.
+    evidence: >
+      Read at 228e1c04 (story e38s09): `grep -rn external_data src` finds only the contract and the doc comment of
+      `AcceptanceRecipeDeclaration`; no test sets `external_data` to anything but `[]`. The acceptance run of the story
+      kept the list empty and the network denied, so it did not exercise this. The network of the recipe is still set
+      only by the owner's profile and frozen with the protocol; a producer cannot open it.
+    risk_level: low
+    follow_ups: >
+      Decide whether G2 refuses a recipe whose network is not `denied` and whose `external_data` is empty, and carry the
+      declared external data into the facts of the run, with a v0 test of the refusal and a v1 test of the facts.
     status: open

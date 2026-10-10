@@ -20,8 +20,8 @@ export interface G5Result {
 }
 
 /**
- * G5 — acceptance. Deterministic combination of valid evidence, required reviews and human
- * decisions against the frozen protocol. FAIL and INDETERMINATE are both blocking and both kept
+ * G5 — acceptance. Deterministic combination of valid evidence, the required acceptance run, required reviews
+ * and human decisions against the frozen protocol. FAIL and INDETERMINATE are both blocking and both kept
  * (RM-036, SA-032). No model is called (DEC-01).
  */
 export function evaluateG5(
@@ -100,6 +100,27 @@ export function evaluateG5(
 		} else {
 			indeterminate.add(rid);
 			reasons.push(`requirement ${rid}: ${outcome} (${describe(o.control_ids, latestByControl)})`);
+		}
+	}
+
+	// The acceptance run is an obligation of its own: no other control's PASS stands for it, and only its run on
+	// this very candidate counts.
+	const recipe = protocol.acceptance_recipe_control_id;
+	if (recipe) {
+		const run = latestByControl.get(recipe);
+		if (!run) {
+			missing.push(`recipe:${recipe}`);
+			reasons.push(`acceptance recipe ${recipe} was not run on the candidate ${candidate.manifest_digest}`);
+			indeterminate.add(`recipe:${recipe}`);
+		} else {
+			retained.push(run.evidence_id);
+			if (run.verdict === "FAIL" || run.findings_blocking > 0) {
+				failed.add(`recipe:${recipe}`);
+				reasons.push(`acceptance recipe ${recipe}: FAIL`);
+			} else if (run.verdict !== "PASS") {
+				indeterminate.add(`recipe:${recipe}`);
+				reasons.push(`acceptance recipe ${recipe}: ${run.verdict}`);
+			}
 		}
 	}
 

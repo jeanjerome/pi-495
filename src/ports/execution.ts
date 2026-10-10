@@ -215,6 +215,8 @@ export interface ReaderRun extends WorkspaceFiles {
 	stderr: string;
 	/** What the subject introduced, line by line; null when nobody computed it. */
 	introduced_lines: IntroducedLines | null;
+	/** The identity of the subject this run judges, which the runner put in place of `{candidate}` in the command. */
+	subject_digest: string;
 	/** The message without the workspace this run happened to use, so a finding pairs across the two trees. */
 	relativize(message: string): string;
 }

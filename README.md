@@ -275,7 +275,9 @@ Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, other
       "max_confirmations": 1
     },
     "stagnation_identical_candidates": 2,
-    "required_reviews": []
+    "required_reviews": [],
+    "review_missions": {},
+    "acceptance_recipe": null
   },
   "isolation": { "allow_unconfined": false },
   "human_origin": { "rpc_actor_env": "HARNESS495_RPC_HUMAN_ACTOR" },
@@ -293,6 +295,8 @@ Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, other
 | `policy.baseline` | How each control is compared with the reference. |
 | `policy.stagnation_identical_candidates` | Stop after this many identical candidates in a row; `0` disables it. |
 | `policy.required_reviews` | Review roles required for acceptance. |
+| `policy.review_missions` | What each required review is asked to judge, by role; two roles never share a mission. |
+| `policy.acceptance_recipe` | The acceptance run every candidate must pass before acceptance: the journey, its preconditions, the entry it drives, its observations, its negative control on a private copy or why none applies, what it simulates, what it leaves unexercised, the external data it reads, and the command that writes its [report](contracts/v1/acceptance-report.json), `{candidate}` standing for the candidate it runs on. |
 | `isolation.allow_unconfined` | Run checks without a sandbox. Leave `false`. |
 | `human_origin.rpc_actor_env` | Environment variable through which an RPC host names its human actor. |
 | `workspace_exclusions` | Paths left out of workspaces, on top of the outputs the project's technology declares. Keep the inputs the checks need. |

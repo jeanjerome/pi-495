@@ -26,6 +26,7 @@ const RECORDED = {
 	"dependency-cruiser-json": "1.0.0",
 	"knip-json": "1.0.0",
 	tlc: "1.0.0",
+	"acceptance-recipe": "1.0.0",
 };
 
 describe("the readers of Maven, Node, TLC and the common formats", () => {

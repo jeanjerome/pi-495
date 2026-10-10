@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import type { EvidenceCandidate, Finding } from "../../contracts/v1/evidence.ts";
 import {
+	CANDIDATE_PLACEHOLDER,
 	RULESET_DIRECTORY_PLACEHOLDER,
 	RULESET_PLACEHOLDER,
 	type ControlDefinition,
@@ -133,7 +134,11 @@ export class GenericControlRunner implements ControlExecutionPort {
 			} else if ("decided" in prepared) {
 				report = prepared.decided;
 			} else {
-				command = [...control.command, ...prepared.arguments];
+				// A report that names the subject it ran on is told it here, by the runner: a report left by another run
+				// names another subject.
+				command = [...control.command, ...prepared.arguments].map((arg) =>
+					arg.split(CANDIDATE_PLACEHOLDER).join(invocation.subject.digest),
+				);
 				// The sandbox lets a command create what sits under a writable path and nothing above it: the
 				// directory that holds `reports/mutation` is made here, by the runner, so that the tool can
 				// create the path it was granted without being granted its parent.
@@ -178,6 +183,7 @@ export class GenericControlRunner implements ControlExecutionPort {
 					stdout: new TextDecoder().decode(observation.stdout),
 					stderr: new TextDecoder().decode(observation.stderr),
 					introduced_lines: introduced,
+					subject_digest: invocation.subject.digest,
 					relativize: (message) => relativize(message, ...roots),
 				});
 			}
