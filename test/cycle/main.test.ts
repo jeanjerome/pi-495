@@ -62,6 +62,7 @@ describe("the entry point of the cycle", () => {
 			["CYCLE_495_PLAFOND_USD", ["e01s05", "auto"]],
 			["CYCLE_495_REPRISES_MAX", ["reprises"]],
 			["CYCLE_495_DEFAUTS_MAX", ["defauts"]],
+			["CYCLE_495_MUTATION_MIN", ["e01s05", "auto"]],
 		] as const) {
 			for (const valeur of ["abc", "", "-1"]) {
 				const r = cycle([...args], b, { [nom]: valeur });

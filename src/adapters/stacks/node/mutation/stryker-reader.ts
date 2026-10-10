@@ -67,11 +67,15 @@ function lineRanges(lines: readonly number[]): [number, number][] {
 
 /**
  * The ranges of the introduced lines Stryker is asked to mutate, `file:start-end` each, in the place
- * of the class patterns a scope otherwise carries. The scope comes from the manifest and the
- * introduced lines, never from a file the producer wrote.
+ * of the class patterns a scope otherwise carries, for the paths `measured` keeps: by default, those a
+ * test does not live at. The scope comes from the manifest and the introduced lines, never from a file
+ * the producer wrote.
  */
-export function strykerScopeOf(introduced: IntroducedLines): MutationScope {
-	const sources = Object.keys(introduced).filter(isScriptUnderTest).sort();
+export function strykerScopeOf(
+	introduced: IntroducedLines,
+	measured: (path: string) => boolean = isScriptUnderTest,
+): MutationScope {
+	const sources = Object.keys(introduced).filter(measured).sort();
 	const unaddressable = sources.filter((path) => STRYKER_PATTERN_CHARACTER.test(path) || hasControlCharacter(path));
 	const paths = sources.filter((path) => !unaddressable.includes(path));
 	const classes = paths.flatMap((path) =>

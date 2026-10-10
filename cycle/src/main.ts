@@ -92,7 +92,7 @@ function reglage(nom: string): number | undefined {
 	return Number(brut);
 }
 
-const REGLAGES = ["CYCLE_495_PLAFOND_USD", "CYCLE_495_REPRISES_MAX", "CYCLE_495_DEFAUTS_MAX"];
+const REGLAGES = ["CYCLE_495_PLAFOND_USD", "CYCLE_495_REPRISES_MAX", "CYCLE_495_DEFAUTS_MAX", "CYCLE_495_MUTATION_MIN"];
 
 /** The ceiling of one phase of repairs, when the environment sets one. */
 function defautsMax(): { defautsMax?: number } {

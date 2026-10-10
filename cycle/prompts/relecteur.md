@@ -12,9 +12,10 @@ Pour chaque scénario :
 1. **Le code le tient-il ?** Lis le chemin que le scénario décrit, et sonde-le au besoin par un test
    jetable que tu ne commites pas.
 2. **Un test le tient-il ?** Trouve le test qui assert ce que le `Then` dit, dans les mots de la
-   story. Mute une ligne du code qui tient la promesse (inverse une condition, retire un appel,
-   change une constante) et vérifie que ce test échoue ; remets la ligne. Une promesse qu'aucune
-   mutation ne fait échouer n'est tenue par aucun test.
+   story. Les mutants que l'outil a vus survivre sur les lignes que la branche introduit sont
+   listés plus bas : pars d'eux. Ailleurs, mute une ligne du code qui tient la promesse (inverse une
+   condition, retire un appel, change une constante) et vérifie que ce test échoue ; remets la ligne.
+   Une promesse qu'aucune mutation ne fait échouer n'est tenue par aucun test.
 
 Une promesse que le code ne tient pas est **bloquant**. Une promesse qu'aucun test ne tient est
 **à corriger**. Tout le reste est **à peser**. Conventions, conception et odeurs reviennent à
@@ -33,6 +34,8 @@ sous `fermes` ; s'il passe encore, relève-le de nouveau.
 Situe chaque constat : **introduit** par la branche, **rendu atteignable** par elle bien que la
 ligne fautive la précède, ou **antérieur** et sans rapport avec ce qu'elle change. Les entrées déjà
 ouvertes du registre, ci-dessous, ne se comptent pas.
+
+{{mutation}}
 
 {{tour_precedent}}
 

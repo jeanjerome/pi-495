@@ -182,6 +182,9 @@ const ALLOWED = new Set([
 	"CC0-1.0",
 	"Unlicense",
 	"Python-2.0",
+	// Attribution only: the browser data of `caniuse-lite`, which Stryker's instrumenter loads through Babel's
+	// `browserslist`, in the development tree alone.
+	"CC-BY-4.0",
 ]);
 
 /** A dual licence is permissive when every branch is: taking one branch would make the choice implicit. */

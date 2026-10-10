@@ -22,6 +22,7 @@ const texte = invite("relecteur", {
 	base: "b",
 	tete: "t",
 	tour_precedent: "",
+	mutation: "",
 	promesses: PROMESSES,
 	registre: "aucune",
 }).replace(/\s+/g, " ");

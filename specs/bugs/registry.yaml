@@ -2841,3 +2841,32 @@ bugs:
       Record each round's bypasses before its response, and replay them on any relaunch; with the cycle test above,
       which a mutation removing that record must make fail.
     status: open
+  - bug_id: BUG-2026-10-10T220000
+    date: "2026-10-10"
+    title: "No test holds that the detached tree where the review's mutation rewrites the sources is removed after the round"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      The mutation of the lines a branch introduces (`mutation`, `cycle/src/cycle.ts`) runs Stryker through
+      `executerA` (`cycle/src/controls.ts`), which checks out a detached tree of the head and removes it with
+      `retirerArbre` in its `finally`. With that call removed, the rewritten tree stays on disk under the temporary
+      directory and stays registered as a worktree of the repository, while `relecture-mutation*.test.ts`,
+      `controls.test.ts` and the whole `npm run test:cycle` suite (192 tests) stay green.
+    what_expected: >
+      The security section of e39s02 says the copy the mutation tool rewrites is removed after the round; a test of the
+      review step should fail when the detached tree outlives the mutation, on disk or in `git worktree list`.
+    steps_to_reproduce:
+      - "Comment out `retirerArbre(depot, arbre);` in the `finally` of `executerA` (`cycle/src/controls.ts`)."
+      - "Run `node --test test/cycle/relecture-mutation.test.ts test/cycle/relecture-mutation-echec.test.ts test/cycle/controls.test.ts`: all pass."
+    root_cause: >
+      The removal predates the branch and was never asserted; the branch relies on it for the guarantee of its security
+      section without a test that looks at the worktrees left after the round.
+    evidence: >
+      Made reachable by the branch of the story e39s02, which runs the mutation in this detached tree. Found by both
+      reviewers of its second review round by mutation of the removal line; the last round leaves it to the registry.
+    risk_level: low
+    follow_ups: >
+      In `relecture-mutation.test.ts`, assert after the round that `git worktree list` names only the branch's tree and
+      that the detached tree's path no longer exists; the mutation removing `retirerArbre` must make it fail.
+    status: open

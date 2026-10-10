@@ -326,5 +326,11 @@ replayed in a detached tree, fails on a test it reads; each task command passes 
 Preflight is green at the cited revision; review stops at two rounds; the branch reaches `main` in
 one commit; the record is exported at landing.
 
-What is still missing: mutation testing on the lines introduced for a Node target, which reviewers do
-by hand, and 495's confined Pi worker in place of the Claude Code sessions.
+Before the first review round, the tool mutates the lines the branch introduces in the TypeScript
+sources of `src/`, `cycle/src/` and `scripts/`, with Stryker and the test files the tasks' commands
+name, in a detached tree removed afterwards; it keeps the report in the record and gives the reviewers
+the mutants that survive (`D-89`). A mutation that fails or runs past its budget
+(`CYCLE_495_MUTATION_MIN`, 30 minutes by default) does not hold the round back: the reviewers are told
+it did not complete, and why.
+
+What is still missing: 495's confined Pi worker in place of the Claude Code sessions.

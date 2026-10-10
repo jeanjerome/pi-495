@@ -4,8 +4,9 @@
  * acceptance run handed to the owner, the branch landed. A step ends `fini`, or stops on a question
  * for the owner, or blocks with the reason.
  */
-import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, relative } from "node:path";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, relative } from "node:path";
 import {
 	type Controle,
 	type Executeur,
@@ -28,6 +29,17 @@ import {
 	versementEcrase,
 } from "./git.ts";
 import { invite } from "./invite.ts";
+import {
+	budgetMutation,
+	ecrireConfigurationStryker,
+	plagesIntroduites,
+	raisonDeStryker,
+	survivants,
+	testsDesTaches,
+	texteMutation,
+	texteNonAboutie,
+	RIEN_A_MUTER,
+} from "./mutation.ts";
 import { contenuLu, dejaVerte, retenirVerte } from "./preflight.ts";
 import { preparer } from "./preparation.ts";
 import type { Evenement, Journal, Pas } from "./journal.ts";
@@ -318,7 +330,56 @@ function registreOuvert(ctx: Contexte): string {
 	return ouverts.length === 0 ? "aucune" : ouverts.map((d) => `- ${d.id} — ${d.titre}`).join("\n");
 }
 
-async function relecteurs(ctx: Contexte, tour: number, b: string, tete: string, precedent: string): Promise<Rapport[]> {
+/** What a control printed on its standard output, as the object store keeps it. */
+async function sortieDe(ctx: Contexte, preuve: Preuve): Promise<string> {
+	const stdout = preuve.artifacts.find((a) => a.name === "stdout");
+	return stdout ? new TextDecoder().decode((await ctx.journal.objets.get(stdout.ref)) ?? new Uint8Array()) : "";
+}
+
+/**
+ * The mutation of the lines the branch introduces from `b` to `tete`, with the tests the tasks name, in a detached
+ * tree removed afterwards: its report is kept in the journal, and the text returned tells the reviewers which
+ * mutants survive, why the mutation did not complete, or that no line was to be mutated.
+ */
+async function mutation(ctx: Contexte, b: string, tete: string): Promise<string> {
+	const plages = plagesIntroduites(ctx.root, b, tete);
+	if (plages.length === 0) return RIEN_A_MUTER;
+	const tests = testsDesTaches(ctx.story);
+	const dossier = mkdtempSync(join(tmpdir(), "cycle-mutation-"));
+	const nonAboutie = (raison: string): string => {
+		ctx.journal.inscrire("relecture", "mutation", { plages, tests, raison });
+		return texteNonAboutie(raison);
+	};
+	try {
+		const stryker = ecrireConfigurationStryker(dossier, plages, tests, budgetMutation());
+		const preuve = await controle(ctx, "relecture", stryker.controle, tete);
+		if (!existsSync(stryker.rapport)) return nonAboutie(raisonDeStryker(preuve.facts, await sortieDe(ctx, preuve)));
+		const rapport = readFileSync(stryker.rapport, "utf8");
+		const vivants = survivants(rapport);
+		ctx.journal.inscrire("relecture", "mutation", {
+			plages,
+			tests,
+			rapport: await ctx.journal.garder(rapport, "application/json"),
+			survivants: vivants.length,
+		});
+		return texteMutation(plages, tests, vivants);
+	} catch (e) {
+		// The surviving mutants inform the reviewers and hold no gate: a mutation that cannot run leaves the round to
+		// take place, and says why.
+		return nonAboutie((e as Error).message);
+	} finally {
+		rmSync(dossier, { recursive: true, force: true });
+	}
+}
+
+async function relecteurs(
+	ctx: Contexte,
+	tour: number,
+	b: string,
+	tete: string,
+	precedent: string,
+	mutes: string,
+): Promise<Rapport[]> {
 	const arbres = [arbreDetache(ctx.root, tete), arbreDetache(ctx.root, tete)];
 	try {
 		// Both sessions end before their trees go: one that fails must not take the other's tree away.
@@ -335,6 +396,7 @@ async function relecteurs(ctx: Contexte, tour: number, b: string, tete: string, 
 						base: b,
 						tete,
 						tour_precedent: precedent,
+						mutation: mutes,
 						promesses: promesses(ctx),
 						registre: registreOuvert(ctx),
 					}),
@@ -493,7 +555,8 @@ async function pasRelecture(ctx: Contexte): Promise<Issue> {
 	let { depuis: b, laisses, rejoues, precedent } = debut;
 	for (let tour = debut.premier; tour <= toursMax; tour += 1) {
 		const tete = revision(ctx.root);
-		const relus = await relecteurs(ctx, tour, b, tete, precedent);
+		const mutes = tour === 1 ? await mutation(ctx, b, tete) : "";
+		const relus = await relecteurs(ctx, tour, b, tete, precedent, mutes);
 		const rapports = [...relus, ...ouvertsDuTourPrecedent(laisses, rejoues, relus)];
 		const tri = trier(rapports);
 		const ref = await ctx.journal.garder(JSON.stringify(rapports, null, 1), "application/json");
