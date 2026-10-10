@@ -1,0 +1,95 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "La preuve porte sur l’énoncé approuvé",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 224,
+    "constat": "Le contrôle n'empreinte que lakefile.toml et les fichiers .lean protégés, puis vérifie la provenance d'un énoncé par son seul nom de module (moduleOfFile, l.135-139). Un lakefile.lean ajouté au projet, que Lake préfère à lakefile.toml, peut fixer `srcDir := \"forged\"`. Lake construit alors `Verdicts.Statements` depuis forged/Verdicts/Statements.lean, où chaque énoncé vaut `True`, et Proofs le prouve par `trivial`. Toutes les empreintes avant et après restent identiques, leanchecker rejoue des oleans cohérents, Inspect lit `type == mkConst Verdicts.AnyPassKeepsPass` venu du module `Verdicts.Statements`, et le rapport dit `proved` (sortie 0, axiomes vides, 2,4 s). Joué sur une copie jetable du projet approuvé, avec le manifeste du dépôt.",
+    "contournement": "Définitions et énoncés protégés (et « aucune validation fondée uniquement sur un exit code ou un texte ») : avec un projet dont Statements.lean et Defs.lean sont intacts, le contrôle déclare prouvés sept énoncés remplacés par `True` à la construction. Le même lakefile.lean peut aussi ajouter une dépendance par `require`, que lake-manifest.json ne voit pas : la promesse de conserver la version des dépendances est contournée de la même façon."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "La preuve porte sur l’énoncé approuvé",
+    "categorie": "bloquant",
+    "placement": "rendu_atteignable",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 211,
+    "constat": "Le profil passe write_paths: [work], mais le backend Seatbelt (src/adapters/sandbox/backends.ts:112,143) ajoute en écriture tout tmpdir() et /private/tmp. Un `#eval` d'IO dans Proofs.lean, exécuté pendant `lake build`, a écrit un fichier dans $TMPDIR/a1-probe/ (où vivent aussi les arbres détachés du cycle, cycle-arbre-*) et dans /tmp, avec un verdict `proved`. L'écriture dans le dossier personnel a bien été refusée. Le README de la story dit pourtant « la copie seule inscriptible ».",
+    "contournement": "Build des preuves sous droits adaptés : une preuve vérifiée écrit hors de sa copie, n'importe où sous $TMPDIR et /tmp, y compris dans les arbres d'autres sessions du cycle."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "La preuve porte sur l’énoncé approuvé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 109,
+    "constat": "Aucun test ne tient le refus d'une chaîne d'outils qui n'imprime pas la version et le commit approuvés : la mutation survit. La conservation des fichiers de dépendances (lake-manifest.json, lean-toolchain) passe par la comparaison d'empreintes avant construction, tenue par le test de l'énoncé altéré (mutation l.196 tuée).",
+    "mutation": "l.109 condition → false : les trois tests restent verts"
+   },
+   {
+    "id": "A1-4",
+    "scenario": "La preuve porte sur l’énoncé approuvé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 228,
+    "constat": "Plusieurs gardes de la section Sécurité ne sont tenues par aucun test : la réécriture d'un fichier protégé pendant la construction (l.228), l'échec du rejeu leanchecker (l.236), la nature « theorem » (l.136), la provenance du module de l'énoncé (l.138), le compte des théorèmes inspectés (l.247), le bac à sable qualifié (l.189) et le réseau refusé (l.212). Chaque mutation laisse lean-verdict-proof.test.ts vert. Les axiomes (l.141), l'énoncé approuvé (l.137) et l'énoncé altéré avant construction (l.196) sont, eux, tenus.",
+    "mutation": "l.228, l.236, l.136, l.138, l.247, l.189 → if (false) ; l.212 network \"denied\" → \"allowed\" : tous survivent"
+   }
+  ],
+  "resume": "J'ai relu la story e38s11 sur 478e1987, avec Lean 4.34.1 réel ; les trois tests de la story passent en 7,7 s. Les scénarios all_pass, any_pass et divergence du TypeScript sont tenus par le code et par les tests. Sept mutations de g5.ts ont été tuées : FAIL et NOT_RUN retirés de all, PASS retiré de any, any_pass lu comme all_pass et l'inverse, liste vide → PASS, et une obligation any_pass qui sauterait les obligations suivantes. Le test différentiel désigne bien le cas minimal `all []`. Le scénario « La preuve porte sur l'énoncé approuvé » n'est pas tenu par le code : un lakefile.lean ajouté au projet, que Lake préfère au lakefile.toml protégé, redirige les sources vers des énoncés forgés (`True`), et check-lean répond `proved` avec toutes les empreintes intactes (A1-1, contournement introduit). Le build des preuves peut aussi écrire partout sous $TMPDIR et /tmp, au-delà de la copie que le README déclare seule inscriptible (A1-2, contournement rendu atteignable par le backend Seatbelt existant). Plusieurs gardes de check-lean (réécriture après construction, rejeu, nature, provenance, compte, bac à sable, réseau, version de la chaîne d'outils) ne sont tenues par aucun test (A1-3, A1-4, à peser). Verdict : fail.",
+  "fermes": []
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "La preuve porte sur l’énoncé approuvé (Sécurité : définitions et énoncés protégés)",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 224,
+    "constat": "Le contrôle vérifie le sha256 des fichiers sources protégés, mais rien ne prouve que Lake a compilé ces fichiers-là. Lake préfère un `lakefile.lean` à `lakefile.toml` (Lake/Load/Package.lean:112-115). Or `lakefile.lean` n'est ni protégé ni refusé : il peut donc fixer `srcDir` sur un autre dossier qui contient des `Verdicts/Statements.lean` et `Verdicts/Defs.lean` forgés. Le module de l'énoncé s'appelle toujours `Verdicts.Statements`, ce que `moduleOfFile` déduit du seul chemin protégé, et le contrôle conclut `proved` sur des énoncés réécrits.",
+    "contournement": "Définitions et énoncés protégés ; la preuve porte sur l’énoncé approuvé. Sonde rejouée sur 478e1987 : une copie du projet approuvé, sans aucun fichier protégé modifié, reçoit `lakefile.lean` (`lean_lib Verdicts where srcDir := \"forged\"`) et `forged/Verdicts/{Defs,Statements,Proofs}.lean`, où chaque énoncé est `def X : Prop := True` et chaque théorème `:= trivial`. `node scripts/check-lean.ts specs/formal/verdicts/manifest.json --project <copie> --toolchain ~/.elan/toolchains/leanprover--lean4---v4.34.1` sort en 0 avec `verdict: proved` : 7 théorèmes avec `states_approved: true`, `statement_module: Verdicts.Statements`, aucun axiome, `replay.passed: true`, et les cinq fichiers protégés avec before = after = approved."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "La preuve porte sur l’énoncé approuvé (la version des dépendances est conservée)",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 109,
+    "constat": "Aucun test ne vérifie le refus d'une chaîne d'outils qui n'imprime pas la version et le commit approuvés. `lean-verdict-proof.test.ts` s'exécute toujours avec la chaîne approuvée, si bien que désactiver ce contrôle laisse les trois cas verts.",
+    "mutation": "ligne 109 : `if (!printed.includes(...) || !printed.includes(...))` → `if (false)` ; `lean-verdict-proof.test.ts` passe 3/3"
+   },
+   {
+    "id": "B1-3",
+    "scenario": "La preuve porte sur l’énoncé approuvé (énoncés identiques, version des dépendances conservée)",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 228,
+    "constat": "Aucun test ne tient la comparaison des fichiers protégés après la construction (énoncés, `lake-manifest.json`, `lean-toolchain`). Le test positif vérifie `after === approved`, mais il continue de passer quand `after` n'est plus calculé, et aucun témoin ne fait réécrire un fichier protégé par la construction.",
+    "mutation": "ligne 228 : `if (rewritten.length > 0)` → `if (false)` : 3/3 verts ; ligne 225 : `after: sha256Of(join(work, p.file))` → `after: p.approved` : 3/3 verts"
+   },
+   {
+    "id": "B1-4",
+    "scenario": "La preuve porte sur l’énoncé approuvé (Sécurité : vérification distincte, énoncé venu d'un fichier protégé)",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 236,
+    "constat": "Deux défenses de la section Sécurité ne sont tenues par aucun test. Le refus d'un rejeu `leanchecker` en échec peut être supprimé sans qu'un test échoue. Il en va de même du refus d'un énoncé dont le module n'est pas un fichier protégé (ligne 138).",
+    "mutation": "ligne 236 : `if (replay.exit_code !== 0)` → `if (false)` : 3/3 verts ; ligne 138 : condition `statement_module` → `if (false)` : 3/3 verts"
+   }
+  ],
+  "resume": "Relecteur B, tour 1, sur e38s11 à 478e1987 : **fail**. Contournement bloquant : un `lakefile.lean` ajouté au projet, non protégé et que Lake préfère à `lakefile.toml`, fait compiler des énoncés forgés (`True`) pris dans un autre `srcDir`. `check-lean.ts` les déclare alors `proved` (sortie 0) alors que tous les fichiers protégés gardent leur empreinte approuvée. Hors ce point, les mutations sur les refus centraux échouent comme attendu : axiome non autorisé ou sorryAx (l.141), énoncé non approuvé (l.137), fichier protégé altéré avant la construction (l.196). Il en va de même dans g5.ts pour all_pass sans NOT_RUN ou sans INDETERMINATE, any_pass sans PASS, et `continue`→`break` après un PASS, pris par le test de contrat et le test différentiel. Le test différentiel montre bien le cas minimal `all []`. Deux défenses du scénario 1 restent sans test (à corriger) : le refus d'une autre version de la chaîne Lean (l.109) et la comparaison des fichiers protégés après la construction (l.225/228). Le refus du rejeu `leanchecker` et le contrôle du module de l'énoncé ne sont pas testés non plus (à peser). Aucun fichier modifié ; les copies de sonde sont supprimées."
+ }
+]

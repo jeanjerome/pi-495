@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "La preuve porte sur l'énoncé approuvé",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 239,
+    "constat": "Le contrôle lance Lake avec HOME=work et ne retire de la copie que `.lake`. Or Lake 4.34.1 lit par défaut son cache d'artefacts : `isArtifactCacheReadable` vaut true quand rien n'est configuré, et le cache se trouve alors sous `$HOME/.cache/lake` (Lake/Config/Env.lean:103-115 et 193-202, Lake/Build/Module.lean:1092). Un `.cache/lake/` livré dans le projet est donc copié dans work. La construction « seule » des modules protégés y restaure, sous la clé d'entrée de l'authentique Verdicts/Statements.lean, un Statements.olean forgé où chaque énoncé vaut `True`. Ce module est mis de côté comme approuvé, `trivial` prouve tout, leanchecker rejoue des oleans cohérents, et le rapport dit `proved` (sortie 0, axiomes vides, empreintes avant/après identiques). Joué sur la tête 47f16e19 avec le manifeste du dépôt. La clé d'entrée ne dépend pas du chemin (identique dans deux dossiers). Contrôle négatif : le même projet sans `.cache/` est refusé (« Type mismatch trivial … PassNeedsAPass »). Recette : construire l'authentique et un Statements forgé avec LAKE_ARTIFACT_CACHE=true et HOME=<projet>, puis faire pointer outputs/verdicts/<clé de l'authentique>.json vers les artefacts du forgé.",
+    "contournement": "Définitions et énoncés protégés ; aucune validation fondée uniquement sur un exit code : la construction des modules protégés ne compile pas les sources protégées. Elle restaure depuis un cache que fournit le projet un .olean d'énoncés réécrits, et le contrôle conclut `proved`."
+   }
+  ],
+  "fermes": [
+   "A1-1",
+   "A1-2",
+   "B1-1"
+  ],
+  "resume": "Verdict fail: one new bypass, found and reproduced on head 47f16e19. Lake reads its artifact cache by default, and because HOME is the copy, that cache can come from the project. A project that ships `.cache/lake/` gets a precompiled `Verdicts.Statements` in which every statement is `True`, and the check answers `proved` (exit 0). The same project without the cache is refused. A fix has to keep Lake away from any cache the project supplies, for example by setting `LAKE_ARTIFACT_CACHE=false` and an empty `LAKE_CACHE_DIR`, or by giving HOME an empty directory outside the copy. The three bypasses claimed fixed no longer pass on the head, so they are closed: A1-1 and B1-1, where a `lakefile.lean` with `srcDir := forged` is not read (sorryAx appears, verdict refused), and A1-2, where nothing is written under `$TMPDIR` or `/tmp`. Two mutations of the new defences each make their test fail: dropping `temp_paths: []` fails the escape test, and `force: true` in `copyCompiled` fails the olean overwrite test. The ten tests of lean-verdict-proof.test.ts are green on the head. I did not re-examine scenarios 2 to 4, whose files this diff does not touch. My probe files have been removed and the tree is unchanged."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "La preuve porte sur l’énoncé approuvé",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 271,
+    "constat": "Le rejeu `leanchecker` et l'inspection ne lisent pas la même chose. Pour un module, `leanchecker` rejoue les constantes de `<M>.olean.private` dès que `<M>.olean.server` et `<M>.olean.private` existent (LeanChecker.lean, replayFromImports). Pour un module sans `module`, `importModules` (Inspect.lean) ne lit que `<M>.olean` (Environment.lean, readModuleDataPartsOfMod). La construction des preuves peut écrire ces deux parties à côté d'un `Proofs.olean` forgé, et `copyCompiled(library, checked, manifest.module, true)` les copie dans `checked`. Le noyau rejoue alors un module sans constante, tandis que l'inspection lit des théorèmes `trivial` dont le type est `mkConst Verdicts.<Énoncé>`. Sondé sur une copie jetable du projet approuvé, avec le manifeste du dépôt : `Proofs.lean` a ses sept preuves en `sorry`, et un `#eval` dans `Verdicts.lean` écrit trois fichiers dans `.lake/build/lib/lean/Verdicts/` : `Proofs.olean`, pris d'un projet forgé où chaque énoncé vaut `True`, puis `Proofs.olean.server` et `Proofs.olean.private`, pris de deux oleans forgés sans constante. Le rapport dit `proved` : sortie 0, `replay.passed` vrai, sept théorèmes sans axiome venus de `Verdicts.Statements`. Témoin négatif : la même copie sans les deux parties est refusée, avec le rejeu en échec sur « declaration type mismatch … has type True ».",
+    "contournement": "Vérification distincte de la génération des preuves ; aucune validation fondée sur un texte « theorem proved » : le noyau ne rejoue pas les constantes que l'inspection lit, si bien que des preuves en `sorry` passent pour prouvées, sans `sorryAx`. Le Then « aucun sorryAx n'est utilisé » est donc contourné."
+   }
+  ],
+  "fermes": [
+   "A1-1",
+   "B1-1",
+   "A1-2"
+  ],
+  "resume": "J'ai rejoué les contournements dits corrigés sur 47f16e19. A1-1 et B1-1 sont fermés : le `lakefile.lean` qui pointe `srcDir` vers des énoncés forgés n'est plus lu, et la construction échoue sur les énoncés approuvés, d'où un verdict `refused`. A1-2 est fermé : `temp_paths: []` retire `$TMPDIR` et `/tmp` des chemins inscriptibles. Le test de confinement tient cette garantie : quand je retire l'option, il échoue sur « the build wrote /var/folders/…/495-lean-escape-… ».\n\nLes scénarios all_pass, any_pass et divergence sont tenus par lean-verdict-differential.test.ts. J'ai essayé deux mutations de `combine` dans g5.ts : NOT_RUN ignoré sous all_pass, et PASS refusé quand un FAIL l'accompagne sous any_pass. Les deux font échouer le test. La mise de côté des oleans protégés est tenue aussi : passer `force` à true fait échouer le test de l'olean réécrit.\n\nIl reste un contournement nouveau, B2-1, bloquant. `leanchecker` rejoue la partie `.olean.private` d'un module quand elle existe, alors que l'inspection n'importe que le `.olean` principal d'un module sans `module`. La construction des preuves peut planter ces parties, et la copie récursive de `Verdicts/` vers `checked` les emporte. Sur une copie jetable, des preuves toutes en `sorry` sortent `proved`, sortie 0, sans axiome ni rejeu en échec. Sans les parties plantées, la même copie est refusée par le rejeu. Toutes les mutations ont été remises en place et les sondes supprimées ; l'arbre est propre."
+ }
+]

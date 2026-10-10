@@ -1,0 +1,258 @@
+TAP version 13
+# Subtest: the Lean check of the proofs of the verdict combination
+    # Subtest: the approved proofs are verified: each theorem states its approved statement, with the allowed axioms only
+    ok 1 - the approved proofs are verified: each theorem states its approved statement, with the allowed axioms only
+      ---
+      duration_ms: 2332.675417
+      type: 'test'
+      ...
+    # Subtest: a dependency using sorry and a proof of another statement are refused
+    ok 2 - a dependency using sorry and a proof of another statement are refused
+      ---
+      duration_ms: 4775.871583
+      type: 'test'
+      ...
+    # Subtest: an altered statement is refused before any proof is built
+    ok 3 - an altered statement is refused before any proof is built
+      ---
+      duration_ms: 100.561584
+      type: 'test'
+      ...
+    # Subtest: a lakefile.lean that points the build to forged statements is not read
+    ok 4 - a lakefile.lean that points the build to forged statements is not read
+      ---
+      duration_ms: 2234.408583
+      type: 'test'
+      ...
+    # Subtest: a build that overwrites the compiled statements does not stand for their proof
+    ok 5 - a build that overwrites the compiled statements does not stand for their proof
+      ---
+      duration_ms: 2298.995709
+      type: 'test'
+      ...
+    # Subtest: statements restored from a Lake artifact cache shipped with the project are not taken for the approved ones
+    ok 6 - statements restored from a Lake artifact cache shipped with the project are not taken for the approved ones
+      ---
+      duration_ms: 1581.082583
+      type: 'test'
+      ...
+    # Subtest: the parts of a module written beside its olean do not stand for its replay
+    ok 7 - the parts of a module written beside its olean do not stand for its replay
+      ---
+      duration_ms: 2411.417667
+      type: 'test'
+      ...
+    # Subtest: a declaration filed under another name than its own does not stand for the approved statement
+    ok 8 - a declaration filed under another name than its own does not stand for the approved statement
+      ---
+      duration_ms: 4919.701917
+      type: 'test'
+      ...
+    # Subtest: a theorem declared again by a later module does not stand for the proof the kernel replayed
+    not ok 9 - a theorem declared again by a later module does not stand for the proof the kernel replayed
+      ---
+      duration_ms: 4593.332042
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-FmvQFJ/test/v4-platform/lean-verdict-proof.test.ts:318:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        a theorem declared twice is not proved: {
+          "manifest": "/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-FmvQFJ/specs/formal/verdicts/manifest.json",
+          "project": "/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-FmvQFJ/test-output/lean-duplicate-Hox0d5",
+          "verdict": "proved",
+          "reasons": [],
+          "toolchain": {
+            "name": "leanprover/lean4:v4.34.1",
+            "version": "4.34.1",
+            "commit": "5045d0056413266e57c625dcd7c365b10e377c52",
+            "path": "/Users/jeanjerome/.elan/toolchains/leanprover--lean4---v4.34.1"
+          },
+          "sandbox": "seatbelt",
+          "allowed_axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "protected": [
+            {
+              "file": "lean-toolchain",
+              "approved": "sha256:d5edba4e4b8faad9c1baeadb265716d20d03be4d1a2647dc5e35b0c0325bea7b",
+              "before": "sha256:d5edba4e4b8faad9c1baeadb265716d20d03be4d1a2647dc5e35b0c0325bea7b",
+              "after": "sha256:d5edba4e4b8faad9c1baeadb265716d20d03be4d1a2647dc5e35b0c0325bea7b"
+            },
+            {
+              "file": "lakefile.toml",
+              "approved": "sha256:331c66cd9d650b58bdb966842656d639ec6ae909e7226290de7802dfe5e07992",
+              "before": "sha256:331c66cd9d650b58bdb966842656d639ec6ae909e7226290de7802dfe5e07992",
+              "after": "sha256:331c66cd9d650b58bdb966842656d639ec6ae909e7226290de7802dfe5e07992"
+            },
+            {
+              "file": "lake-manifest.json",
+              "approved": "sha256:b80296892b9f38a05ebfb111a959c5e9bd2bd95dc088e2b16043b02b8de6406c",
+              "before": "sha256:b80296892b9f38a05ebfb111a959c5e9bd2bd95dc088e2b16043b02b8de6406c",
+              "after": "sha256:b80296892b9f38a05ebfb111a959c5e9bd2bd95dc088e2b16043b02b8de6406c"
+            },
+            {
+              "file": "Verdicts/Defs.lean",
+              "approved": "sha256:d3e308d9a9247a56dac1128e60da36e268f22bcf784317e49ef19210001c7a8b",
+              "before": "sha256:d3e308d9a9247a56dac1128e60da36e268f22bcf784317e49ef19210001c7a8b",
+              "after": "sha256:d3e308d9a9247a56dac1128e60da36e268f22bcf784317e49ef19210001c7a8b"
+            },
+            {
+              "file": "Verdicts/Statements.lean",
+              "approved": "sha256:459e6dbf20b0bcc2a41e79ecb4f3f8fe7ca40d1a4a5850f2e902ee1fa65d08c2",
+              "before": "sha256:459e6dbf20b0bcc2a41e79ecb4f3f8fe7ca40d1a4a5850f2e902ee1fa65d08c2",
+              "after": "sha256:459e6dbf20b0bcc2a41e79ecb4f3f8fe7ca40d1a4a5850f2e902ee1fa65d08c2"
+            }
+          ],
+          "theorems": [
+            {
+              "theorem": "Verdicts.allPassRejectsBlocking",
+              "statement": "Verdicts.AllPassRejectsBlocking",
+              "kind": "theorem",
+              "states_approved": true,
+              "type": "Verdicts.AllPassRejectsBlocking",
+              "statement_module": "Verdicts.Statements",
+              "axioms": [],
+              "refused": []
+            },
+            {
+              "theorem": "Verdicts.allPassNeedsEveryPass",
+              "statement": "Verdicts.AllPassNeedsEveryPass",
+              "kind": "theorem",
+              "states_approved": true,
+              "type": "Verdicts.AllPassNeedsEveryPass",
+              "statement_module": "Verdicts.Statements",
+              "axioms": [],
+              "refused": []
+            },
+            {
+              "theorem": "Verdicts.anyPassKeepsPass",
+              "statement": "Verdicts.AnyPassKeepsPass",
+              "kind": "theorem",
+              "states_approved": true,
+              "type": "Verdicts.AnyPassKeepsPass",
+              "statement_module": "Verdicts.Statements",
+              "axioms": [],
+              "refused": []
+            },
+            {
+              "theorem": "Verdicts.emptyIsNotRun",
+              "statement": "Verdicts.EmptyIsNotRun",
+              "kind": "theorem",
+              "states_approved": true,
+              "type": "Verdicts.EmptyIsNotRun",
+              "statement_module": "Verdicts.Statements",
+              "axioms": [],
+              "refused": []
+            },
+            {
+              "theorem": "Verdicts.passNeedsAPass",
+              "statement": "Verdicts.PassNeedsAPass",
+              "kind": "theorem",
+              "states_approved": true,
+              "type": "Verdicts.PassNeedsAPass",
+              "statement_module": "Verdicts.Statements",
+              "axioms": [],
+              "refused": []
+            },
+            {
+              "theorem": "Verdicts.onlyNotApplicable",
+              "statement": "Verdicts.OnlyNotApplicable",
+              "kind": "theorem",
+              "states_approved": true,
+              "type": "Verdicts.OnlyNotApplicable",
+              "statement_module": "Verdicts.Statements",
+              "axioms": [],
+              "refused": []
+            },
+            {
+              "theorem": "Verdicts.notApplicableIsNeutral",
+              "statement": "Verdicts.NotApplicableIsNeutral",
+              "kind": "theorem",
+              "states_approved": true,
+              "type": "Verdicts.NotApplicableIsNeutral",
+              "statement_module": "Verdicts.Statements",
+              "axioms": [],
+              "refused": []
+            }
+          ],
+          "replay": {
+            "tool": "leanchecker",
+            "module": "Verdicts",
+            "passed": true
+          }
+        }
+        
+        + actual - expected
+        
+        + 'proved'
+        - 'refused'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'refused'
+      actual: 'proved'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-FmvQFJ/test/v4-platform/lean-verdict-proof.test.ts:349:10)
+        process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: the build of the proofs writes nowhere outside its copy and reaches no network
+    ok 10 - the build of the proofs writes nowhere outside its copy and reaches no network
+      ---
+      duration_ms: 2574.831334
+      type: 'test'
+      ...
+    # Subtest: a build that rewrites a protected file is refused
+    ok 11 - a build that rewrites a protected file is refused
+      ---
+      duration_ms: 1063.713875
+      type: 'test'
+      ...
+    # Subtest: a definition that proves the approved statement is not a theorem and is refused
+    ok 12 - a definition that proves the approved statement is not a theorem and is refused
+      ---
+      duration_ms: 2361.910583
+      type: 'test'
+      ...
+    # Subtest: a theorem whose statement comes from an unprotected module is refused
+    ok 13 - a theorem whose statement comes from an unprotected module is refused
+      ---
+      duration_ms: 2347.684542
+      type: 'test'
+      ...
+    1..13
+not ok 1 - the Lean check of the proofs of the verdict combination
+  ---
+  duration_ms: 33597.49775
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-FmvQFJ/test/v4-platform/lean-verdict-proof.test.ts:81:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: the toolchain of the Lean check
+    # Subtest: a toolchain that does not print the approved version and commit is refused before anything is built
+    ok 1 - a toolchain that does not print the approved version and commit is refused before anything is built
+      ---
+      duration_ms: 155.551958
+      type: 'test'
+      ...
+    1..1
+ok 2 - the toolchain of the Lean check
+  ---
+  duration_ms: 155.677292
+  type: 'suite'
+  ...
+1..2
+# tests 14
+# suites 2
+# pass 13
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 33829.284417

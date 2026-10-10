@@ -1,0 +1,40 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "La preuve porte sur l’énoncé approuvé",
+    "categorie": "bloquant",
+    "placement": "anterieur",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 284,
+    "constat": "`leanchecker` rejoue chaque module contre ses imports. `Lean.Replay` saute un théorème qu'un import contient déjà sous le même nom, le même type et le même `all`, sans le soumettre au noyau. `finalizeImport` (Environment.lean:2340) garde au contraire la dernière copie, que `subsumesInfo` accepte. Une construction des preuves peut donc laisser `Verdicts/Proofs.lean` en `by sorry` (que le noyau accepte, puisque sorryAx est un axiome) et ajouter un module `Verdicts.Late`. Celui-ci importe Proofs, et son `.olean` est réécrit par un `#eval` d'un troisième module, `Verdicts.Forge`, que la racine importe. Il y porte les mêmes sept théorèmes, chacun avec la valeur mal typée `True.intro`. Le rejeu de Late saute ces doublons, et l'inspection lit ceux de Late. Sondé par un test jetable (non commité) sur la tête 8e2e65ea : rapport `proved`, `replay.passed: true`, `axioms: []` pour les sept théorèmes, alors que toutes les preuves source sont en `sorry`. Le chemin vient de la conception de la vérification posée par les premiers commits de la story (3f793742, bd70b304) ; le correctif des noms mal rangés ne le couvre pas.",
+    "contournement": "Vérification distincte de la génération des preuves, aucune validation fondée uniquement sur un exit code ou un texte « theorem proved » (la valeur inspectée n'est jamais passée au noyau) ; promesse « aucun sorryAx n'est utilisé »."
+   }
+  ],
+  "fermes": [
+   "A1-1"
+  ],
+  "resume": "J'ai rejoué A1-1 (une déclaration rangée sous une clé autre que son nom) sur la tête 8e2e65ea : la vérification Lean renvoie `refused` et nomme la clé mal rangée. A1-1 est donc fermé. Les mutants listés survivent seulement parce que l'outil ne suit pas la couverture dans le processus enfant de `check-lean.ts`. J'ai retiré `...misfiled` de la liste des refus (ligne 313) : le test « a declaration filed under another name » échoue (`proved` au lieu de `refused`), il tient donc le correctif. J'ai forcé la comparaison du test différentiel à ne jamais voir d'écart (`false && !isDeepStrictEqual`) : le test échoue, la promesse sur la divergence du TypeScript reste tenue. Les scénarios all_pass et any_pass ne sont pas touchés par ce diff. Un nouveau contournement passe toutefois, par un théorème en double. Un module tardif du projet porte les mêmes théorèmes que Proofs, avec une valeur mal typée et sans axiome. Le rejeu du noyau saute ces doublons, que l'import garde. Avec des preuves source toutes en `sorry`, le rapport dit `proved` avec un rejeu réussi. Sondé par un test jetable, supprimé ensuite. Le chemin précède le diff de ce tour mais appartient à la story, et il retient la porte."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "La preuve porte sur l’énoncé approuvé",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 284,
+    "constat": "The kernel replay and the inspection still read different declarations when the same theorem name sits in two modules. In `Lean.Replay`, a theorem that the imports already hold with the same name, type, levelParams and `all` is skipped without checking its value (Replay.lean, \"Ignore duplicate theorems\"). `finalizeImport` (`subsumesInfo`) keeps the later duplicate, and that unchecked copy is what Inspect.lean reads. Probe: `Verdicts/Sorried.lean` proves the seven theorems with `sorry`, `Verdicts/Proofs.lean` only imports it, and an `Overwrite.lean` module imported by the root rewrites `Proofs.olean` during the build (`saveModuleData`) with the same seven theorems, now valued `True.intro` (ill-typed, no axioms). `leanchecker` accepts Sorried (`sorryAx` is legal for the kernel) and skips the copies in Proofs. Inspect finds none misfiled (each key is its own name), finds the type equal to the approved statement, and finds no axiom. Report: `verdict: proved`, `axioms: []`, `replay.passed: true`, exit 0, while every source proof is `sorry`. The new misfiled-name check does not cover this path, because every key matches its name.",
+    "contournement": "Aucune validation fondée uniquement sur un exit code ou un texte « theorem proved » ; vérification distincte de la génération des preuves : the theorem the inspection reports as proved is never checked by the kernel, and it carries the sorryAx that it hides"
+   }
+  ],
+  "fermes": [
+   "A1-1"
+  ],
+  "resume": "A1-1 is closed on the head of the branch: the new test `a declaration filed under another name than its own does not stand for the approved statement` passes, and the forged `Proofs.olean` is refused with the expected reason. The mutants reported as unexecuted on scripts/check-lean.ts:300-313 are in fact killed by that test, which runs the check in a child process the tool's coverage does not see. I applied three of them: the `.filter` forced to `false` at 302, `lines` instead of `slice` at 307, and `refused = []` at 313. Each one fails the test. The differential test still holds the divergence: neutralising the `isDeepStrictEqual` comparison makes it fail. The contract test passes. One bypass remains (B1-1). A theorem duplicated in a later module, under the same name and type as one proved by `sorry` in an earlier module, is skipped by the `leanchecker` replay. The import keeps that duplicate, and the inspection reads it. A throwaway test produced `proved`, with no axiom and exit 0, from proofs that are all `sorry`. The test was removed afterwards and the tree is clean."
+ }
+]

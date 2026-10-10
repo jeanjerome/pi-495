@@ -1,0 +1,96 @@
+TAP version 13
+# Subtest: the Lean check of the proofs of the verdict combination
+    # Subtest: the approved proofs are verified: each theorem states its approved statement, with the allowed axioms only
+    ok 1 - the approved proofs are verified: each theorem states its approved statement, with the allowed axioms only
+      ---
+      duration_ms: 2327.695834
+      type: 'test'
+      ...
+    # Subtest: a dependency using sorry and a proof of another statement are refused
+    ok 2 - a dependency using sorry and a proof of another statement are refused
+      ---
+      duration_ms: 4777.365542
+      type: 'test'
+      ...
+    # Subtest: an altered statement is refused before any proof is built
+    ok 3 - an altered statement is refused before any proof is built
+      ---
+      duration_ms: 102.426667
+      type: 'test'
+      ...
+    # Subtest: a lakefile.lean that points the build to forged statements is not read
+    ok 4 - a lakefile.lean that points the build to forged statements is not read
+      ---
+      duration_ms: 2224.431334
+      type: 'test'
+      ...
+    # Subtest: a build that overwrites the compiled statements does not stand for their proof
+    ok 5 - a build that overwrites the compiled statements does not stand for their proof
+      ---
+      duration_ms: 2308.362917
+      type: 'test'
+      ...
+    # Subtest: statements restored from a Lake artifact cache shipped with the project are not taken for the approved ones
+    ok 6 - statements restored from a Lake artifact cache shipped with the project are not taken for the approved ones
+      ---
+      duration_ms: 1590.689292
+      type: 'test'
+      ...
+    # Subtest: the parts of a module written beside its olean do not stand for its replay
+    ok 7 - the parts of a module written beside its olean do not stand for its replay
+      ---
+      duration_ms: 2426.068917
+      type: 'test'
+      ...
+    # Subtest: the build of the proofs writes nowhere outside its copy and reaches no network
+    ok 8 - the build of the proofs writes nowhere outside its copy and reaches no network
+      ---
+      duration_ms: 2534.524833
+      type: 'test'
+      ...
+    # Subtest: a build that rewrites a protected file is refused
+    ok 9 - a build that rewrites a protected file is refused
+      ---
+      duration_ms: 1049.139167
+      type: 'test'
+      ...
+    # Subtest: a definition that proves the approved statement is not a theorem and is refused
+    ok 10 - a definition that proves the approved statement is not a theorem and is refused
+      ---
+      duration_ms: 2338.684333
+      type: 'test'
+      ...
+    # Subtest: a theorem whose statement comes from an unprotected module is refused
+    ok 11 - a theorem whose statement comes from an unprotected module is refused
+      ---
+      duration_ms: 2331.194125
+      type: 'test'
+      ...
+    1..11
+ok 1 - the Lean check of the proofs of the verdict combination
+  ---
+  duration_ms: 24011.564583
+  type: 'suite'
+  ...
+# Subtest: the toolchain of the Lean check
+    # Subtest: a toolchain that does not print the approved version and commit is refused before anything is built
+    ok 1 - a toolchain that does not print the approved version and commit is refused before anything is built
+      ---
+      duration_ms: 97.328708
+      type: 'test'
+      ...
+    1..1
+ok 2 - the toolchain of the Lean check
+  ---
+  duration_ms: 97.422625
+  type: 'suite'
+  ...
+1..2
+# tests 12
+# suites 2
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 24185.22975

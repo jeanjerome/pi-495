@@ -1,0 +1,185 @@
+TAP version 13
+# Subtest: the Lean check of the proofs of the verdict combination
+    # Subtest: the approved proofs are verified: each theorem states its approved statement, with the allowed axioms only
+    not ok 1 - the approved proofs are verified: each theorem states its approved statement, with the allowed axioms only
+      ---
+      duration_ms: 27.797125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7RkbB3/test/v4-platform/lean-verdict-proof.test.ts:23:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the approved project is proved: node:internal/modules/cjs/loader:1568
+          throw err;
+          ^
+        
+        Error: Cannot find module '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7RkbB3/scripts/check-lean.ts'
+            at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+            at wrapResolveFilename (node:internal/modules/cjs/loader:1118:27)
+            at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1142:10)
+            at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1169:12)
+            at Module._load (node:internal/modules/cjs/loader:1341:5)
+            at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+            at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+            at node:internal/main/run_main_module:33:47 {
+          code: 'MODULE_NOT_FOUND',
+          requireStack: []
+        }
+        
+        Node.js v24.21.0
+        
+        + actual - expected
+        
+        + undefined
+        - 'proved'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'proved'
+      operator: 'strictEqual'
+      stack: |-
+        Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+        wrapResolveFilename (node:internal/modules/cjs/loader:1118:27)
+        defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1142:10)
+        resolveForCJSWithHooks (node:internal/modules/cjs/loader:1169:12)
+        Module._load (node:internal/modules/cjs/loader:1341:5)
+        wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+        Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+        node:internal/main/run_main_module:33:47 {
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7RkbB3/test/v4-platform/lean-verdict-proof.test.ts:25:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: a dependency using sorry and a proof of another statement are refused
+    not ok 2 - a dependency using sorry and a proof of another statement are refused
+      ---
+      duration_ms: 27.938458
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7RkbB3/test/v4-platform/lean-verdict-proof.test.ts:42:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        a proof that leans on sorry is refused: node:internal/modules/cjs/loader:1568
+          throw err;
+          ^
+        
+        Error: Cannot find module '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7RkbB3/scripts/check-lean.ts'
+            at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+            at wrapResolveFilename (node:internal/modules/cjs/loader:1118:27)
+            at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1142:10)
+            at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1169:12)
+            at Module._load (node:internal/modules/cjs/loader:1341:5)
+            at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+            at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+            at node:internal/main/run_main_module:33:47 {
+          code: 'MODULE_NOT_FOUND',
+          requireStack: []
+        }
+        
+        Node.js v24.21.0
+        
+        + actual - expected
+        
+        + undefined
+        - 'refused'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'refused'
+      operator: 'strictEqual'
+      stack: |-
+        Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+        wrapResolveFilename (node:internal/modules/cjs/loader:1118:27)
+        defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1142:10)
+        resolveForCJSWithHooks (node:internal/modules/cjs/loader:1169:12)
+        Module._load (node:internal/modules/cjs/loader:1341:5)
+        wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+        Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+        node:internal/main/run_main_module:33:47 {
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7RkbB3/test/v4-platform/lean-verdict-proof.test.ts:52:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: an altered statement is refused before any proof is built
+    not ok 3 - an altered statement is refused before any proof is built
+      ---
+      duration_ms: 27.908375
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7RkbB3/test/v4-platform/lean-verdict-proof.test.ts:76:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        an altered statement is refused: node:internal/modules/cjs/loader:1568
+          throw err;
+          ^
+        
+        Error: Cannot find module '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7RkbB3/scripts/check-lean.ts'
+            at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+            at wrapResolveFilename (node:internal/modules/cjs/loader:1118:27)
+            at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1142:10)
+            at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1169:12)
+            at Module._load (node:internal/modules/cjs/loader:1341:5)
+            at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+            at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+            at node:internal/main/run_main_module:33:47 {
+          code: 'MODULE_NOT_FOUND',
+          requireStack: []
+        }
+        
+        Node.js v24.21.0
+        
+        + actual - expected
+        
+        + undefined
+        - 'refused'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'refused'
+      operator: 'strictEqual'
+      stack: |-
+        Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+        wrapResolveFilename (node:internal/modules/cjs/loader:1118:27)
+        defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1142:10)
+        resolveForCJSWithHooks (node:internal/modules/cjs/loader:1169:12)
+        Module._load (node:internal/modules/cjs/loader:1341:5)
+        wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+        Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+        node:internal/main/run_main_module:33:47 {
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7RkbB3/test/v4-platform/lean-verdict-proof.test.ts:87:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - the Lean check of the proofs of the verdict combination
+  ---
+  duration_ms: 84.098041
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7RkbB3/test/v4-platform/lean-verdict-proof.test.ts:22:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 0
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 159.442125

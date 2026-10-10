@@ -1,0 +1,31 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "fermes": [
+   "A1-1",
+   "B1-1"
+  ],
+  "resume": "I replayed both bypasses that had reopened the story at head 6ba13d67, and neither works any more. A1-1: I ran a throwaway, uncommitted test. Proofs are left as `sorry`, `Verdicts.Late` imports them, and `Verdicts.Forge` rewrites Late.olean during the build so that it carries the seven theorems valued `True.intro`. The report now says `refused` (exit 1), giving \"X is declared by Verdicts.Proofs and again by Verdicts.Late\" for each of the seven theorems. B1-1: the new test `a theorem declared again by a later module…` replays it exactly, and the verdict is `refused`.\n\nI read Lean.Replay and finalizeImport in the 4.34.1 toolchain. The replay skips a theorem only when an import already holds the same name. Such an import always comes earlier in `env.header.moduleNames`, so `declaredAgain` reports every name that a module under the root declares again. Only modules under the root are copied into the checked directory, which also limits what leanchecker replays. I looked for variants and found none that gets through:\n- a constant marked unsafe or partial, which the replay skips: the theorem's replay then fails on an unknown constant;\n- a duplicate inside a single module;\n- an earlier axiom followed by a later theorem;\n- a module that hides its import.\n\nOn the mutants the tool listed as surviving on lines 309–328: they show \"no test executes the line\" because the Lean tests are skipped wherever the toolchain is missing. With the toolchain on this machine, removing `...declaredAgain` from the refusals makes the new test fail with the verdict `proved`, so that mutant is killed. The ones on line 317 (the filter's condition or string) lead either to `proved` or to a miscount, which gives `error`, so the test's `refused` assertion catches them too. The `-` mutant on line 322 is equivalent when there are no misfiled names. When both kinds of line are present, it causes a miscount and therefore `error`, so no promise is lost.\n\nThe other promises are unchanged by this diff and their tests are green:\n- the identical statements and allowed axioms;\n- all_pass and any_pass, through the correspondence table;\n- the divergence on the empty list, through the differential test.\n\nAll 16 cases of the three test files named by the tasks pass with the real Lean. The probe has been deleted and the tree is clean."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "La preuve porte sur l’énoncé approuvé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 322,
+    "constat": "Le mutant `misfiled.length - declaredAgain.length` survit au test du doublon : sans ligne mal rangée, `slice(-7)` retombe sur les sept lignes de théorèmes. Si l'inspection imprimait à la fois des noms mal rangés et des noms redéclarés, le rapport passerait de `refused` à `error` (nombre de théorèmes faux), mais jamais à `proved`. Aucune promesse ne reste donc sans test.",
+    "mutation": "scripts/check-lean.ts:322 `misfiled.length + declaredAgain.length` → `misfiled.length - declaredAgain.length` : le test « a theorem declared again by a later module… » reste vert."
+   }
+  ],
+  "fermes": [
+   "A1-1",
+   "B1-1"
+  ],
+  "resume": "J'ai rejoué sur la tête 6ba13d67 les deux contournements qui avaient rouvert la story. Les deux sont fermés.\n\n- **B1-1** : le nouveau test du dépôt, « a theorem declared again by a later module… », reproduit exactement la sonde. Il passe ici, avec la chaîne v4.34.1 présente, et donne `refused`.\n- **A1-1** : je l'ai rejoué par un test jetable, non commité et supprimé : Proofs en `sorry`, Late qui importe Proofs, et Forge, importé par la racine, qui réécrit `Late.olean` avec les sept théorèmes valués `True.intro`. Le rapport donne `refused`, sortie 1, et le rejeu noyau passe. Les sept raisons disent « declared by Verdicts.Proofs and again by Verdicts.Late ».\n\n**Mutations.** L'outil disait les lignes introduites jamais exécutées : sur cette machine, le test Lean s'exécute bien. Trois mutations font échouer le test du doublon :\n- retirer `declaredAgain` de la liste des refus (`check-lean.ts:328`) ;\n- remplacer la condition `root.isPrefixOf module` par `false` (`Inspect.lean`) ;\n- inverser le filtre `declared_again` (`check-lean.ts:317`).\n\nSeul survit `+` → `-` à la ligne 322. Il ne peut pas faire passer un projet pour prouvé : constat à peser.\n\n**Chemins d'attaque relus, sans contournement trouvé.** J'ai lu le code d'import (`finalizeImport`, `subsumesInfo`), `Lean.Replay` et `leanchecker` de la 4.34.1.\n- Tout doublon qu'un module du projet déclare est désormais signalé, que le module qui déclare le nom en premier l'importe ou non. Cela couvre aussi un théorème qui remplace un axiome de même nom, et un nom déclaré deux fois dans le même module.\n- Un doublon dont la copie gardée vient de la bibliothèque de Lean n'est pas signalé. Mais cette bibliothèque n'est pas modifiable dans le bac à sable, et `subsumesInfo` exige le même type : la copie gardée est donc une vraie preuve.\n- `Replay` saute les constantes `unsafe` et `partial`. Le noyau refuse pourtant qu'une déclaration sûre les utilise : les messages « uses unsafe declaration » et « must not contain partial declaration » sont présents dans `libleanshared`.\n- L'inspection importe avec `loadExts := false` par défaut : aucun initialiseur d'un `.olean` forgé ne s'exécute pendant qu'elle tourne.\n\n**Les quatre scénarios.** Les trois fichiers de test Lean nommés passent tous les 16 à la tête : le projet approuvé reste prouvé malgré le nouveau contrôle, la variante TypeScript qui accepte la liste vide est rejetée, et la table de correspondance all/any concorde. Le diff ne touche pas aux définitions de la combinaison."
+ }
+]

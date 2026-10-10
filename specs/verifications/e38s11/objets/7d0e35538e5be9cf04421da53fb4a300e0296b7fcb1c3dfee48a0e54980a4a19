@@ -1,0 +1,44 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "La preuve porte sur l’énoncé approuvé",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 275,
+    "constat": "Le noyau et l'inspection lisent maintenant le même `.olean`, mais ne le lisent pas de la même façon. `Lean.Replay` ajoute chaque constante au noyau sous son propre `ConstantInfo.name`. `finalizeImport`, qui sert à `importModules` dans Inspect.lean et aux imports de `leanchecker`, range au contraire la constante sous la clé de `constNames` (Environment.lean:2334). La construction des preuves peut donc écrire un `Verdicts/Proofs.olean` qui n'importe que `Verdicts.Defs`. Il contient sept définitions `Verdicts.<Énoncé> : Prop := True`, rangées sous des clés `Verdicts.k<n>` dont le hash les fait passer avant les théorèmes, et sept théorèmes `trivial`. `copyCompiled(library, checked, manifest.module, true)` le met de côté. `leanchecker` rejoue alors `Proofs` contre ses seuls imports, où l'énoncé vaut `True`, et le rejeu passe. L'inspection, elle, résout `Verdicts.<Énoncé>` sous sa clé, donc vers l'authentique `Verdicts.Statements`, sans conflit d'import. Le rapport dit `proved`, alors que les preuves source sont toutes en `sorry`.",
+    "contournement": "Définitions et énoncés protégés, vérification distincte de la génération des preuves ; aucune validation fondée uniquement sur un exit code ou un texte « theorem proved »",
+    "scenario_detail": "",
+    "mutation": "Sonde jetable sur la tête 79f46329, avec le manifeste du dépôt et la commande `node scripts/check-lean.ts specs/formal/verdicts/manifest.json --project <copie>`. Premier temps, hors du contrôle : un projet forgé, où `Proofs.lean` importe `Verdicts.Defs`, définit les sept énoncés `:= True` et les prouve par `trivial`, est construit avec `lake build Verdicts.Proofs`. Un script Lean le relit (`readModuleData`), renomme dans `constNames` les sept énoncés en clés `Verdicts.k<n>` telles que `Name.quickCmp` les classe avant chaque théorème, et le réécrit (`saveModuleData`). Second temps, une copie du projet approuvé : ses sept preuves sont en `sorry`, et un `Verdicts/Overwrite.lean` importé par `Verdicts.lean` recopie par `#eval` cet olean sur `.lake/build/lib/lean/Verdicts/Proofs.olean`. Résultat : sortie 0, `verdict: proved`, `replay.passed: true`, sept théorèmes de type `Verdicts.<Énoncé>`, `statement_module` vaut `Verdicts.Statements`, aucun axiome, empreintes protégées identiques avant et après. Témoin négatif : la même copie avec l'olean forgé non renommé est refusée, la construction échouant sur « import Verdicts.Proofs failed, environment already contains 'Verdicts.AllPassRejectsBlocking' from Verdicts.Statements »."
+   }
+  ],
+  "fermes": [
+   "A2-1",
+   "B2-1"
+  ],
+  "resume": "Rejeu des deux contournements rouverts sur la tête 79f46329. A2-1 est fermé : Lake ne lit plus son cache, puisque `LAKE_ARTIFACT_CACHE=false` donne `isArtifactCacheReadable` faux, le `lakefile.toml` protégé ne le réactivant pas, et le test du cache refuse le projet. Retirer la variable fait échouer ce test. B2-1 est fermé : seuls les `.olean` sont mis de côté, et le test des parties `.server`/`.private` refuse le projet. Remettre le filtre à `() => true` le fait échouer. Les mutants survivants signalés aux lignes 137-143 et 243 sont de faux survivants : le script tourne dans un processus enfant que la couverture ne suit pas. Rejouées à la main, ces mutations (filtre à `() => true`, `startsWith`, `nested` à false, ligne 138 retirée, `force: true`, variable de cache retirée) font chacune échouer un test de `lean-verdict-proof.test.ts`. Les scénarios all_pass, any_pass et divergence du TypeScript sont tenus : deux mutations de `combine` dans g5.ts (NOT_RUN ignoré sous all_pass, PASS refusé sous any_pass dès qu'un FAIL est présent) font échouer le test de contrat et le test différentiel. Un nouveau contournement, A1-1, est en revanche trouvé et sondé de bout en bout. Le noyau ajoute une constante sous son propre nom, l'inspection la range sous la clé de `constNames`. Un `Proofs.olean` écrit par la construction et dont les clés sont décalées fait donc rejouer au noyau des énoncés forgés valant `True`, tandis que l'inspection lit les énoncés authentiques. Le rapport dit `proved` avec des preuves source toutes en `sorry`. Le témoin négatif, le même olean sans clés décalées, est refusé. Le contournement est bloquant : verdict fail."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "La preuve porte sur l’énoncé approuvé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "scripts/check-lean.ts",
+    "ligne": 137,
+    "constat": "Aucun test ne tient la règle « un lien est copié comme le fichier qu'il désigne » quand les `.olean` sont mis de côté. Avec `dereference: false`, les douze tests de preuve restent verts. Sous ce mutant, un lien écrit par la construction des preuves serait copié tel quel dans le dossier mis de côté, et pointerait vers la copie inscriptible. La garantie ne repose aujourd'hui que sur l'option écrite dans le code. À la tête, l'option vaut `true` : aucun contournement n'est atteignable.",
+    "mutation": "`dereference: true` → `dereference: false` (ligne 137) : les 12 tests de test/v4-platform/lean-verdict-proof.test.ts passent"
+   }
+  ],
+  "fermes": [
+   "A2-1",
+   "B2-1"
+  ],
+  "resume": "Verdict pass. Aucun constat bloquant ou à corriger. J'ai trouvé un seul point à peser (B1-1) et aucun contournement.\n\nRejeu des deux contournements à la tête 79f46329 :\n- A2-1 est fermé. J'ai rejoué la recette du cache d'artefacts Lake livré avec le projet, avec le manifeste du dépôt. Le contrôle refuse : la construction compile Statements depuis sa source, puis échoue sur « Type mismatch trivial … PassNeedsAPass ». Si l'on retire `LAKE_ARTIFACT_CACHE: \"false\"` (ligne 243), seul le test « statements restored from a Lake artifact cache… » échoue.\n- B2-1 est fermé. J'ai rejoué le `#eval` qui écrit un Proofs.olean forgé avec ses parties `.olean.server` et `.olean.private`. Le contrôle refuse : `replay.passed` vaut false, et le noyau signale « declaration type mismatch … has type True ». Le filtre réduit à `() => true` (ligne 142) fait échouer seul le test « the parts of a module written beside its olean… ».\n\nAttaque de la section Sécurité :\n- Cache Lake : selon les sources de Lake 4.34.1, la lecture du cache se décide d'abord dans la configuration du paquet, protégée et muette sur ce point, puis dans l'environnement, qui la coupe. La configuration système (`$HOME/.lake/config.toml`) sort de la copie avec `.lake`.\n- Parties de module : l'inspection exige les parties d'un `.olean` marqué module ; elles ne sont plus copiées, donc elle échoue en erreur. Un `module` ne peut pas importer Statements, qui n'en est pas un.\n- Modules rejoués : `leanchecker` parcourt tout le dossier mis de côté et nomme chaque `.olean` comme l'inspection le trouve. Je n'ai trouvé aucun module importé sans être rejoué.\n- Modules de Lean : aucun module de Lean n'est copié du build.\n\nPromesses :\n- « La preuve porte sur l'énoncé approuvé » est tenue par le code et par les tests de test/v4-platform/lean-verdict-proof.test.ts : 12 sur 12 verts à la tête.\n- all_pass, any_pass et la liste vide sont tenues. Quatre mutants de `combine` dans g5.ts (INDETERMINATE ignoré, NOT_RUN ignoré, any_pass exigeant que tout passe, liste vide rendue PASS) font chacun échouer le test de contrat et le test différentiel.\n\nMutants listés par l'outil :\n- Ceux des lignes 138 à 143 et 243 étaient dits non exécutés. C'est un artefact de couverture : `check-lean.ts` tourne dans un sous-processus. Rejoués à la main, ils sont tués (filtre en `&&`, copie du `.olean` de tête retirée, `force: true`, cache rétabli).\n- Deux survivent. `nested || existsSync(path)` est équivalent : aucun dossier ne porte le nom d'un module protégé à ce stade. `dereference: false` laisse une garantie sans test, d'où B1-1.\n\nAucun fichier n'a été modifié : les sondes ont été retirées et l'arbre est propre."
+ }
+]

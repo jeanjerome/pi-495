@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the Lean specification of the verdict combination of G5
+    # Subtest: its all/any, empty-list and NOT_APPLICABLE definitions match the approved correspondence table
+    ok 1 - its all/any, empty-list and NOT_APPLICABLE definitions match the approved correspondence table
+      ---
+      duration_ms: 1.387875
+      type: 'test'
+      ...
+    1..1
+ok 1 - the Lean specification of the verdict combination of G5
+  ---
+  duration_ms: 1.742
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 122.9295

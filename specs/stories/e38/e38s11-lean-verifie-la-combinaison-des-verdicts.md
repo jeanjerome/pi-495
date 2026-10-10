@@ -2,7 +2,7 @@
 
 Story : e38s11
 Epic : e38
-Statut : en cours
+Statut : versée
 
 Surface : Développement de pi-495 — pilote Lean limité
 Dépendances : e38s04, e38s06
