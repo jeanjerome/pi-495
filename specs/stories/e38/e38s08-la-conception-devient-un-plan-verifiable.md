@@ -2,7 +2,7 @@
 
 Story : e38s08
 Epic : e38
-Statut : en cours
+Statut : versée
 
 Surface : pi-495 — G3 et boucles G4
 Dépendances : e38s06, e38s07

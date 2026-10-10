@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the producer conducts the adopted plan and reviews its own diff
+    # Subtest: une déclaration locale de succès ne remplace pas l’exécution du contrôle d’acceptation
+    ok 1 - une déclaration locale de succès ne remplace pas l’exécution du contrôle d’acceptation
+      ---
+      duration_ms: 871.789625
+      type: 'test'
+      ...
+    # Subtest: la déclaration présentée est celle de la production qui a figé le candidat, jamais celle d’une autre production du même candidat
+    ok 2 - la déclaration présentée est celle de la production qui a figé le candidat, jamais celle d’une autre production du même candidat
+      ---
+      duration_ms: 2148.206834
+      type: 'test'
+      ...
+    # Subtest: un test préparé que le producteur réécrit en gardant le nom de son cas est refusé à G4, qui nomme son chemin, et le changement n’est pas accepté
+    ok 3 - un test préparé que le producteur réécrit en gardant le nom de son cas est refusé à G4, qui nomme son chemin, et le changement n’est pas accepté
+      ---
+      duration_ms: 572.028334
+      type: 'test'
+      ...
+    # Subtest: un test préparé que le producteur n’a pas touché n’est pas cité comme modifié hors du plan, et le même test réécrit l’est
+    ok 4 - un test préparé que le producteur n’a pas touché n’est pas cité comme modifié hors du plan, et le même test réécrit l’est
+      ---
+      duration_ms: 1274.197667
+      type: 'test'
+      ...
+    1..4
+ok 1 - the producer conducts the adopted plan and reviews its own diff
+  ---
+  duration_ms: 4866.935083
+  type: 'suite'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5146.831708

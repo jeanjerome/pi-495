@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: the producer conducts the adopted plan and reviews its own diff
+    # Subtest: une déclaration locale de succès ne remplace pas l’exécution du contrôle d’acceptation
+    not ok 1 - une déclaration locale de succès ne remplace pas l’exécution du contrôle d’acceptation
+      ---
+      duration_ms: 852.689416
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-AZ21qt/test/v2-kernel/implementation-plan.test.ts:64:2'
+      failureType: 'testCodeFailure'
+      error: 'the report links the tasks, the local checks and the self-review to the candidate'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-AZ21qt/test/v2-kernel/implementation-plan.test.ts:98:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the producer conducts the adopted plan and reviews its own diff
+  ---
+  duration_ms: 853.368208
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-AZ21qt/test/v2-kernel/implementation-plan.test.ts:63:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1124.403042

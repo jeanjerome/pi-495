@@ -1,0 +1,64 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Les contrôles locaux et l'autocontrôle préparent le candidat",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/artifacts.ts",
+    "ligne": 251,
+    "constat": "`currentImplementation` lit toujours la révision 1 de `impl_<candidate_id>`. Or l'identifiant du candidat dérive de son contenu, et le registre numérote les révisions par `artifact_id` sans distinguer le changement. Quand une nouvelle tentative refait exactement le même candidat, le rapport montre donc la déclaration de la première production (tâches, contrôles locaux, autocontrôle) et ignore celle de la production qui a figé le candidat présenté. D'après la lecture du code, un autre changement qui produirait le même candidat afficherait de la même façon la déclaration et le plan (`design_digest`) de ce premier changement. Le diff relié reste exact, ce qui explique le classement à peser.",
+    "mutation": "Pas de mutation. Sonde jetable, non commitée : `max_attempts: 2`, les deux productions écrivent le même `src/greet.js` cassé et déclarent `self_review` « attempt 1 » puis « attempt 2 ». Deux interventions implement ont lieu, le candidat est `cand_1af69df6e1b7` les deux fois, et le rapport affiche « attempt 1 »."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Les tâches sont compatibles avec le mandat",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/gates/g3.ts",
+    "ligne": 54,
+    "constat": "G3 ne signale une tâche que si son chemin est sous un chemin protégé. Une tâche dont le chemin contient un chemin protégé n'est pas signalée : par exemple `test/` quand seul `test/greet.test.js` est protégé, ou `**` quand le mandat n'impose aucun chemin autorisé. Ce choix est voulu et commenté, et G4 refuse ensuite le candidat qui réécrit effectivement le test. Mais cette incompatibilité est alors constatée après la production, pas avant.",
+    "mutation": "Aucune. C'est une lecture de `matchesScope(p, pp)`, où le chemin de la tâche est comparé au motif protégé et jamais l'inverse."
+   }
+  ],
+  "resume": "Les trois promesses sont tenues par le code et chacune est tenue par au moins un test. Chaque mutation ci-dessous fait échouer au moins un test, puis le code a été remis tel quel.\n\n- **Scénario 1 (un résumé ne suffit pas)** : retirer `unserved` d'un plan non vide fait échouer design-plan « une dépendance inconnue… ». Ne garder que « plans no task » pour un plan vide, ou renvoyer `[]`, fait échouer design-plan « un résumé sans tâche » et design-gate. Forcer `if (false)` à la place de `reasons.length > 0` dans `decide.ts` fait échouer 5 tests.\n- **Scénario 2 (tâches compatibles avec le mandat)** : neutraliser le contrôle des chemins protégés, ou passer `protected_paths: []` dans `decide.ts`, fait échouer design-plan et design-gate. design-gate vérifie aussi qu'aucun producteur n'a démarré. Neutraliser la dépendance inconnue ou le contrôle des chemins autorisés fait échouer design-plan.\n- **Scénario 3 (le rapport présente le candidat)** : chacune de ces mutations fait échouer implementation-plan ou engineering-report : supprimer la comparaison d'empreinte dans `report.ts`, supprimer l'appel `keepImplementation`, prendre `base_digest` comme empreinte du candidat, changer l'autorité, vider `unplanned_paths`, retirer la section ou son titre, ou passer `null` dans `harness.ts`. Le test vérifie aussi que G5 n'est pas PASS et qu'aucune déclaration ne tient lieu de porte.\n\nDeux constats à peser, tous deux introduits par la branche, aucun bloquant ni à corriger :\n- **A1-1** : quand un candidat identique est refait, le rapport montre la déclaration de la première production. Une sonde jetable le confirme.\n- **A1-2** : G3 ne signale pas une tâche dont le chemin englobe un fichier protégé sans être sous lui. Ce cas est laissé à G4, donc après la production.\n\nLes fichiers temporaires sont supprimés et l'arbre est propre."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Les contrôles locaux et l'autocontrôle préparent le candidat",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/application/artifacts.ts",
+    "ligne": 251,
+    "constat": "La déclaration est rangée sous l'identifiant global `impl_<candidate_id>`, et `currentImplementation` relit toujours la révision 1. Or `candidate_id` est dérivé du seul contenu, et la table des artefacts est commune à tous les changements. Un second changement, ou une seconde tentative, qui laisse le même candidat présente donc la déclaration du premier : tâches et plan d'un autre `design_digest`, contrôles locaux et autocontrôle d'un autre producteur. Le filtre sur `candidate_digest` la laisse passer, puisque le digest est identique.",
+    "mutation": "Sonde jetable (v2, non commitée) : deux changements sur deux projets suivis identiques, même écriture du producteur. Les deux obtiennent cand_2657f208d079. `report(B).implementation.design_digest` vaut le design adopté de A (e23de6…), et non celui de B (aa3a40…)."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Les contrôles locaux et l'autocontrôle préparent le candidat",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/implement.ts",
+    "ligne": 163,
+    "constat": "Aucun test ne vérifie que les chemins modifiés hors de toute tâche sont lus par le noyau sur le diff exact plutôt que pris dans la déclaration du producteur. Dans `implementation-plan.test.ts`, les `changed_paths` déclarés coïncident avec le diff, si bien que les deux sources donnent le même résultat. La promesse « relie … au diff exact » et la clause de sécurité (aucune sortie de l'agent auto-certifiée) restent donc sans garde sur ce point.",
+    "mutation": "`keepImplementation(ctx, unit, manifest, scope.changed, …)` remplacé par `producerReport?.changed_paths ?? []` : les 6 fichiers de test concernés restent verts."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Les contrôles locaux et l'autocontrôle préparent le candidat",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/presentation/structured/text.ts",
+    "ligne": 840,
+    "constat": "Dans le rapport texte présenté au propriétaire, la ligne qui rend chaque constat d'autocontrôle n'est tenue par aucun test. Les autres lignes de la section déclarée sont vérifiées. Le rapport structuré, lui, porte bien les constats et le test les vérifie.",
+    "mutation": "La boucle `for (const f of record.self_review) lines.push(…)` a été retirée : tout reste vert."
+   }
+  ],
+  "resume": "Scénarios 1 et 2 : le code tient les promesses, et chaque mutation est tuée par design-plan.test.ts ou design-gate.test.ts. Les mutations portaient sur l'exigence non servie, le plan vide, l'appel `planFindings` dans decide.ts, le chemin protégé, le chemin hors mandat, la dépendance inconnue, le cycle, l'exigence inconnue, l'identifiant réutilisé et le repli de tâches dans phases/design.ts. Les tests vérifient aussi qu'aucun producteur n'est lancé quand G3 refuse. Scénario 3 : 13 mutations sur 15 sont tuées, dont le filtre par digest, le câblage dans le harnais, l'autorité « producer_declaration » et la section propre placée après les conclusions. En revanche, une sonde montre que la déclaration est rangée sous un identifiant de candidat calculé sur le seul contenu, commun à tous les changements, et relue en révision 1. Un changement qui laisse un candidat identique à celui d'un autre présente donc la déclaration, le plan et l'autocontrôle de l'autre (B1-1, bloquant). Les chemins hors plan venant du diff ne sont tenus par aucun test (B1-2). L'arbre est laissé propre."
+ }
+]

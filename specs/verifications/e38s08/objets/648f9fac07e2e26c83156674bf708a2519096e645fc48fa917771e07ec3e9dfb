@@ -1,0 +1,45 @@
+TAP version 13
+# Subtest: G3 verifies the plan instead of trusting indicators
+    # Subtest: un résumé seul ou un chemin protégé ne fait pas passer G3
+    not ok 1 - un résumé seul ou un chemin protégé ne fait pas passer G3
+      ---
+      duration_ms: 1805.074792
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-KSfaft/test/v2-kernel/design-gate.test.ts:52:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        a task that writes a protected path is not compatible with the mandate
+        
+        'PASS' !== 'FAIL'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'FAIL'
+      actual: 'PASS'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-KSfaft/test/v2-kernel/design-gate.test.ts:68:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - G3 verifies the plan instead of trusting indicators
+  ---
+  duration_ms: 1805.757334
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-KSfaft/test/v2-kernel/design-gate.test.ts:51:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2077.395875
