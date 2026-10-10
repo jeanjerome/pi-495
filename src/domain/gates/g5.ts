@@ -1,11 +1,14 @@
 import type { CandidateRef, Verdict } from "../../contracts/v1/common.ts";
+import type { FormalPackage } from "../../contracts/v1/protocol.ts";
 import {
 	ranUnderProtocol,
 	type ChangeState,
 	type NextAction,
 	type EvidenceEntry,
+	type FrozenFormalPackage,
 	type FrozenProtocol,
 } from "../change/state.ts";
+import { formalExploration } from "../formal-package.ts";
 import type { ActivePolicy } from "../policy.ts";
 
 export interface G5Result {
@@ -102,6 +105,12 @@ export function evaluateG5(
 			reasons.push(`requirement ${rid}: ${outcome} (${describe(o.control_ids, latestByControl)})`);
 		}
 	}
+
+	const formal = formalFindings(protocol, latestByControl, policy.formal_control);
+	reasons.push(...formal.reasons);
+	retained.push(...formal.retained);
+	for (const rid of formal.failed) failed.add(rid);
+	for (const rid of formal.indeterminate) indeterminate.add(rid);
 
 	// The acceptance run is an obligation of its own: no other control's PASS stands for it, and only its run on
 	// this very candidate counts.
@@ -207,6 +216,58 @@ export function evaluateG5(
 		indeterminate_requirements: indeterminateList,
 		next_action: next,
 	};
+}
+
+/**
+ * A requirement of the program the frozen formal package bears on is kept by the controls of its obligation and,
+ * besides them, by the exploration of that very package and each case tying its model to the code observed passing on
+ * the candidate: the model alone never keeps it. Nothing to add when the protocol adopts no package.
+ */
+function formalFindings(
+	protocol: FrozenProtocol,
+	latest: Map<string, EvidenceEntry>,
+	adopted: FormalPackage | null,
+): { reasons: string[]; retained: string[]; failed: string[]; indeterminate: string[] } {
+	const reasons: string[] = [];
+	const failed: string[] = [];
+	const indeterminate: string[] = [];
+	if (!protocol.formal) return { reasons, retained: [], failed, indeterminate };
+	const { verdict, gaps, retained } = formalVerdict(protocol.formal, latest, adopted);
+	if (verdict === "PASS") return { reasons, retained, failed, indeterminate };
+	for (const rid of protocol.formal.requirement_ids) {
+		const o = protocol.obligations.find((x) => x.requirement.requirement_id === rid);
+		if (!o || o.not_applicable_reason) continue;
+		const why = `requirement ${rid}: the model alone does not keep it — ${gaps.join("; ")}`;
+		if (!o.mandatory) reasons.push(`optional ${why}`);
+		else {
+			reasons.push(why);
+			(verdict === "FAIL" ? failed : indeterminate).push(rid);
+		}
+	}
+	return { reasons, retained, failed, indeterminate };
+}
+
+/** The exploration of the frozen package and its correspondence cases on the candidate, combined: all must PASS. */
+function formalVerdict(
+	formal: FrozenFormalPackage,
+	latest: Map<string, EvidenceEntry>,
+	adopted: FormalPackage | null,
+): { verdict: Verdict; gaps: string[]; retained: string[] } {
+	const exploration = formalExploration(formal, latest, adopted);
+	const gaps = [...exploration.reasons];
+	const retained = [...exploration.retained];
+	const verdicts: Verdict[] = [exploration.verdict];
+	for (const c of formal.correspondence) {
+		const evidence = latest.get(c.control_id);
+		if (evidence) retained.push(evidence.evidence_id);
+		const unseen = unseenCases(c, latest);
+		const verdict = oracleVerdict(c, unseen, latest);
+		verdicts.push(verdict);
+		if (verdict === "NOT_RUN") gaps.push(`correspondence ${c.control_id} was not run on the candidate`);
+		else if (verdict !== "PASS")
+			gaps.push(`correspondence ${c.control_id} did not observe passing ${unseen.join(", ")}`);
+	}
+	return { verdict: combine(verdicts, "all"), gaps, retained };
 }
 
 /** The cases of the binding the run of its control did not observe passing. */

@@ -18,6 +18,7 @@ import type { HumanOrigin } from "../../contracts/v1/decision.ts";
 import { DomainError } from "../errors.ts";
 import type { ActivePolicy } from "../policy.ts";
 import { evaluateG5 } from "../gates/g5.ts";
+import { frozenFormalOf } from "../formal-package.ts";
 import { evaluateG2 } from "../gates/g2.ts";
 import { planFindings } from "../gates/g3.ts";
 import { evaluateG4 } from "../gates/g4.ts";
@@ -714,6 +715,7 @@ class Ctx {
 				arbitration: c.protocol.arbitration,
 				environment_digest: c.protocol.environment_digest,
 				acceptance_recipe_control_id: c.protocol.acceptance?.recipe_control_id ?? null,
+				formal: frozenFormalOf(c.protocol),
 			},
 		});
 		// A survey has no candidate to design: the frozen controls run on the reference next.

@@ -95,6 +95,10 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 		...legacyDataDirs(env).flatMap((d) => [join(d, "workspaces"), resolveWorkspacesDir(d, {})]),
 	];
 	const workspace = new GitWorkspace(workspacesDir, formerRoots);
+	// A formal model is no technology of the target: TLC is never looked for in a stack nor detected in a project. The
+	// owner adopts a model in `policy.formal_control`, the kernel builds from it the one control that explores it, and
+	// this runner reads that control through the TLC reader among the common readers. A policy that adopts none
+	// starts no Java and asks no formal tool.
 	const controls = new GenericControlRunner(sandbox.backend, objects, readersOf(STACKS_OF_495.technologies), {
 		workspace_of: (workspacePath) => STACKS_OF_495.workspaceOf(workspacePath),
 	});

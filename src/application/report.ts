@@ -447,6 +447,12 @@ export function engineeringReport(
 			);
 		}
 	}
+	const formal = protocol?.controls.find((c) => c.formal_package)?.formal_package;
+	if (formal)
+		add(
+			"formal_model_is_not_the_program",
+			`the exploration of ${formal.model} proves ${formal.required_properties.join(", ")} on the model under its bounds (TLC ${formal.tool.version}), not the program: ${formal.requirement_ids.join(", ")} rests on ${formal.correspondence.map((c) => `${c.control_id}: ${c.cases.join(", ")}`).join("; ")}.`,
+		);
 	const adopted = protocol?.complements ?? [];
 	for (const r of protocol?.capability_diagnosis.recommendations ?? []) {
 		if (adopted.some((c) => c.test_type === r.test_type && c.tool === r.tool)) continue;

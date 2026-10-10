@@ -7,6 +7,8 @@
  * finite model under its bounds, never for the program the model describes.
  */
 import { posix } from "node:path";
+import { digestBytes } from "../../contracts/digest.ts";
+import type { FormalPackage } from "../../contracts/v1/protocol.ts";
 import { messageOf } from "../../domain/errors.ts";
 import type { ParsedReport, ProcessObservation, ReaderRun, ReportReader } from "../../ports/execution.ts";
 import { incidentOf } from "../execution/parsers.ts";
@@ -313,6 +315,29 @@ function configPathOf(command: readonly string[], cwd: string): string {
 	return posix.join(cwd, named ?? `${spec.replace(/\.tla$/, "")}.cfg`);
 }
 
+/**
+ * Why a completed exploration is not the PASS of the adopted package, one sentence each: a file of the copy that is
+ * not the one the package pins, another TLC than the approved one, a required property the run did not check. A
+ * producer who edits the model or reduces its configuration gets no proof; a counterexample stays a failure whatever
+ * model it was found on.
+ */
+async function unapprovedExploration(run: ReaderRun, pkg: FormalPackage, tlc: TlcResult): Promise<string[]> {
+	const read = await run.sources(Object.keys(pkg.files));
+	const reasons = Object.entries(pkg.files).flatMap(([file, approved]) => {
+		const text = read.get(file);
+		if (text === undefined) return [`${file} is absent, the package approves ${approved}`];
+		const actual = digestBytes(text);
+		return actual === approved ? [] : [`${file} is ${actual}, the package approves ${approved}`];
+	});
+	if (tlc.tool.version !== pkg.tool.version)
+		reasons.push(`TLC ${tlc.tool.version ?? "of no known version"} ran, the package approves TLC ${pkg.tool.version}`);
+	const unchecked = pkg.required_properties.filter(
+		(name) => !tlc.properties.some((p) => p.name === name && p.verified),
+	);
+	if (unchecked.length > 0) reasons.push(`the exploration did not check the required ${unchecked.join(", ")}`);
+	return reasons.map((reason) => `not the exploration of the adopted package: ${reason}`);
+}
+
 async function readTlc(run: ReaderRun): Promise<ParsedReport> {
 	const path = configPathOf(run.control.command, run.control.cwd);
 	let config: string;
@@ -327,10 +352,13 @@ async function readTlc(run: ReaderRun): Promise<ParsedReport> {
 		};
 	}
 	const tlc = tlcResultOf(run.observation, run, config, run.control.command);
+	const verdict = VERDICT_OF[tlc.outcome];
+	const pkg = run.control.formal_package;
+	const unapproved = pkg && verdict === "PASS" ? await unapprovedExploration(run, pkg, tlc) : [];
 	return {
-		verdict: VERDICT_OF[tlc.outcome],
+		verdict: unapproved.length > 0 ? "INDETERMINATE" : verdict,
 		facts: { exit_code: run.observation.exit_code, tlc },
-		notes: tlc.reasons,
+		notes: [...tlc.reasons, ...unapproved],
 		failures: tlc.counterexample
 			? [`${tlc.counterexample.property} is violated after ${tlc.counterexample.trace.length} states`]
 			: [],

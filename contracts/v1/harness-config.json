@@ -292,6 +292,161 @@
               "type": "null"
             }
           ]
+        },
+        "formal_control": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "model",
+                "config",
+                "files",
+                "required_properties",
+                "expected_violation",
+                "tool",
+                "budget",
+                "requirement_ids",
+                "correspondence"
+              ],
+              "properties": {
+                "model": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "config": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "files": {
+                  "type": "object",
+                  "patternProperties": {
+                    "^.*$": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$",
+                      "description": "SHA-256 digest, hex, prefixed"
+                    }
+                  }
+                },
+                "required_properties": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1
+                },
+                "expected_violation": {
+                  "type": "object",
+                  "required": [
+                    "mutant",
+                    "replaces"
+                  ],
+                  "properties": {
+                    "mutant": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "replaces": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "tool": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "version",
+                    "java",
+                    "jar"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "const": "TLC"
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "java": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "jar": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "budget": {
+                  "type": "object",
+                  "required": [
+                    "timeout_ms",
+                    "workers",
+                    "heap_mb"
+                  ],
+                  "properties": {
+                    "timeout_ms": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "workers": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "heap_mb": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "requirement_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "minItems": 1
+                },
+                "correspondence": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "control_id",
+                      "cases"
+                    ],
+                    "properties": {
+                      "control_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "cases": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "minItems": 1
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false

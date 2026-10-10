@@ -7,7 +7,7 @@
  */
 import { Type, type Static } from "typebox";
 import { Closed, contractId, Identifier, NonNegativeInt, Revision } from "./common.ts";
-import { AcceptanceRecipe, BaselinePolicy } from "./protocol.ts";
+import { AcceptanceRecipe, BaselinePolicy, FormalPackage } from "./protocol.ts";
 
 /** A bound that allows nothing at 0. */
 const PositiveInt = Type.Integer({ minimum: 1 });
@@ -72,6 +72,8 @@ const Policy = Type.Object(
 		review_missions: Type.Optional(Type.Record(Type.String(), Type.String({ minLength: 1 }))),
 		/** null asks no acceptance run, as the default policy does. */
 		acceptance_recipe: Type.Optional(Type.Union([AcceptanceRecipeDeclaration, Type.Null()])),
+		/** null adopts no formal model, as the default policy does: no formal tool is then looked for nor run. */
+		formal_control: Type.Optional(Type.Union([FormalPackage, Type.Null()])),
 	},
 	{ additionalProperties: false },
 );

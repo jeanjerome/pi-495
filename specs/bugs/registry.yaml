@@ -2687,3 +2687,66 @@ bugs:
       Decide whether G2 refuses a recipe whose network is not `denied` and whose `external_data` is empty, and carry the
       declared external data into the facts of the run, with a v0 test of the refusal and a v1 test of the facts.
     status: open
+  - bug_id: BUG-2026-10-10T090000
+    date: "2026-10-10"
+    title: "The report ticks a requirement under what was asked when every control bearing on it passed, although G5 left it undecided for a missing replay or oracle case"
+    severity: low
+    priority: p3
+    scope: presentation
+    what_happened: >
+      `askedLines` (`src/presentation/structured/text.ts`) marks each requirement with `overallMark` of the verdicts of
+      the evidence on the candidate whose `requirement_ids` include it. It never reads the decision of G5, so a
+      requirement whose unit control passed while its bound case was not observed passing, or whose formal package
+      lacks its correspondence case, is shown `✔ … — unit, formal-model` under what was asked, while the section of
+      conclusions says G5 could not decide it.
+    what_expected: >
+      The mark of a requirement under what was asked agrees with what G5 concluded on it: a requirement G5 holds
+      indeterminate or failed is not ticked, or the line says why the controls that passed do not keep it.
+    steps_to_reproduce:
+      - "Adopt a formal package bearing on R1 with a correspondence case in `unit`, and let the producer deliver a candidate without that case."
+      - "Run to G5: the decision is INDETERMINATE on R1 for the missing correspondence case."
+      - "Open `/495 report`: R1 is ticked `✔` with `unit, formal-model`."
+    root_cause: >
+      The mark is derived from control verdicts alone (`engineeringReport` in `src/application/report.ts` collects the
+      entries by `requirement_ids`); the indeterminate and failed requirements of the G5 decision are not consulted.
+      The same holds on main for an oracle case not observed passing, with no formal package.
+    evidence: >
+      Read at 533f0846 (story e38s10): the branch leaves `askedLines` and the collection of `asked` unchanged and adds the
+      exploration of the formal model to the evidence bearing on R1; the acceptance run saw the tick on R1 while the G5
+      decision of the same dossier listed R1 among `indeterminate_requirements`. The kernel decision itself is right.
+    risk_level: low
+    follow_ups: >
+      Feed the failed and indeterminate requirements of the latest G5 decision into the requirement lines of the report
+      and mark them accordingly, with a v0 test on a requirement whose controls pass while G5 holds it indeterminate.
+    status: open
+  - bug_id: BUG-2026-10-10T090100
+    date: "2026-10-10"
+    title: "A formal package changed in the policy after the freeze asks to prepare and qualify again, and no command resumes the preparation outside a contestation"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      When the profile adopts a formal package other than the frozen one, G5 holds its requirements indeterminate with
+      `the policy adopts another formal package than the one frozen: prepare and qualify it again`
+      (`src/domain/formal-package.ts`), and the change is blocked with `attempts_exhausted`: the only decision offered is
+      a budget extension (IH-07), which recommends stopping. No Pi command takes the change back to the preparation; only
+      the route of a contestation followed by the answer `revise` requalifies the package.
+    what_expected: >
+      A change whose adopted formal package was revised after the freeze is offered a way back to the preparation, where
+      the new package is qualified and frozen, or the reason names the route that does it.
+    steps_to_reproduce:
+      - "Freeze a protocol with a formal package, then change its configuration in the profile (for instance `Max = 4`) without contesting it."
+      - "Advance to G5 and accept as owner: G5 is INDETERMINATE on the requirement with the reason above."
+      - "The next decision requested is IH-07 for a budget extension; no command prepares the verification again."
+    root_cause: >
+      The reason introduced for a revised package names a step that only the contestation path triggers; `next_action`
+      stays `resolve_incident`, whose only exit in this state is the budget extension.
+    evidence: >
+      Observed at 533f0846 (story e38s10) in the acceptance dossier `e38s10r-revise-direct`: last G5 decision INDETERMINATE
+      on R1, `next_action: resolve_incident`, then `status.changed` blocked `attempts_exhausted` and an IH-07 request.
+      The former exploration is not counted, so nothing passes; the change is stopped, not let through.
+    risk_level: low
+    follow_ups: >
+      Route a package mismatch at G5 back to the preparation (or to the owner with that choice), with a v2 test where the
+      profile revises the package after the freeze and the change is requalified without a contestation.
+    status: open

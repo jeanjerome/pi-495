@@ -457,6 +457,9 @@ export class VerificationCoordinator {
 				.filter((o) => o.qualification === "proved")
 				.map((o) => [o.requirement_id, { control_id: o.control_id, cases: o.cases.map((c) => c.name) }] as const),
 		);
+		// The exploration of a formal model proves the model, never a requirement by itself: G5 reads it beside the
+		// correspondence cases, for the requirements its package bears on alone.
+		const judging = controls.filter((c) => !c.formal_package);
 		const obligations: Obligation[] = input.requirements.requirements.map((r) => {
 			if (input.assigned_to_human.includes(r.requirement_id))
 				return {
@@ -469,7 +472,7 @@ export class VerificationCoordinator {
 				};
 			if (input.by_nature) {
 				// A survey answers each requirement with what measures its nature, or names it a blind spot.
-				const measured = controlsOfNature(r.category, controls, input.lint_control_ids, this.readers);
+				const measured = controlsOfNature(r.category, judging, input.lint_control_ids, this.readers);
 				const blindSpot = surveyBlindSpot(r.category, measured, input);
 				return {
 					requirement: { requirement_id: r.requirement_id, revision: input.requirements_revision },
@@ -482,9 +485,9 @@ export class VerificationCoordinator {
 			}
 			const preferred =
 				r.category.toLowerCase().includes("quality") || r.category.toLowerCase().includes("lint")
-					? controls.filter((c) => input.lint_control_ids.includes(c.control_id))
-					: controls.filter((c) => !input.lint_control_ids.includes(c.control_id));
-			const chosen = (preferred.length > 0 ? preferred : controls).map((c) => c.control_id);
+					? judging.filter((c) => input.lint_control_ids.includes(c.control_id))
+					: judging.filter((c) => !input.lint_control_ids.includes(c.control_id));
+			const chosen = (preferred.length > 0 ? preferred : judging).map((c) => c.control_id);
 			const oracle = proved.get(r.requirement_id);
 			return {
 				requirement: { requirement_id: r.requirement_id, revision: input.requirements_revision },

@@ -18,6 +18,7 @@ import { surveysTheProject, type HumanDecisionEntry } from "../../domain/change/
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { applyRecommendedEdits, editedFile } from "../complement.ts";
+import { withFormalControl } from "../formal-control.ts";
 import type { Adoptable } from "../decisions.ts";
 import { bringInstalls, filesOf, installableRecommendations, type FailedInstall } from "../installation.ts";
 import { preparationMandateObjective } from "../context.ts";
@@ -420,7 +421,12 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 				nextActions: ["cancel"],
 			});
 		const offered = installableRecommendations(referenceFiles, detection.recommendations, failed, installerOf, outside);
-		detection = { ...detection, recommendations: offered.recommendations };
+		detection = await withFormalControl(
+			{ ...detection, recommendations: offered.recommendations },
+			ctx.policy.formal_control,
+			requirements.ref.revision,
+			handle.path,
+		);
 		const adoptable: Adoptable = {
 			files: detection.recommendations.flatMap((r) =>
 				r.edit &&

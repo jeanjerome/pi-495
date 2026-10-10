@@ -1,6 +1,6 @@
 /** Active policy: configured before execution, versioned, never modified by a producer. */
 import type { AcceptanceRecipeDeclaration } from "../contracts/v1/config.ts";
-import type { BaselinePolicy } from "../contracts/v1/protocol.ts";
+import type { BaselinePolicy, FormalPackage } from "../contracts/v1/protocol.ts";
 
 /** Bounds applied by the controller, never by a producer (DEC-03). */
 export interface Budgets {
@@ -59,6 +59,8 @@ export interface ActivePolicy {
 	review_missions: Record<string, string>;
 	/** The acceptance run every candidate must pass through its real entry before G5 accepts it; null asks none. */
 	acceptance_recipe: AcceptanceRecipeDeclaration | null;
+	/** The TLA+ model the owner adopted as a means of verification; null adopts none, and no formal tool is run. */
+	formal_control: FormalPackage | null;
 }
 
 export const DEFAULT_POLICY: ActivePolicy = {
@@ -95,4 +97,5 @@ export const DEFAULT_POLICY: ActivePolicy = {
 	required_reviews: [],
 	review_missions: {},
 	acceptance_recipe: null,
+	formal_control: null,
 };

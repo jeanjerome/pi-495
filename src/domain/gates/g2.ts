@@ -1,5 +1,6 @@
 import type { Protocol } from "../../contracts/v1/protocol.ts";
 import { acceptancePlanFindings } from "../acceptance-plan.ts";
+import { formalPlanFindings } from "../formal-package.ts";
 import { surveysTheProject, type ChangeState, type NextAction } from "../change/state.ts";
 import type { ActivePolicy } from "../policy.ts";
 
@@ -89,6 +90,7 @@ export function evaluateG2(state: ChangeState, protocol: Protocol, policy: Activ
 		if (!protocol.required_reviews.includes(review))
 			reasons.push(`policy requires review ${review} which the protocol does not schedule`);
 	reasons.push(...acceptancePlanFindings(protocol, policy, known));
+	reasons.push(...formalPlanFindings(protocol, policy, known));
 	if (reasons.length === 0)
 		return {
 			verdict: "PASS",

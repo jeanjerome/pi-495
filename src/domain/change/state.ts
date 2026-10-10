@@ -285,6 +285,22 @@ export interface FrozenProtocol {
 	environment_digest: string;
 	/** The control of the acceptance run G5 requires on the candidate; absent from a protocol frozen before it could. */
 	acceptance_recipe_control_id?: string | null;
+	/** The formal package G5 requires the exploration of; absent from a protocol that adopts none or was frozen before. */
+	formal?: FrozenFormalPackage | null;
+}
+
+/**
+ * The formal package a protocol froze: the control that explores it and its identity, what an exploration proves of
+ * the model, and the requirements of the program it bears on with the correspondence cases that alone tie the model to
+ * the code.
+ */
+export interface FrozenFormalPackage {
+	control_id: string;
+	package_digest: string;
+	model: string;
+	required_properties: string[];
+	requirement_ids: string[];
+	correspondence: { control_id: string; cases: string[] }[];
 }
 
 export interface IntegrationState {

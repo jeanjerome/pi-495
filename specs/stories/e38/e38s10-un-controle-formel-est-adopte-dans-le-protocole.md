@@ -2,7 +2,7 @@
 
 Story : e38s10
 Epic : e38
-Statut : à faire
+Statut : en cours
 
 Surface : pi-495 — contrôle TLC opt-in, G2/G5 et rapport
 Dépendances : e38s02, e38s06, e38s07, e38s09

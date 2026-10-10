@@ -343,6 +343,63 @@ export const AcceptancePlan = Type.Object(
 );
 export type AcceptancePlan = Static<typeof AcceptancePlan>;
 
+/** The TLC a formal package is explored with, the owner's: 495 installs nothing and looks for no other. */
+export const FormalTool = Type.Object(
+	{
+		name: Type.Literal("TLC"),
+		/** As TLC prints it, `2.19 of 08 August 2024 (rev: 5a47802)`: a run of another TLC proves nothing of the package. */
+		version: Type.String({ minLength: 1 }),
+		/** The Java runtime the control runs. */
+		java: Type.String({ minLength: 1 }),
+		/** The `tla2tools.jar` put on its class path. */
+		jar: Type.String({ minLength: 1 }),
+	},
+	{ additionalProperties: false },
+);
+export type FormalTool = Static<typeof FormalTool>;
+
+/** The cases of a control that tie the model to the program, such as tests replaying the traces of the model on the code. */
+export const CorrespondenceControl = Type.Object(
+	{ control_id: Identifier, cases: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }) },
+	{ additionalProperties: false },
+);
+export type CorrespondenceControl = Static<typeof CorrespondenceControl>;
+
+/**
+ * A TLA+ model the owner adopted as a means of verification: its root module and configuration, every file it is
+ * made of pinned by digest, the properties an exploration must check, the mutant whose violation qualifies the
+ * control, the TLC it runs with and its budget. An exploration proves the model under its bounds, never the program:
+ * the requirements of the program it bears on are kept only by the correspondence controls besides it.
+ */
+export const FormalPackage = Type.Object(
+	{
+		/** The root module, from the root of the project, as every path of the package. */
+		model: Type.String({ minLength: 1 }),
+		config: Type.String({ minLength: 1 }),
+		files: Type.Record(Type.String({ minLength: 1 }), Digest),
+		required_properties: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
+		/** The pinned mutant written in place of a file of the model, whose exploration must end on a counterexample. */
+		expected_violation: Type.Object(
+			{ mutant: Type.String({ minLength: 1 }), replaces: Type.String({ minLength: 1 }) },
+			{ additionalProperties: false },
+		),
+		tool: FormalTool,
+		budget: Type.Object(
+			{
+				timeout_ms: Type.Integer({ minimum: 1 }),
+				workers: Type.Integer({ minimum: 1 }),
+				heap_mb: Type.Integer({ minimum: 1 }),
+			},
+			{ additionalProperties: false },
+		),
+		/** The requirements on the behaviour of the program the model bears on. */
+		requirement_ids: Type.Array(Identifier, { minItems: 1 }),
+		correspondence: Type.Array(CorrespondenceControl, { minItems: 1 }),
+	},
+	{ additionalProperties: false },
+);
+export type FormalPackage = Static<typeof FormalPackage>;
+
 export const ControlDefinition = Type.Object(
 	{
 		control_id: Identifier,
@@ -374,6 +431,8 @@ export const ControlDefinition = Type.Object(
 		architecture_map: Type.Optional(ArchitectureMap),
 		/** The acceptance recipe an acceptance control runs and its reader checks; absent for every other control. */
 		acceptance_recipe: Type.Optional(AcceptanceRecipe),
+		/** The formal package a model-checking control explores, whose identity is its version; absent for every other control. */
+		formal_package: Type.Optional(FormalPackage),
 		/**
 		 * Reports this control leaves in the workspace, named so that another one may read them: the
 		 * Surefire reports and the JaCoCo report a single `mvn test` writes are two of them.
