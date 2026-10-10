@@ -1,0 +1,88 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "L'accord est refusé sans les deux campagnes vertes à la tête",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 715,
+    "constat": "The journal is checked only once the session's own process has exited (session.ts:159). A process that the acceptance session leaves behind and detaches writes after that check, and the next `accepter` reads its line as a campaign the tool played. The probe used a fake claude whose acceptance session runs `spawn(\"sh\", [\"-c\", \"sleep 1; printf <line> >> ~/.495/cycle/<story>/journal.jsonl\"], {detached: true, stdio: \"ignore\"}).unref()`. The tool played maven and got FAIL, and the session was recorded `ok: true`. Two seconds later the forged `controle campagne-maven PASS` line was in the journal, `accepter(ctx, \"vu\")` threw nothing, `acceptee` was written and prochainPas() returned `versement`. The exact B1-2 path, a write made during the session, is now taken back out. The same session writing a moment later is not, so B1-2 is not closed.",
+    "contournement": "ni la session de recette ni l'arbitrage ne peuvent tenir pour jouée une campagne que l'outil n'a pas jouée lui-même à la tête — the acceptance session gets an npm/maven PASS line that the tool never played into the journal, after the post-session check, and the owner's agreement is recorded over a maven FAIL"
+   },
+   {
+    "id": "A2-2",
+    "scenario": "L'accord est refusé sans les deux campagnes vertes à la tête",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/automate.ts",
+    "ligne": 94,
+    "constat": "The acceptance session can set `git config core.fsmonitor <script outside the tree>` in the story's repository. This touches neither the tree nor the journal, so `arbrePropre` stays true and `retirerEcritsEtrangers` returns false. The tool then runs `git status --porcelain` in arbrePropre, after the arbitration's survey and before `accepter`, and git runs that script. In the probe, the script appended `controle campagne-npm PASS` when the journal's last line was the arbitration's `session` event. The tool had played npm and got FAIL. The journal read `session arbitrage` → `controle campagne-npm PASS` → `arbitrage` → `acceptee 'arbitrage automatique : tenu'`, apresIssue returned `{continuer: true}`, and prochainPas() returned `versement`. The process is deterministic and needs no timing.",
+    "contournement": "ni la session de recette ni l'arbitrage ne peuvent tenir pour jouée une campagne que l'outil n'a pas jouée lui-même à la tête — a git hook that the acceptance session installs writes the green campaign line during the tool's own `git status`, after the journal check, and the arbitration's agreement is recorded over an npm FAIL"
+   }
+  ],
+  "fermes": [
+   "A1-1",
+   "B1-1"
+  ],
+  "resume": "I replayed the three bypasses said fixed on a864f5b3. A1-1 is closed: moving main no longer empties the requirement, because exigeLesCampagnes reads the base recorded in the story's `branche` event. B1-1 is closed: automate.ts now records only decision/note/ecart/raisons. Both are held by accord-campagnes.test.ts, and reverting either fix kills that test. B1-2 is closed only in its literal form. A line the session writes while it runs is taken back out and the session fails, but the journal is still a file the sessions can reach. It is checked only when a session ends, and campagneEnCause still trusts any `controle` line in it. Two probes bypassed the guarantee. In the first, a process the acceptance session left detached wrote a maven PASS line after its check, and the owner's `accepter` then passed over a maven FAIL (A2-1). In the second, a `core.fsmonitor` hook installed by the acceptance session wrote an npm PASS line during the tool's own `git status` in arbrer. That happens after the arbitration's survey, and the arbitration's agreement then passed over an npm FAIL (A2-2). Both are bypasses introduced by the branch and blocking. The three promises are otherwise held by the code and the tests. Every mutation I tried was killed by accord-campagnes, recette-campagnes and journal.test: on exigeLesCampagnes and its recorded base, the decision fields kept in automate, retirerEcritsEtrangers and the `ecrits` list, the `controle` filter, the revision and verdict checks, and the jouerCampagnes and accepter guards in both directions. The throwaway probe file was removed and the tree is clean."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "L'accord est refusé sans les deux campagnes vertes à la tête",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/automate.ts",
+    "ligne": 94,
+    "constat": "The journal check only covers the time a session runs, and a session can leave behind a git hook that the tool runs later. The arbitration writes a script and sets `core.fsmonitor` in `.git/config`, which is not tracked, so the tree stays clean. sessionInscrite then finds the journal unchanged. The tool's own `git status` in `arbrePropre` (automate.ts:94) runs the hook after `retirerEcritsEtrangers`. The hook appends `{pas:recette, genre:controle, controle:campagne-npm, revision:<head>, verdict:PASS}`, and `accepter` reads that line as the campaign the tool played. Probed with a throwaway test that was not committed: the tool played npm FAIL and maven PASS; the arbitration set the hook and accepted; `apresIssue` returned `{continuer: true}`; the journal holds `controle campagne-npm PASS` after the arbitration's `session` event, then `acceptee` 'arbitrage automatique : tenu'; and `prochainPas()` returned `versement`. This is B1-2 passing again by another route: the journal is still a file the session's rights can write, and only the session's own lifetime is watched. The same route can also append a `story/branche` event that carries another `base`, and `exigeLesCampagnes` takes the last one with `dernier`.",
+    "contournement": "ni la session de recette ni l'arbitrage ne peuvent tenir pour jouée une campagne que l'outil n'a pas jouée lui-même à la tête"
+   },
+   {
+    "id": "B2-2",
+    "scenario": "L'accord est refusé sans les deux campagnes vertes à la tête",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/session.ts",
+    "ligne": 150,
+    "constat": "`releve` and `retirerEcritsEtrangers` only compare the journal before and after the session's process. The acceptance session can start a detached process (`spawn(..., {detached: true}).unref()`) that appends a green npm campaign at the head about one second after the session has ended. The tool finds nothing to remove, records the `preparee` event and waits for the owner. When the owner then runs `cycle <story> accepte`, `accepter` finds the forged line and records the agreement. Probed with a throwaway test that was not committed: npm was FAIL. `accepter(ctx, 'vu')` throws right after the session. Two and a half seconds later it records `acceptee` and `prochainPas()` returns `versement`.",
+    "contournement": "L'accord, qu'il vienne du propriétaire ou de l'arbitrage, ne s'inscrit pas sans les preuves que la story exige : ni la session de recette ni l'arbitrage ne peuvent tenir pour jouée une campagne que l'outil n'a pas jouée lui-même à la tête"
+   },
+   {
+    "id": "B2-3",
+    "scenario": "Les campagnes sont jouées par l'outil quand la branche touche ce que 495 exécute / Une branche qui ne touche pas ce que 495 exécute ne joue aucune campagne / L'accord est refusé sans les deux campagnes vertes à la tête",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 610,
+    "constat": "The code keeps the three promises on the paths they describe, and a test catches each mutation tried on the lines this round adds. The campaigns are played at the head, and the journal keeps each verdict with its revision. No campaign runs on a documentation branch. The agreement is refused when a campaign is missing, failed, or played at another revision, and the refusal names the campaign.",
+    "mutation": "Each of these mutants is killed: base(ctx) in place of the recorded base; the retirerEcritsEtrangers result ignored, or the call removed; `{ ...sortie, origine }` in automate; ECRITS made per instance; `texte() !== \"\"` in retirerEcritsEtrangers; `if (false)` in accepter; `if (false) return` in jouerCampagnes."
+   }
+  ],
+  "fermes": [
+   "A1-1",
+   "B1-1"
+  ],
+  "resume": "The code and tests keep all three promises. Every mutation I tried on this round's new lines is killed by accord-campagnes, journal or recette-campagnes. A1-1 and B1-1 no longer pass at the branch head. Moving main is refused because the recorded base is used, and the arbitration's extra fields are no longer recorded. B1-2's literal path, a line written during the session, is now removed and blocks the step. But the guarantee that no session can claim a campaign the tool did not play is still bypassed by two probed routes that write after the session's check. B2-1, in the unattended run: a `core.fsmonitor` hook left by the arbitration is run by the tool's own `git status` in arbrePropre, and the agreement is recorded over an npm FAIL. B2-2, on the owner's path: a detached writer left by the acceptance session adds the line before `cycle <story> accepte`. Verdict: fail. Probe files were removed and the tree is clean."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-2",
+    "scenario": "Sécurité — L'accord est refusé sans les deux campagnes vertes à la tête (session de recette)",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/campagnes-exigees.ts",
+    "ligne": 48,
+    "constat": "campagneEnCause tient pour jouée par l'outil toute ligne `recette`/`controle` du journal. Ce journal est un simple fichier, ~/.495/cycle/<story>/journal.jsonl, hors de l'arbre que l'arbitrage contrôle par Git, et la session de recette, lancée en `--permission-mode auto` avec Bash, peut y ajouter des lignes. Sondé avec un faux claude dont la session de recette ajoute `{pas:\"recette\",genre:\"controle\",controle:\"campagne-npm\",revision:<tête>,verdict:\"PASS\"}` après que l'outil a joué npm en FAIL : l'arbitrage accepte et la story passe au versement.",
+    "contournement": "ni la session de recette ni l'arbitrage ne peuvent tenir pour jouée une campagne que l'outil n'a pas jouée lui-même à la tête"
+   }
+  ],
+  "resume": "Contournements que la réponse du tour précédent n'a pas corrigés, ou que ce tour ne trouve pas fermés."
+ }
+]

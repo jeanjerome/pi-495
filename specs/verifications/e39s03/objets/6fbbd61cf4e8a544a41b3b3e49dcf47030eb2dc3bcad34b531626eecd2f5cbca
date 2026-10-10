@@ -1,0 +1,105 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "L'accord est refusé sans les deux campagnes vertes à la tête",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 705,
+    "constat": "accepter decides at agreement time whether campaigns are required, from `git diff merge-base(main, HEAD)...HEAD`. The acceptance session and the arbitration both run in the story's repository and can move `main`. If either runs `git branch -f main HEAD`, the merge-base becomes HEAD, the diff comes back empty, and no campaign is required any more. The agreement is then recorded on code that changes the executor, with a campaign FAIL in the journal. Probe with the arbitration: npm campaign FAIL, the arbitration moves main, apresIssue answers { continuer: true }, and the journal holds `acceptee` 'arbitrage automatique : tenu'. Probe with the acceptance session: maven campaign FAIL, the session moves main, `accepter(ctx, 'vu')` throws nothing and writes `acceptee`. The arbitration's check that only the registry changed (`fichiersChanges(avant...HEAD)`) does not see a ref move. The requirement should come from what the tool recorded, such as the base in the story's `branche` event or the campaigns jouerCampagnes played, not from a ref the sessions can write.",
+    "contournement": "Sécurité : « L'accord, qu'il vienne du propriétaire ou de l'arbitrage, ne s'inscrit pas sans les preuves que la story exige : ni la session de recette ni l'arbitrage ne peuvent tenir pour jouée une campagne que l'outil n'a pas jouée lui-même à la tête. »"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "L'accord est refusé sans les deux campagnes vertes à la tête",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/campagnes-exigees.ts",
+    "ligne": 49,
+    "constat": "The `e.genre === \"controle\"` filter is what stops the arbitration from claiming a campaign. automate.ts writes the arbitration's whole structured output into an `arbitrage` event of step `recette` (`{ ...sortie, origine }`) before calling accepter, and the schema does not forbid extra properties. An arbitration that answers `controle: \"campagne-npm\", revision: <head>, verdict: \"PASS\"` alongside its decision is refused today, but under the surviving mutant its agreement passes over an npm FAIL. A throwaway probe got { continuer: true } under the mutant, while recette-campagnes.test.ts and accord-campagnes.test.ts stay green. No test holds this part of the guarantee.",
+    "mutation": "campagnes-exigees.ts:49 `e.genre === \"controle\"` → `true` (the tool's surviving mutant): accord-campagnes and recette-campagnes stay green; the probe where the arbitration adds controle/revision/verdict to its output gets the agreement recorded."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "L'accord est refusé sans les deux campagnes vertes à la tête",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/main.ts",
+    "ligne": 224,
+    "constat": "The main.ts survivors on lines 171-186 are not executed by the tasks' tests, but test/cycle/main.test.ts launches main as a child process and holds them: replacing `return 1`, the `commande === \"accepte\"` condition or the ⛔ message each makes it fail. Only `if (refus !== undefined)` → false survives it. After a refused agreement the tool goes on into derouler, but it still records no agreement and still exits 1, so no promise breaks.",
+    "mutation": "main.ts:224 `refus !== undefined` → `false`: the main.test.ts test stays green; main.ts:177 `return 1` removed, :172 condition → false, :176 message removed: the test fails."
+   },
+   {
+    "id": "A1-4",
+    "scenario": "Les campagnes sont jouées par l'outil quand la branche touche ce que 495 exécute",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/campagnes-exigees.ts",
+    "ligne": 35,
+    "constat": "No test reads the campaign control's `reseau: \"allowed\"`, but the cycle's executor is unconfined (`executeurNonConfine`), so the campaign has the network exactly as when the owner runs it by hand, as the Sécurité section asks. The other survivors (the wording `à la tête <sha>` and `.slice(0, 7)` on lines 51/54, the `arbitrage automatique` note in automate.ts:100, the redundant `e.pas === \"recette\"` filter) only change message text or a condition no recorded event exercises. The campaign is still named in the refusal."
+   }
+  ],
+  "resume": "The code and the tests hold scenarios 1 and 2. A branch that touches the executor has both campaigns played at the head, and the journal records `campagne-npm` and `campagne-maven` with their revision and verdict; mutating the paths, CAMPAGNES or the requirement makes recette-campagnes fail. A documentation branch plays none and the agreement is recorded as before. Scenario 3 holds when nothing moves: failed, missing or out-of-date campaign; the owner and the arbitration are both refused, the campaign is named and the story stays at recette. The CLI path is held by main.test.ts. The Sécurité guarantee falls (A1-1, bloquant, with a contournement). Whether campaigns are required is recomputed at agreement time from the merge-base with `main`, and the sessions can move `main` with an ordinary `git branch -f main HEAD`. That makes the requirement disappear, and the agreement is recorded over a red campaign. I confirmed this with throwaway tests through the arbitration and through the acceptance session. A1-2 (à corriger): the `genre === \\\"controle\\\"` filter, the only line that keeps the arbitration from claiming a campaign through extra fields in its output, is held by no test. I did not check whether a session could write directly into the journal under ~/.495/cycle (no OS sandbox around the sessions). That would be a weakness of the whole cycle's design, not something this branch opens. The throwaway probes are removed and the tree is clean.",
+  "fermes": []
+ },
+ {
+  "verdict": "fail",
+  "resume": "Le code et les tests tiennent les trois scénarios. Les deux campagnes sont jouées à la tête et leur verdict est inscrit avec sa révision (recette-campagnes.test.ts). Une branche de l'outil ou de la documentation n'en joue aucune et l'accord s'y inscrit comme avant. L'accord est refusé, campagne nommée, quand une campagne a échoué, manque ou date d'une autre révision (accord-campagnes.test.ts, main.test.ts). La garantie de Sécurité tombe en revanche par deux chemins, tous deux sondés par des tests jetables puis supprimés. (1) L'arbitrage ajoute à sa sortie structurée des champs que le schéma ne refuse pas. L'outil les étale dans l'événement qu'il inscrit et ils y écrasent `genre`, si bien que l'événement d'arbitrage devient une campagne npm PASS à la tête : l'outil avait vu npm en FAIL, et la story est passée au versement. (2) La session de recette ajoute une ligne `controle` campagne-npm PASS au journal, qui est un fichier hors Git sous ~/.495/cycle/<story>/ ; campagneEnCause la retient et l'accord passe. À peser : le refus du CLI rend 1 même quand on mute main.ts:224 ou main.ts:177, et la politique réseau `allowed` de la campagne n'est tenue par aucun test, sans effet sous l'exécuteur non confiné. La partie réseau de la garantie tient : sous l'exécuteur non confiné, la campagne a le même réseau qu'avant, quand la session de recette la lançait. Aucun contournement d'un tour précédent à rejouer.",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — L'accord est refusé sans les deux campagnes vertes à la tête (arbitrage)",
+    "categorie": "bloquant",
+    "placement": "rendu_atteignable",
+    "fichier": "cycle/src/automate.ts",
+    "ligne": 97,
+    "constat": "`ctx.journal.inscrire(\"recette\", \"arbitrage\", { ...sortie, origine })` étale la sortie de l'arbitrage, dont le schéma n'interdit pas les champs en plus. Journal.inscrire place ce détail après `pas` et `genre` : une sortie qui porte `genre: \"controle\", controle: \"campagne-npm\", revision: <tête>, verdict: \"PASS\"` devient donc l'événement de campagne que campagneEnCause retient par findLast. Sondé : l'outil avait joué npm en FAIL et maven en PASS, l'arbitrage a renvoyé ces champs, apresIssue a rendu `{continuer: true}`, `acceptee` a été inscrit et prochainPas() a donné `versement`.",
+    "contournement": "ni la session de recette ni l'arbitrage ne peuvent tenir pour jouée une campagne que l'outil n'a pas jouée lui-même à la tête"
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Sécurité — L'accord est refusé sans les deux campagnes vertes à la tête (session de recette)",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/campagnes-exigees.ts",
+    "ligne": 48,
+    "constat": "campagneEnCause tient pour jouée par l'outil toute ligne `recette`/`controle` du journal. Ce journal est un simple fichier, ~/.495/cycle/<story>/journal.jsonl, hors de l'arbre que l'arbitrage contrôle par Git, et la session de recette, lancée en `--permission-mode auto` avec Bash, peut y ajouter des lignes. Sondé avec un faux claude dont la session de recette ajoute `{pas:\"recette\",genre:\"controle\",controle:\"campagne-npm\",revision:<tête>,verdict:\"PASS\"}` après que l'outil a joué npm en FAIL : l'arbitrage accepte et la story passe au versement.",
+    "contournement": "ni la session de recette ni l'arbitrage ne peuvent tenir pour jouée une campagne que l'outil n'a pas jouée lui-même à la tête"
+   },
+   {
+    "id": "B1-3",
+    "scenario": "L'accord est refusé sans les deux campagnes vertes à la tête",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/main.ts",
+    "ligne": 224,
+    "constat": "main.test.ts, que l'outil n'a pas lancé, tue les mutants des lignes 172 et 176. Ceux de la ligne 224 (`if (false)`) et de la ligne 177 (`return undefined`) survivent : le CLI poursuit alors dans derouler, qui rend 1 lui aussi. La promesse tient quand même, puisqu'aucun accord n'est inscrit et que la campagne est nommée ; seul l'arrêt immédiat après le refus n'est tenu par aucun test.",
+    "mutation": "main.ts:224 `if (refus !== undefined)` → `if (false)` ; main.ts:177 `return 1` → `return undefined` : le test « refuses the owner's agreement… » reste vert"
+   },
+   {
+    "id": "B1-4",
+    "scenario": "Sécurité — réseau de la campagne",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/campagnes-exigees.ts",
+    "ligne": 35,
+    "constat": "Aucun test ne tient `reseau: \"allowed\"`. Sous executeurNonConfine, le réseau n'est pas confiné de toute façon, comme quand la session de recette jouait la campagne, si bien que la garantie « comme aujourd'hui » tient en l'état.",
+    "mutation": "StringLiteral `\"allowed\"` → `\"\"` (survivant listé par l'outil)"
+   },
+   {
+    "id": "B1-5",
+    "scenario": "L'accord est refusé sans les deux campagnes vertes à la tête",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/campagnes-exigees.ts",
+    "ligne": 49,
+    "constat": "Les survivants sur les opérandes `e.pas === \"recette\"` et `e.genre === \"controle\"` (→ true, `||`) n'ont pas d'effet observable tant que seul l'outil écrit des événements qui portent `controle: campagne-*`. Ce filtre ne protège rien contre B1-1 et B1-2 : la ligne forgée y porte précisément `pas: recette` et `genre: controle`.",
+    "mutation": "`e.pas === \"recette\"` → true ; `e.genre === \"controle\"` → true ; `&&` → `||` (survivants listés)"
+   }
+  ],
+  "fermes": []
+ }
+]

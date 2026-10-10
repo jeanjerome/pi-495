@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the reference campaigns the tool plays before the acceptance session
+    # Subtest: une branche qui touche l'exécuteur fait jouer les deux campagnes à la tête et le journal garde leurs verdicts, une branche de documentation n'en joue aucune
+    ok 1 - une branche qui touche l'exécuteur fait jouer les deux campagnes à la tête et le journal garde leurs verdicts, une branche de documentation n'en joue aucune
+      ---
+      duration_ms: 946.825625
+      type: 'test'
+      ...
+    # Subtest: une branche qui déplace et change un fichier de l'exécuteur hors de son chemin fait jouer les deux campagnes à la tête
+    ok 2 - une branche qui déplace et change un fichier de l'exécuteur hors de son chemin fait jouer les deux campagnes à la tête
+      ---
+      duration_ms: 553.959875
+      type: 'test'
+      ...
+    # Subtest: une branche qui change un fichier de l'exécuteur dont le nom porte un caractère non ASCII, un guillemet ou une tabulation fait jouer les deux campagnes à la tête
+    ok 3 - une branche qui change un fichier de l'exécuteur dont le nom porte un caractère non ASCII, un guillemet ou une tabulation fait jouer les deux campagnes à la tête
+      ---
+      duration_ms: 1563.344875
+      type: 'test'
+      ...
+    # Subtest: requires the campaigns for a change under each path that 495 executes, and builds the control of a campaign from npm run campagne with the network open
+    ok 4 - requires the campaigns for a change under each path that 495 executes, and builds the control of a campaign from npm run campagne with the network open
+      ---
+      duration_ms: 0.251333
+      type: 'test'
+      ...
+    1..4
+ok 1 - the reference campaigns the tool plays before the acceptance session
+  ---
+  duration_ms: 3064.98625
+  type: 'suite'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3199.609041

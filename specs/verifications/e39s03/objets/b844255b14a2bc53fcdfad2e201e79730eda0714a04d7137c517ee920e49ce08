@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the agreement after the acceptance run of a branch that requires the reference campaigns
+    # Subtest: l'accord du propriétaire et celui de l'arbitrage sont refusés quand une campagne exigée manque, échoue ou date d'une autre révision
+    ok 1 - l'accord du propriétaire et celui de l'arbitrage sont refusés quand une campagne exigée manque, échoue ou date d'une autre révision
+      ---
+      duration_ms: 1938.773166
+      type: 'test'
+      ...
+    # Subtest: records the agreement when both campaigns are green at the head, and as before on a branch that requires none
+    ok 2 - records the agreement when both campaigns are green at the head, and as before on a branch that requires none
+      ---
+      duration_ms: 1618.207334
+      type: 'test'
+      ...
+    1..2
+ok 1 - the agreement after the acceptance run of a branch that requires the reference campaigns
+  ---
+  duration_ms: 3557.547375
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3694.069625

@@ -1,0 +1,65 @@
+TAP version 13
+# Subtest: the agreement after the acceptance run of a branch that requires the reference campaigns
+    # Subtest: l'accord du propriétaire et celui de l'arbitrage sont refusés quand une campagne exigée manque, échoue ou date d'une autre révision
+    ok 1 - l'accord du propriétaire et celui de l'arbitrage sont refusés quand une campagne exigée manque, échoue ou date d'une autre révision
+      ---
+      duration_ms: 3733.033542
+      type: 'test'
+      ...
+    # Subtest: refuses the owner's agreement on a branch that changes the executor through a file whose name git quotes, without its campaigns
+    ok 2 - refuses the owner's agreement on a branch that changes the executor through a file whose name git quotes, without its campaigns
+      ---
+      duration_ms: 719.629208
+      type: 'test'
+      ...
+    # Subtest: refuses the arbitration's agreement when the arbitration rewinds the branch to a revision no campaign was played at
+    ok 3 - refuses the arbitration's agreement when the arbitration rewinds the branch to a revision no campaign was played at
+      ---
+      duration_ms: 676.844833
+      type: 'test'
+      ...
+    # Subtest: records the agreement when both campaigns are green at the head, and as before on a branch that requires none
+    ok 4 - records the agreement when both campaigns are green at the head, and as before on a branch that requires none
+      ---
+      duration_ms: 1605.51925
+      type: 'test'
+      ...
+    # Subtest: keeps requiring the campaigns once a session moves main to the head of the branch
+    ok 5 - keeps requiring the campaigns once a session moves main to the head of the branch
+      ---
+      duration_ms: 1654.645708
+      type: 'test'
+      ...
+    # Subtest: refuses the arbitration's agreement whose output claims a campaign green at the head
+    ok 6 - refuses the arbitration's agreement whose output claims a campaign green at the head
+      ---
+      duration_ms: 612.086917
+      type: 'test'
+      ...
+    # Subtest: counts only a control of the campaign, not another event of the acceptance run that names it
+    ok 7 - counts only a control of the campaign, not another event of the acceptance run that names it
+      ---
+      duration_ms: 0.178875
+      type: 'test'
+      ...
+    # Subtest: takes back out a campaign line the acceptance session or the arbitration writes to the journal, and refuses the agreement
+    ok 8 - takes back out a campaign line the acceptance session or the arbitration writes to the journal, and refuses the agreement
+      ---
+      duration_ms: 1102.468208
+      type: 'test'
+      ...
+    1..8
+ok 1 - the agreement after the acceptance run of a branch that requires the reference campaigns
+  ---
+  duration_ms: 10105.284
+  type: 'suite'
+  ...
+1..1
+# tests 8
+# suites 1
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10244.966333

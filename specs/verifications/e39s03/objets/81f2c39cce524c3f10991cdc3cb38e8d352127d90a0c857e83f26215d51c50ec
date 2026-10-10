@@ -1,0 +1,22 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "fermes": [
+   "A1-1",
+   "A1-2",
+   "B1-1"
+  ],
+  "resume": "I replayed the three bypasses that reopened the story on f44f3875. None of them gets through any more.\n\nA1-1 and A1-2: `fichiersChanges` now reads `git diff --name-only -z` and splits on NUL. A branch that changes `src/adapters/execution/exécuteur.js`, `src/domain/gates/g\"2.ts` or `src/adapters/sandbox/a<TAB>b.ts` therefore plays both campaigns at the head. The owner's agreement without them is refused, naming the npm campaign, and the story stays at `recette`. Two tests hold this: the new test in recette-campagnes.test.ts and the new test in accord-campagnes.test.ts. Putting back the old read (no `-z`, split on `\\n`) makes both fail.\n\nB1-1: `arbitrer` now stops when `avant` is no longer an ancestor of HEAD (`estAncetre`), so an arbitration that rewinds the branch gets no agreement. The new arbitration test holds this: disabling the check makes it fail on that assertion.\n\nThe surviving mutants at git.ts:79 replace the `stdio` option. That only changes how stdin and stderr are handled, while stdout stays piped, so they are equivalent. The ones at git.ts:38 change the message of the error thrown when `merge-base --is-ancestor` fails, a path no promise covers.\n\nI tried other attacks through the arbitration, and each one is caught:\n- returning to `avant` after a rewind and a new commit is refused by the ancestor check;\n- a merge or a commit beyond the registry is refused by the `avant...HEAD` diff;\n- a file name that differs only in case is refused, because it is not the registry;\n- a mode change is listed by `--name-only` and refused;\n- leaving the index dirty is refused by `arbrePropre`.\n\nAn acceptance session that commits after the campaigns changes the revision, so `campagneEnCause` refuses the agreement. The campaign command can only be overridden by tests (`ctx.campagne`).\n\nScenarios 1 to 3 are held by the code and by the tests of the two files: 12 of 12 pass at the head. The tree is restored."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "fermes": [
+   "A1-1",
+   "A1-2",
+   "B1-1"
+  ],
+  "resume": "Replayed at f44f3875. A1-1 and A1-2 are closed: `fichiersChanges` now reads `git diff --name-only -z` and splits on NUL, so `src/adapters/execution/exécuteur.js`, `src/domain/gates/g\"2.ts` and `src/adapters/sandbox/a<TAB>b.ts` match their path. Both campaigns are played at the head, and the owner's agreement is refused without them, naming the npm campaign. Reverting to `--name-only` without `-z` with a split on `\\n` makes both new tests fail (recette-campagnes and accord-campagnes). B1-1 is closed: `arbitrer` now refuses with `estAncetre(ctx.root, avant)` an arbitration that moves HEAD off `avant`. A reset to HEAD~1, an amend, or a new commit on top of an ancestor leaves `avant` out of HEAD's history and stops the step. When `avant` stays an ancestor, the three-dot diff `avant...HEAD` compares the tree of `avant` with HEAD, so any change outside the registry is refused, even inside a merge. Neutralising that line fails the test « refuses the arbitration's agreement when the arbitration rewinds the branch… ». The surviving mutants hold no promise: git.ts:79 changes only the `stdio` of `execFileSync`, which reads the same stdout. git.ts:38 is only the message of the error raised when `git merge-base --is-ancestor` fails, a path no test runs and no promise covers. All three scenarios hold: campaigns played at the head and recorded with their revision, none on a branch outside the executed paths, agreement refused naming the campaign at fault. No bypass found against the Security section by the inputs the branch exposes. Tests run: test/cycle/recette-campagnes.test.ts and test/cycle/accord-campagnes.test.ts, 12/12 green. Tree restored, nothing committed."
+ }
+]

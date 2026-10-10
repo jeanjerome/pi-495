@@ -1,0 +1,56 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Les campagnes sont jouées par l'outil quand la branche touche ce que 495 exécute",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 611,
+    "constat": "exigeLesCampagnes reads the branch's files with `git diff --name-only <base>...HEAD`, and git's default rename detection lists only the destination of a moved file. A branch that moves a file out of `src/adapters/execution/` and edits it therefore changes a file under an executed path without requiring the campaigns. Probed with a throwaway test that was not committed: `src/adapters/execution/runner.js` was on main, and the branch moved it to `src/adapters/autre/runner.js` with one line changed. `git diff --name-status` showed `R096 src/adapters/execution/runner.js → src/adapters/autre/runner.js`. The tool played no campaign (lancements `[]`), and both campaigns would have been FAIL. `accepter(ctx, \"vu\")` recorded the agreement and prochainPas() returned `versement`. The same hole breaks scenario 3: the agreement goes through without the two green campaigns."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Les campagnes sont jouées par l'outil quand la branche touche ce que 495 exécute",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 620,
+    "constat": "No test tells a campaign played in a detached tree at the head's sha from one played in the working tree: dropping the `tete` argument leaves every test green. Both record the head's revision, and on a clean tree the mutant is equivalent. It differs only if uncommitted changes are present when the acceptance run is prepared.",
+    "mutation": "Removed the `tete` argument of `controle(ctx, \"recette\", controleDeCampagne(...), tete)`, so the campaign runs through `executer` in ctx.root instead of `executerA` at the sha: recette-campagnes, accord-campagnes and main.test stayed at 0 failures."
+   }
+  ],
+  "fermes": [
+   "B1-2",
+   "A2-1",
+   "A2-2",
+   "B2-1",
+   "B2-2"
+  ],
+  "resume": "Two kinds of entries are under `fermes`, for different reasons. I replayed B1-2: a session that appends a campaign line to the journal while it runs. The test \\\"takes back out a campaign line…\\\" exercises that exact path and passes at d46f4bcc: the line is removed, the step blocks and `accepter` refuses with \\\"campagne npm est FAIL\\\". A2-1 and B2-2 (a detached process that writes after the check) and A2-2 and B2-1 (`core.fsmonitor` run by the tool's own `git status`) are not fixed. The diff touches no file under `cycle/src`, so they would still work exactly as before. They are closed because the guarantee no longer covers them. The story's Sécurité section now leaves out a session that forges the journal or the git configuration behind the tool's back. That follows the owner's arbitration recorded as the precision of 2026-10-10 in D-89 and as BUG-2026-10-10T230000. Both are on main (9a2ec194), not on this branch. The reviewer prompt says not to raise such a path. The story's promises hold with tests that a mutation breaks, with one gap: A1-1 is a blocker introduced by the branch. Requiring the campaigns relies on `git diff --name-only`, which reports a renamed file only under its new path. Moving and editing a file out of `src/adapters/execution/` (R096) played no campaign, and the agreement was recorded with versement next. Each of these mutants made the tests fail: removing `jouerCampagnes`; neutralising `exigeLesCampagnes` in `accepter` or in `jouerCampagnes`; `accepter` at the head instead of `avant` in the arbitration; the recorded base replaced by `base(ctx)`; the revision check, the verdict check and the genre filter in `campagneEnCause`; and exit 0 on a refused `accepte`. Only dropping the sha of the campaign survived (A1-2, an equivalent mutant on a clean tree). Network: a campaign is `reseau: allowed`, like before; nothing else is opened. The throwaway test was removed and the tree is unchanged."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "specs/stories/e39/e39s03-l-accord-exige-les-campagnes-de-reference.md",
+    "ligne": 40,
+    "constat": "The narrowed security section, which leaves out a session forging the journal or the git configuration, cites a precision of `D-89` dated 2026-10-10. That precision is not in the repository: `specs/adr/D-89-…md` holds no such text, and nothing under `specs/` or `cycle/` records it. The journal shows the change to `relecteur.md` and to the story's security section committed by hand between two launches, not by a session. So it does read as the owner's decision, but it is not written where a product decision belongs."
+   }
+  ],
+  "fermes": [
+   "B1-2",
+   "A2-1",
+   "A2-2",
+   "B2-1",
+   "B2-2"
+  ],
+  "resume": "The branch keeps all three promises, and a test holds each. Mutations run against test/cycle/accord-campagnes.test.ts and recette-campagnes.test.ts, each line put back afterwards. The tests fail when the revision, verdict or missing-campaign check in campagneEnCause is removed, when the genre filter is dropped, when an executed path is removed from CHEMINS_EXECUTES, or when the campaign network is set to denied. They also fail when the guard in accepter is removed, when the call to jouerCampagnes is dropped, when campaigns are forced on every branch (this breaks the documentation branch, so « comme avant » is held), when the recorded base is replaced by base(ctx), when the head is checked instead of `code`, or when the arbitration records acceptee without going through accepter. One mutant survives: dropping the sha in jouerCampagnes, which switches executerA to executer. Right after the arbitration's checks the head equals `tete` and the tree is clean, so the two are equivalent there and this is not a finding.\n\nSecurity, attacked through the output of the sessions:\n- The arbitration's output keeps only decision, note, ecart and raisons. A test holds that an extra `controle campagne-npm PASS` field in it is refused.\n- The acceptance session's `campagnes` lands in the `preparee` event, never as a `controle` event, and nothing in cycle/src reads it as evidence.\n- An acceptance session that commits an executor change after the campaigns is refused: the head moved, or the branch now requires campaigns that never ran. The new tests hold both cases.\n- I found no path through the tool's commands, its inputs or a session's structured output that gets an agreement without both campaigns green at the head. The campaign's network stays « allowed », as before.\n\nReplays:\n- B1-2 (the session writes the journal while it runs) no longer passes. The line is taken back out, the step blocks and accepter refuses. The test « takes back out a campaign line… » holds this, and it is green at the head.\n- A2-1 and B2-2 (a detached process writing after the checks) and A2-2 and B2-1 (`core.fsmonitor` in `.git/config`) still work mechanically, because cycle/src has not changed since a864f5b3. The security section at the head, and the reviewer prompt, now place exactly these paths outside the guarantee: a session forging the journal or the git configuration, or a detached process writing after the checks. So they are listed as closed by that narrowing, not by a fix. The narrowing was committed by hand outside any session, but D-89 does not record it (B1-1)."
+ }
+]

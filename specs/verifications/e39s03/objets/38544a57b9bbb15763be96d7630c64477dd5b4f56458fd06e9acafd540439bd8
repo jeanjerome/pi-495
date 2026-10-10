@@ -1,0 +1,62 @@
+TAP version 13
+# Subtest: the reference campaigns the tool plays before the acceptance session
+    # Subtest: une branche qui touche l'exécuteur fait jouer les deux campagnes à la tête et le journal garde leurs verdicts, une branche de documentation n'en joue aucune
+    not ok 1 - une branche qui touche l'exécuteur fait jouer les deux campagnes à la tête et le journal garde leurs verdicts, une branche de documentation n'en joue aucune
+      ---
+      duration_ms: 411.2645
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-RrH4cc/test/cycle/recette-campagnes.test.ts:7:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the tool plays both campaigns at the head of the branch
+        + actual - expected
+        
+        + []
+        - [
+        -   {
+        -     technologie: 'npm',
+        -     tete: '9193c22a1b21adc599210e57f69fa0f89db63055'
+        -   },
+        -   {
+        -     technologie: 'maven',
+        -     tete: '9193c22a1b21adc599210e57f69fa0f89db63055'
+        -   }
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          technologie: 'npm'
+          tete: '9193c22a1b21adc599210e57f69fa0f89db63055'
+        1:
+          technologie: 'maven'
+          tete: '9193c22a1b21adc599210e57f69fa0f89db63055'
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-RrH4cc/test/cycle/recette-campagnes.test.ts:15:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the reference campaigns the tool plays before the acceptance session
+  ---
+  duration_ms: 411.936875
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-RrH4cc/test/cycle/recette-campagnes.test.ts:6:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 544.296083

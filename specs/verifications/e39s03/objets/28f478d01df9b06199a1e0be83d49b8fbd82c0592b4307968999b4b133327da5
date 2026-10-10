@@ -1,0 +1,56 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Les campagnes sont jouées par l'outil quand la branche touche ce que 495 exécute",
+    "categorie": "bloquant",
+    "placement": "rendu_atteignable",
+    "fichier": "cycle/src/git.ts",
+    "ligne": 66,
+    "constat": "`fichiersChanges` lit `git diff --name-only` sans `-z` ni `core.quotePath=false`, si bien que git met entre guillemets le nom d'un fichier qui porte un caractère non ASCII, un guillemet ou une tabulation (`\"src/adapters/execution/ex\\303\\251cuteur.js\"`). `campagnesExigees` compare ensuite par `startsWith(\"src/adapters/execution/\")`, et ce nom ne passe pas. Une branche qui change `src/adapters/execution/exécuteur.js`, `src/domain/gates/g\"2.ts` ou `src/adapters/sandbox/a<TAB>b.ts` ne joue donc aucune campagne, et `accepter` inscrit l'accord sans les demander. Sondé par un test jetable avec `recetteSur` : 0 campagne lancée et accord inscrit, dans les trois cas.",
+    "contournement": "L'accord, qu'il vienne du propriétaire ou de l'arbitrage, ne s'inscrit pas sans les preuves que la story exige. Chemin : une branche de documentation dont la session de recette commite `src/adapters/execution/exécuteur.js`, puis l'arbitrage décide d'accepter. Résultat sondé : `apresIssue` → `{continuer:true}`, l'accord est inscrit et aucune campagne n'est jouée. Avec `runner.js` à la place, l'outil refuse cet accord (test « the acceptance session of a documentation branch committed a change of the executor »)."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "L'accord est refusé sans les deux campagnes vertes à la tête",
+    "categorie": "bloquant",
+    "placement": "rendu_atteignable",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 714,
+    "constat": "L'accord passe par `exigeLesCampagnes`, qui s'appuie sur la même liste de fichiers mis entre guillemets (A1-1). Sur une branche qui touche l'exécuteur par un fichier au nom non ASCII, sans campagne jouée, l'accord du propriétaire n'est donc pas refusé et la story passe au versement. Sondé : `accepter(ctx, \"vu\")` ne lève rien, et `prochainPas()` donne `versement`.",
+    "contournement": "L'accord, qu'il vienne du propriétaire ou de l'arbitrage, ne s'inscrit pas sans les preuves que la story exige : même chemin que A1-1, côté accord du propriétaire."
+   }
+  ],
+  "resume": "Verdict « fail » : il y a un contournement (A1-1), et il touche aussi l'accord du propriétaire (A1-2). `fichiersChanges` lit `git diff --name-only` sans `-z` ni `core.quotePath=false`. Git met donc entre guillemets le nom d'un fichier qui porte un caractère non ASCII, un guillemet ou une tabulation, et le `startsWith` de `campagnesExigees` ne reconnaît plus le chemin exécuté. Trois tests jetables (`src/adapters/execution/exécuteur.js`, `src/domain/gates/g\"2.ts`, `src/adapters/sandbox/a<TAB>b.ts`) donnent tous zéro campagne jouée et un accord du propriétaire inscrit. Une session de recette qui commite un tel fichier sur une branche de documentation obtient aussi l'accord de l'arbitrage. Le constat est rendu atteignable : la ligne fautive vient de main, mais la story s'en sert pour décider des campagnes. Hors de ce cas, les trois promesses sont tenues par le code et par les tests. Cinq mutations ont toutes été tuées par `recette-campagnes.test.ts` et `accord-campagnes.test.ts` : retrait du test d'exigence dans `jouerCampagnes`, contrôle du verdict neutralisé, contrôle de la révision neutralisé, réseau passé à `denied`, retrait de `--no-renames`. La garantie sur le réseau reste tenue : `controleDeCampagne` n'ouvre le réseau qu'au contrôle de campagne. Les tests jetables ont été supprimés et l'arbre est propre."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "L'accord est refusé sans les deux campagnes vertes à la tête",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/automate.ts",
+    "ligne": 102,
+    "constat": "The tool takes the agreement from the arbitration at `avant`, the head before the arbitration session ran. It trusts that the session only committed the registry since then, and checks this with `fichiersChanges(ctx.root, avant)` (line 95), which uses a three-dot diff `avant...HEAD`. An arbitration that rewinds the branch to an ancestor (`git reset --hard HEAD~1`) leaves that diff empty and the tree clean. The agreement is then recorded with `tete` at the rewound commit, where no campaign was played, and the story moves on to the landing, which squashes that commit. Throwaway probe: a branch with two commits on `src/adapters/execution/runner.js`, both campaigns green at h2, and an arbitration that resets to h1 and answers `accepte`. Result: `apresIssue` gives `{continuer:true}`, the `acceptee` event carries `tete=h1`, `prochainPas()` is `versement`, and the fake campaign log shows plays at h2 only.",
+    "contournement": "Security: the agreement, whether it comes from the owner or from the arbitration, is not recorded without the evidence the story requires; what the arbitration declares never stands in for a campaign the tool did not play itself at the head. Here the arbitration's structured `accepte` output is enough to land a head where neither campaign ran, through the `accepter(ctx, …, avant)` entry the branch exposes.",
+    "mutation": "Probe test test/cycle/zz-sonde-b1.test.ts (removed): arbitration `git(cwd, [\"reset\",\"-q\",\"--hard\",\"HEAD~1\"])` then `{decision:\"accepte\"}`; the agreement is recorded at h1 even though the campaigns ran only at h2."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "L'accord est refusé sans les deux campagnes vertes à la tête",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/campagnes-exigees.ts",
+    "ligne": 48,
+    "constat": "When the tool records a campaign twice at the same head, `campagneEnCause` reads the last record (`findLast`). No test tells it apart from reading the first record: the `findLast` → `find` mutant leaves both test files green. The code holds the promise, but nothing pins the choice of the latest verdict.",
+    "mutation": "findLast → find: test/cycle/recette-campagnes.test.ts and test/cycle/accord-campagnes.test.ts stay green (0 failures)."
+   }
+  ],
+  "fermes": [],
+  "resume": "The first scenario (campaigns played at the head, verdict and revision kept in the journal, including a file moved out of an executed path thanks to `--no-renames`) and the second (no campaign, agreement as before on a documentation or cycle branch) are held by the code and by tests. Mutating the path list, the call to `jouerCampagnes`, the `exigeLesCampagnes` guard and the base recorded in the journal each makes a test fail. The third scenario is held for the owner, and for an acceptance session that commits after the campaigns. Mutating the revision check, the verdict check, the missing-campaign check, the refusal itself and the `avant` revision each makes a test fail. The only surviving mutant on a promise is `findLast` → `find` (to be weighed). The `executerA` → `executer` mutant also survives, but it is already in the registry (BUG-2026-10-10T233000). One bypass remains: an arbitration session that rewinds the branch to an ancestor passes the \"registry only\" check (`avant...HEAD` diff is empty). The agreement is then recorded, and the story goes to the landing, at a head where neither campaign ran. Blocking, so the verdict is fail."
+ }
+]

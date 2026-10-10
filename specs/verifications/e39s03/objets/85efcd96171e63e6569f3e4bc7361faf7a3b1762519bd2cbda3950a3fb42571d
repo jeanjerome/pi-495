@@ -1,0 +1,85 @@
+TAP version 13
+# Subtest: the agreement after the acceptance run of a branch that requires the reference campaigns
+    # Subtest: l'accord du propriétaire et celui de l'arbitrage sont refusés quand une campagne exigée manque, échoue ou date d'une autre révision
+    ok 1 - l'accord du propriétaire et celui de l'arbitrage sont refusés quand une campagne exigée manque, échoue ou date d'une autre révision
+      ---
+      duration_ms: 3554.152166
+      type: 'test'
+      ...
+    # Subtest: refuses the owner's agreement on a branch that changes the executor through a file whose name git quotes, without its campaigns
+    ok 2 - refuses the owner's agreement on a branch that changes the executor through a file whose name git quotes, without its campaigns
+      ---
+      duration_ms: 652.333291
+      type: 'test'
+      ...
+    # Subtest: refuses the arbitration's agreement when the arbitration rewinds the branch to a revision no campaign was played at
+    not ok 3 - refuses the arbitration's agreement when the arbitration rewinds the branch to a revision no campaign was played at
+      ---
+      duration_ms: 627.14425
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ODLSgL/test/cycle/accord-campagnes.test.ts:134:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the arbitration's agreement is refused
+        
+        true !== false
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: false
+      actual: true
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ODLSgL/test/cycle/accord-campagnes.test.ts:152:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: records the agreement when both campaigns are green at the head, and as before on a branch that requires none
+    ok 4 - records the agreement when both campaigns are green at the head, and as before on a branch that requires none
+      ---
+      duration_ms: 1556.40425
+      type: 'test'
+      ...
+    # Subtest: keeps requiring the campaigns once a session moves main to the head of the branch
+    ok 5 - keeps requiring the campaigns once a session moves main to the head of the branch
+      ---
+      duration_ms: 1621.87025
+      type: 'test'
+      ...
+    # Subtest: refuses the arbitration's agreement whose output claims a campaign green at the head
+    ok 6 - refuses the arbitration's agreement whose output claims a campaign green at the head
+      ---
+      duration_ms: 631.004
+      type: 'test'
+      ...
+    # Subtest: counts only a control of the campaign, not another event of the acceptance run that names it
+    ok 7 - counts only a control of the campaign, not another event of the acceptance run that names it
+      ---
+      duration_ms: 0.191042
+      type: 'test'
+      ...
+    # Subtest: takes back out a campaign line the acceptance session or the arbitration writes to the journal, and refuses the agreement
+    ok 8 - takes back out a campaign line the acceptance session or the arbitration writes to the journal, and refuses the agreement
+      ---
+      duration_ms: 1142.09
+      type: 'test'
+      ...
+    1..8
+not ok 1 - the agreement after the acceptance run of a branch that requires the reference campaigns
+  ---
+  duration_ms: 9786.108208
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-ODLSgL/test/cycle/accord-campagnes.test.ts:34:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 8
+# suites 1
+# pass 7
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9918.825042
