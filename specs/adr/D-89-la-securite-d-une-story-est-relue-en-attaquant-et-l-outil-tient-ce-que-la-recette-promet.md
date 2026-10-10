@@ -76,3 +76,12 @@ vérifications. Une telle falsification n'est pas un contournement que la branch
 relève pas. Sur `e39s01` puis `e39s03`, les relecteurs l'ont relevée à chaque tour, et chaque correction en a fait
 trouver une autre. Elle se ferme quand le travailleur confiné de 495 remplace les sessions du cycle ; d'ici là,
 elle est inscrite au registre. Arbitrage du propriétaire, 2026-10-10.
+
+## Précision du 2026-10-10 : le registre se lit avec un lecteur YAML
+
+Pour fixer la gravité d'un défaut qu'une branche introduit, l'outil doit voir chaque entrée qu'elle ajoute au
+registre. Un découpage du fichier en lignes ne voit que la forme qu'il attend : sur `e39s04`, les relecteurs ont
+inscrit un défaut entre guillemets, en style compact, puis dans un registre réindenté, et chaque garde par expression
+régulière en a appelé une autre. Le cycle lit donc le registre avec le lecteur YAML que Pi installe déjà (`yaml`),
+déclaré en dépendance de développement à la version que Pi utilise. C'est sa deuxième dépendance après Stryker ; il
+n'en ajoute pas d'autre pour lire ses propres fichiers. Arbitrage du propriétaire, 2026-10-10.
