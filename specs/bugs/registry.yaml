@@ -2870,3 +2870,32 @@ bugs:
       In `relecture-mutation.test.ts`, assert after the round that `git worktree list` names only the branch's tree and
       that the detached tree's path no longer exists; the mutation removing `retirerArbre` must make it fail.
     status: open
+  - bug_id: BUG-2026-10-10T230000
+    date: "2026-10-10"
+    title: "An unconfined cycle session can forge what the cycle tool reads back, its journal or the repository's git configuration, so no check of the tool holds against a session that cheats"
+    severity: medium
+    priority: p2
+    scope: cycle
+    what_happened: >
+      The cycle runs its sessions as Claude Code sessions with the whole repository and the user's home in reach. The
+      reviewers of e39s03 showed an acceptance session that leaves a detached process behind to append a forged
+      `controle campagne-maven PASS` line to `~/.495/cycle/<story>/journal.jsonl` after the session's own exit is
+      checked, and one that sets `git config core.fsmonitor` to a script the tool then runs through `git status`.
+      Each fix to such a path made the next round find another.
+    what_expected: >
+      A cycle session cannot write the story's record nor the repository's git configuration, so what the tool reads
+      back is what it wrote or observed.
+    steps_to_reproduce:
+      - "Give the acceptance session of a story a fake claude that spawns a detached `sh -c 'sleep 1; printf <line> >> <journal>'` and exits."
+      - "Accept the story: the forged line is read as a campaign the tool played."
+    root_cause: >
+      The cycle's sessions run unconfined by design until 495's confined worker replaces them (`cycle/README.md`); the
+      tool's checks read files a session can write.
+    evidence: >
+      Found by the reviewers of e39s03 in attack mode on 2026-10-10. The owner bounded the attack to what a branch
+      exposes (`D-89`, précision du 2026-10-10) and left this to confining the sessions.
+    risk_level: medium
+    follow_ups: >
+      Confine the cycle's sessions so that they cannot write `~/.495/cycle/` nor `.git/config`, or replace them by 495's
+      confined Pi worker.
+    status: open

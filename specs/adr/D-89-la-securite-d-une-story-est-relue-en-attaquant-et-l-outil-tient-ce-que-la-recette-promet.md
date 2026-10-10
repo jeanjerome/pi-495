@@ -65,3 +65,14 @@ contrôles en paie deux de plus à chaque recette.
 
 Une gravité fixée par l'arbitrage peut faire passer un défaut de « faible » à « moyen » : il est alors corrigé à la
 fin de l'epic, avant la suivante, au lieu d'attendre la fin de la suite.
+
+## Précision du 2026-10-10
+
+La recherche de contournement de la règle 1 porte sur ce que la branche expose : une commande de l'outil, une
+entrée qu'il lit, la sortie structurée d'une session qu'il croit sans la vérifier. Les sessions du cycle tournent
+sans confinement (`cycle/README.md`, différence provisoire « where the agent runs ») et peuvent réécrire tout ce
+que l'outil relit : son journal, la configuration git du dépôt, par un processus détaché qui écrit après ses
+vérifications. Une telle falsification n'est pas un contournement que la branche expose, et la relecture ne la
+relève pas. Sur `e39s01` puis `e39s03`, les relecteurs l'ont relevée à chaque tour, et chaque correction en a fait
+trouver une autre. Elle se ferme quand le travailleur confiné de 495 remplace les sessions du cycle ; d'ici là,
+elle est inscrite au registre. Arbitrage du propriétaire, 2026-10-10.
