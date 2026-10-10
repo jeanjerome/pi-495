@@ -498,7 +498,7 @@ epics:
     stories:
       - { id: e39s01, status: "versée", title: "Un contournement de la section Sécurité retient la porte de la relecture" }
       - { id: e39s02, status: "versée", title: "Les relecteurs reçoivent les mutants qui survivent sur les lignes que la branche introduit" }
-      - { id: e39s03, status: "à faire", title: "L'accord exige les deux campagnes de référence vertes à la tête quand la branche touche une technologie, un contrôle ou l'exécuteur" }
+      - { id: e39s03, status: "versée", title: "L'accord exige les deux campagnes de référence vertes à la tête quand la branche touche une technologie, un contrôle ou l'exécuteur" }
       - { id: e39s04, status: "à faire", title: "La gravité d'un défaut qu'une branche introduit est fixée hors de la branche, et les défauts moyens se corrigent à la fin d'une epic conduite story par story" }
 
   - id: e38
