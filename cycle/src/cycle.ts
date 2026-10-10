@@ -515,6 +515,9 @@ export function rouvrir(ctx: Contexte, motif: string, origine: "recette" | "rele
 }
 
 export function accepter(ctx: Contexte, note: string): void {
+	// The owner who lands a story whose review handed them an unkept promise closes that review too.
+	const attente = ctx.journal.lire().at(-1);
+	if (attente?.pas === "relecture" && attente.genre === "proprietaire") ctx.journal.inscrire("relecture", "fini");
 	ctx.journal.inscrire("recette", "acceptee", { note, tete: revision(ctx.root) });
 	ctx.journal.inscrire("recette", "fini");
 }

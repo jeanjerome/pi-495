@@ -480,6 +480,18 @@ export default async (invite, cwd) => {
 		assert.equal(ctx.journal.prochainPas(), "rouge-vert");
 	});
 
+	it("lands, on the owner's acceptance, a story whose review handed them a promise the code does not keep", async () => {
+		const root = depot();
+		const ctx = contexte(root, fauxClaude("export default () => ({})"));
+		await conduirePas(ctx, "story");
+		for (const pas of ["rouge-vert", "autocontrole"] as const) ctx.journal.inscrire(pas, "fini");
+		ctx.journal.inscrire("relecture", "debute", { revision: revision(root) });
+		ctx.journal.inscrire("relecture", "proprietaire", { detail: "Après 2 tours, le code ne tient pas 1 promesse(s)" });
+		assert.equal(ctx.journal.prochainPas(), "relecture");
+		accepter(ctx, "versée telle quelle");
+		assert.equal(ctx.journal.prochainPas(), "versement");
+	});
+
 	it("blocks, with the account of the acceptance session, when that session cannot run the acceptance", async () => {
 		const root = depot();
 		const claude = fauxClaude(
