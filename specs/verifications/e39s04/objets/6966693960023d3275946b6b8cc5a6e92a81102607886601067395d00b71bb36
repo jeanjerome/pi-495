@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the end of an epic driven story by story
+    # Subtest: verser en auto la dernière story d'une epic lance la correction des défauts moyens, verser une autre story ne la lance pas
+    ok 1 - verser en auto la dernière story d'une epic lance la correction des défauts moyens, verser une autre story ne la lance pas
+      ---
+      duration_ms: 554.104292
+      type: 'test'
+      ...
+    1..1
+ok 1 - the end of an epic driven story by story
+  ---
+  duration_ms: 554.500958
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 682.026625

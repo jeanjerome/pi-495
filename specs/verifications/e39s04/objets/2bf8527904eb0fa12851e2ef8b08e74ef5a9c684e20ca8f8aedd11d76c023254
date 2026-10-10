@@ -1,0 +1,61 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité — La session qui introduit un défaut ne fixe plus seule ce qu'il pèse",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 25,
+    "constat": "Une session peut encore inscrire son défaut sous une forme YAML valide que l'outil ne lit pas : c'est la même classe que A2-1. La garde `LISIBLE` accepte une ligne ` {5,}\\S.*` à n'importe quel endroit du registre, même hors de toute entrée. La session peut donc réindenter tout le registre de 3 espaces de plus et y ajouter son entrée au même niveau : `     - bug_id: BUG-2026-10-10T120000` / `       severity: low`. Le YAML reste valide : `yaml.parse` lit deux entrées, dont la nouvelle en `low`. Mais aucune ligne `  - bug_id:` ne reste, donc `defautsInscrits` ne rend rien et ne lève pas d'erreur. Sondé par un test jetable sur la tête avec `enRecette` et `arbitreLecteur({})`. L'invite reçoit « (aucun) », l'arbitrage rend `gravites: []` et `apresIssue` rend `{continuer:true}`. L'accord s'inscrit et `prochainPas` vaut `versement`. `defautsOuverts` ne voit plus aucun défaut, et le registre garde la gravité `low` que la session a choisie. Sur le vrai registre (3075 lignes), le diff que l'arbitrage reçoit est coupé à 30 000 caractères, avant la nouvelle entrée.",
+    "mutation": "Mutant listé ` {5,}\\S.*` → ` \\S.*` / ` {5,}\\s.*` : il survit. Aucun test n'essaie une ligne profonde placée hors d'une entrée.",
+    "contournement": "La session qui introduit un défaut ne fixe plus seule ce qu'il pèse."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Sécurité — La session qui introduit un défaut ne fixe plus seule ce qu'il pèse",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 23,
+    "constat": "Aucun test ne tient la vérification de la première ligne du registre. Les mutants `EN_TETE` sans `^`, `EN_TETE` sans `$` et `illisible > 0` (ligne 95) survivent tous. Avec l'un d'eux, un registre écrit sur une seule ligne en style flux passe la garde sans qu'aucune entrée soit lue : `bugs: [{bug_id: …, severity: low, …}]`. Le mutant `illisible - 1` (ligne 97) survit lui aussi : aucun test ne vérifie le numéro de ligne que le motif nomme.",
+    "mutation": "`/^bugs:( \\[\\])?/`, `/bugs:( \\[\\])?$/`, `illisible > 0`, `illisible - 1` : survivants listés par l'outil."
+   }
+  ],
+  "fermes": [
+   "A2-1"
+  ],
+  "resume": "Les quatre promesses sont tenues par le code et par un test, et A2-1 est fermé, mais un contournement reste ouvert sur la même garantie, donc le verdict est fail. Mutations faites à la main, l'arbre étant remis en l'état ensuite. Scénario 1 : retirer `fixerGravite`, falsifier la gravité inscrite ou la raison dans le journal fait échouer `arbitrage-gravite`. Scénario 2 : neutraliser le contrôle `sansGravite` fait échouer ce même test. Scénario 3 : retirer la liste des défauts de la question, ou leur gravité, fait échouer `recette-gravite`. Scénario 4 : `main.ts:240` forcé à vrai ou à faux fait échouer `auto-fin-d-epic`. Les mutants de cette ligne étaient dits sans test parce que le test lance un sous-processus. Le seul survivant retire `!auto`, qu'aucune promesse ne couvre. A2-1 rejoué sur la tête : ses trois formes (identifiant entre guillemets, entrée en style flux, commentaire sur la ligne d'ouverture) arrêtent la story en nommant la ligne, et l'accord ne s'inscrit pas. Il reste un contournement de la même classe (A1-1). La garde accepte une ligne indentée de 5 espaces ou plus hors de toute entrée. Une session qui réindente tout le registre y glisse une entrée YAML valide que l'outil ne lit pas, et l'accord s'inscrit avec la gravité qu'elle a choisie. Je n'ai trouvé aucun chemin contre la seconde garantie (l'arbitrage ne modifie que le registre), sur laquelle le diff relu ne change rien."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — La session qui introduit un défaut ne fixe plus seule ce qu'il pèse",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 25,
+    "constat": "`LISIBLE` laisse passer une ligne de statut que `CHAMP` lit mal. C'est le cas de `    status: \"open\"`, et aussi de `    status:` suivi de `      open` sur la ligne d'en dessous. Pour un lecteur YAML, le défaut est ouvert. Pour `defautsOuverts`, que la phase de correction lit (suite.ts:259), il ne l'est pas. Sondé par un test jetable sur la tête. La branche inscrit le défaut à `low` sous l'une de ces deux formes, et l'arbitrage retient `high`. Résultat : apresIssue rend `{continuer:true}`, prochainPas vaut versement, et le journal et le registre portent `high`. Le YAML lu par `yaml` dit `status: open, severity: high`, mais `defautsOuverts(root, \"low\")` ne liste pas le défaut. La session décide donc seule qu'aucune phase de correction ne le reprendra, quelle que soit la gravité retenue.",
+    "contournement": "La session qui introduit un défaut ne fixe plus seule ce qu'il pèse : un statut écrit sous une forme que la lecture ligne à ligne ne lit pas, mais que le contrôle de forme accepte, sort le défaut de la phase de correction. La gravité retenue par l'arbitrage reste alors sans effet."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 95,
+    "constat": "Aucun test ne tient le refus d'une première ligne du registre autre que `bugs:`. Avec le mutant `illisible > 0`, il suffit de réécrire la ligne 1 du registre pour désactiver tout le contrôle de forme, ce qui rouvre le chemin A2-1. Sondé avec `# registre` en ligne 1 et une entrée dont l'identifiant est entre guillemets. Sur la tête, la story s'arrête sur « line 1 is not in the form the cycle reads ». Sous le mutant, l'accord est inscrit (`{continuer:true}`, versement), et les tests nommés restent verts.",
+    "mutation": "cycle/src/registre.ts:95 `if (illisible >= 0)` → `if (illisible > 0)` : arbitrage-gravite et recette-gravite passent tous (9/9)"
+   }
+  ],
+  "fermes": [
+   "A2-1"
+  ],
+  "resume": "Le code tient les quatre scénarios, et un test tient chacun d'eux. J'ai muté sans qu'aucun survive : retrait de `fixerGravite`, de l'arrêt sur `sansGravite`, des gravités dans l'événement du journal, et de la liste des défauts dans la question au propriétaire. Pour `main.ts:240`, j'ai essayé `true`, `false`, `&&` et `!auto` seul : le test auto-fin-d-epic, qui lance main.ts dans un sous-processus, les tue tous. Seul le retrait de la condition `auto` survit, et aucune promesse ne couvre ce cas : la conduite hors auto n'en fait pas partie. Les mutants de `main.ts:133-134` portent sur `cycle defauts`, qu'aucune promesse ne couvre non plus. Les mutants de regex qui resserrent la forme acceptée n'ouvrent aucun chemin. Le mutant de `registre.ts:78` est tué quand je relance moi-même les deux tests nommés. A2-1 est rejoué sur la tête : les trois formes arrêtent la story, et le test de la ligne 160 le tient, donc il est fermé. Deux constats ressortent pourtant. B1-1 est un contournement de la même famille qu'A2-1 : un statut `\\\"open\\\"` entre guillemets, ou écrit sur la ligne d'en dessous, passe le contrôle de forme. Le défaut est alors pesé et le registre porte la gravité retenue, mais la phase de correction ne le voit jamais. B1-2 : aucun test ne tient le refus d'une première ligne autre que `bugs:`, et le mutant `illisible > 0` rouvre A2-1 sans qu'un test échoue."
+ }
+]

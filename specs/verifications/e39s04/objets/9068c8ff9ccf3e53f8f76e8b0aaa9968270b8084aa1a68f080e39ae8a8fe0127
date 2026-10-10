@@ -1,0 +1,78 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 67,
+    "constat": "`lire` ne prend la liste `bugs` que sur une clé scalaire. Une branche qui ancre la clé (`&k bugs:`) et ajoute à la fin du registre `*k :` suivi de son défaut en `severity: low` passe le contrôle des clés uniques, puisqu'un alias n'est pas un scalaire. Le cycle relit alors la première liste, inchangée, et ne trouve aucun défaut inscrit. Pourtant un lecteur YAML (`parse`) lit `bugs` comme la seule liste cachée. Sondé par un test jetable passant par `apresIssue` : arbitre `gravites: []`, sortie `{continuer:true}`, accord `acceptee` inscrit, `gravites` du journal à `[]`, défaut resté `low`. Pour la même raison, la question au propriétaire (`questionDeRecette`) ne nomme pas ce défaut. C'est la variante par alias de la « seconde clé bugs » que 61aa105d dit refuser.",
+    "contournement": "La session qui introduit un défaut ne fixe plus seule ce qu'il pèse.",
+    "mutation": "Sonde jetable (non commitée) : `enRecette(arbitre([]), r => r.replace(/^bugs:/, \"&k bugs:\") + \"*k :\\n\" + entree(A, \"low\"))` puis `apresIssue(ctx, \"recette\", QUESTION, 0)` → `{continuer:true}` et accord inscrit"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 67,
+    "constat": "Un défaut écrit sous une autre clé racine du registre (`defects:` suivi de `- bug_id: …`, `severity: low`) n'est ni pesé ni refusé. L'arbitrage accepte sans gravité retenue et le registre garde la gravité choisie par la session. Le chemin est rejoué sur la tête : `{continuer:true}`, accord inscrit. La branche l'a elle-même versé au registre (BUG-2026-10-10T163131, commit 608bcac3). Or un contournement retient la porte et ne part pas au registre.",
+    "contournement": "La session qui introduit un défaut ne fixe plus seule ce qu'il pèse.",
+    "mutation": "Sonde jetable (non commitée) : `enRecette(arbitre([]), \"defects:\\n\" + entree(A, \"low\"))` puis `apresIssue` → `{continuer:true}` et accord inscrit"
+   }
+  ],
+  "fermes": [],
+  "resume": "Verdict : fail. Les quatre promesses sont tenues par le code, et des tests les tiennent. Pour chacune, j'ai muté le code : le test nommé échoue. Gravité non écrite, gravité inscrite ou raison absentes du journal (P1) ; arrêt et nom du défaut sans gravité (P2) ; défauts et gravité absents de la question (P3) ; phase lancée hors de la dernière story, jamais lancée, ou à un autre seuil (P4). Pour la Sécurité, les arrêts « arbre modifié » et « autres fichiers » sont tenus par test/cycle/automate.test.ts. Les mutants survivants de registre.ts tombent sur des chemins hors promesses, déjà au registre (163128, 163129, 163130) ou devenus morts avec les clés uniques (lignes 195-196). Mutant `!auto` retiré : il survit, déjà au registre (163920). Deux contournements de la garantie « la session ne fixe plus seule ce qu'un défaut pèse » passent sur la tête 61aa105d, par le registre que lit l'outil. (1) Une seconde liste `bugs` posée sous une clé alias (`&k bugs:` puis `*k :`) échappe au contrôle des clés uniques : le cycle relit la première liste, un lecteur YAML lit la seconde, et l'arbitrage accepte sans peser le défaut. (2) Un défaut sous une autre clé racine passe de même. La branche l'a versé au registre (BUG-2026-10-10T163131) alors qu'un contournement retient la porte. Les sondes et mutations sont jetables ; l'arbre est revenu propre."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 59,
+    "constat": "The refusal of a registry that holds more than one YAML document is not held by any test. If the throw is removed, a defect the branch writes in a second document (`---\\nbugs: [...]`) is read neither by defautsInscrits nor by defautsOuverts. The arbitration then accepts without weighing it: the promise « pour chaque défaut que la branche inscrit, la gravité retenue » breaks and no test fails.",
+    "mutation": "line 59 `if (docs.length > 1) throw …` → `if (false) throw …`: arbitrage-gravite, recette-gravite and registre all stay green (17/17)"
+   },
+   {
+    "id": "B1-2",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 66,
+    "constat": "The refusal of a registry whose root is not a map is not held by any test. If the throw is removed, a registry rewritten by the branch as a top-level list of defects reads as empty. The branch's defects go unweighed, and the acceptance is recorded with no failing test.",
+    "mutation": "line 66 `if (racine !== null && !isMap(racine)) throw …` → `if (false) throw …`: 17/17 green"
+   },
+   {
+    "id": "B1-3",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 154,
+    "constat": "Matching each base item only once is held by no test. Without the splice, an entry the branch adds as an exact copy of a base entry is not weighed, and defautsOuverts then lists that defect twice. Its severity is the one the base already carried, so the session sets no new severity.",
+    "mutation": "line 154 `if (i >= 0) aLaBase.splice(i, 1);` removed: 17/17 green"
+   },
+   {
+    "id": "B1-4",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 191,
+    "constat": "No test holds the refusal of fixerGravite when the branch's entry no longer exists (the arbitration removed it or changed its bug_id in the meantime). With the mutant, the tool writes nothing and the journal still records a retained severity for a defect the registry no longer carries. The other survivors at 194–196 are equivalent, because two severities are now refused at read time, or only move the severity line.",
+    "mutation": "line 191 `if (visees.length === 0)` → `if (false)`: survives (reported by the tool and replayed)"
+   }
+  ],
+  "resume": "The code keeps all four promises. I probed the new YAML reader with merge keys and a `%YAML 1.1` directive, a duplicate `bugs` key (quoted, complex or tagged), aliases, null items, a second document, a list-valued severity, a BOM and a missing severity. Every open defect the branch adds is either counted in defautsInscrits or stops the story, and fixerGravite writes the retained severity in every readable form.\n\nTests hold the main paths:\n- The severity check, the registry write and the journal (recorded vs retained) are held by arbitrage-gravite: removing each check fails tests.\n- The owner's question (recette-gravite) and end-of-epic auto (auto-fin-d-epic) are held.\n- The arbitration's file guard (`autres`, `arbrePropre`) is held by automate.test.ts.\n- Mutants on lines 64 (reader errors), uniqueKeys, 153 (content matching) and 174 (non-defect item) are killed.\n\nTwo refusals that the new reader introduces survive mutation with no failing test. They are the refusals of a multi-document registry (line 59) and of a root that is not a map (line 66). Each would let a defect the branch records go unweighed while the acceptance is recorded, so both are marked à corriger.\n\nLine 69 survives but is equivalent: the story stops on a TypeError caught in arbitrer. Line 73 only matters for an alias item, which still ends without acceptance. Line 197 is already in the registry (BUG-2026-10-10T163128).\n\nSecurity: I found no bypass. The introducing session cannot hide a defect from the arbitration through a YAML form. The arbitration's writes are still limited to the registry, and the tool's own write goes only to the registry path; a symlink would change that, but this behaviour predates the branch and is not usable in practice.",
+  "fermes": []
+ }
+]

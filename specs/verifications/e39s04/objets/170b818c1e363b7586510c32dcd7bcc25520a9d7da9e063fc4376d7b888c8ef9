@@ -1,0 +1,67 @@
+TAP version 13
+# Subtest: the arbitration sets the severity of the defects the branch records
+    # Subtest: la gravité que l'arbitrage retient pour un défaut de la branche est celle du registre et du journal, et un défaut sans gravité retenue arrête la story
+    not ok 1 - la gravité que l'arbitrage retient pour un défaut de la branche est celle du registre et du journal, et un défaut sans gravité retenue arrête la story
+      ---
+      duration_ms: 445.975375
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-b6fjmI/test/cycle/arbitrage-gravite.test.ts:59:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /bug_id: BUG-2026-10-10T100000\n(    .*\n)*?    severity: medium\n/. Input:
+        
+        'bugs:\n' +
+          '  - bug_id: BUG-2026-01-01T000000\n' +
+          '    date: "2026-10-10"\n' +
+          '    title: "defect BUG-2026-01-01T000000"\n' +
+          '    severity: low\n' +
+          '    status: open\n' +
+          '  - bug_id: BUG-2026-10-10T100000\n' +
+          '    date: "2026-10-10"\n' +
+          '    title: "defect BUG-2026-10-10T100000"\n' +
+          '    severity: low\n' +
+          '    status: open\n'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: |-
+        bugs:
+          - bug_id: BUG-2026-01-01T000000
+            date: "2026-10-10"
+            title: "defect BUG-2026-01-01T000000"
+            severity: low
+            status: open
+          - bug_id: BUG-2026-10-10T100000
+            date: "2026-10-10"
+            title: "defect BUG-2026-10-10T100000"
+            severity: low
+            status: open
+        
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-b6fjmI/test/cycle/arbitrage-gravite.test.ts:66:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the arbitration sets the severity of the defects the branch records
+  ---
+  duration_ms: 446.772666
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-b6fjmI/test/cycle/arbitrage-gravite.test.ts:58:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 589.707375

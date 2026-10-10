@@ -1,0 +1,54 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Sécurité — La session qui introduit un défaut ne fixe plus seule ce qu'il pèse",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 31,
+    "constat": "`defautsInscrits` ne voit que les entrées dont la ligne d'ouverture suit exactement `  - bug_id: BUG-…`. `decouper` jette dans le préambule, sans le comparer, tout ce qui précède la première ligne de ce genre, et rattache au bloc d'avant une entrée écrite autrement. Une session peut donc inscrire son défaut sous une forme YAML valide que l'outil ne lit pas : identifiant entre guillemets en tête de liste, ou entrée en style flux. L'arbitrage ne la pèse jamais, l'accord est inscrit, et le registre garde la gravité que la session a choisie. Sondé par un test jetable sur la tête. (1) `  - bug_id: \"BUG-2026-10-10T120000\"` avec `severity: low`, inséré juste après `bugs:` : l'invite montre « (aucun) », l'arbitrage rend `gravites: []`, apresIssue rend `{continuer:true}`, prochainPas vaut versement, et defautsOuverts ne voit pas le défaut. (2) `  - {bug_id: BUG-2026-10-10T120000, title: new, severity: low, status: open}` en fin de fichier : le défaut est rattaché à l'entrée de la base, l'arbitrage pèse l'ancienne entrée sous son propre titre, et la nouvelle garde `low`. (3) Un commentaire sur la ligne d'ouverture (`  - bug_id: BUG-… # new`) fusionne la nouvelle entrée dans celle de la base. L'arbitrage voit alors l'ancien identifiant avec le nouveau titre. La gravité retenue remplace celle de l'entrée de la base, et la ligne `severity` de la nouvelle entrée est retirée.",
+    "contournement": "La session qui introduit un défaut ne fixe plus seule ce qu'il pèse : écrite sous une forme que le lecteur ligne à ligne ne reconnaît pas, l'entrée échappe à l'arbitrage et garde la gravité de la session, et l'outil n'arrête pas la story alors qu'il ne lit pas toutes les entrées."
+   },
+   {
+    "id": "A2-2",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 73,
+    "constat": "Le code tient le cas : sondé sur la tête, une entrée nouvelle insérée avant l'entrée de la base de même identifiant est bien pesée. Aucun test ne fixe pourtant cette position. Le seul test de l'identifiant en double ajoute l'entrée après l'ancienne. Si l'on rapproche les entrées par identifiant plutôt que par texte, tout reste vert. Ce mutant rouvre pourtant A1-1 dès que la branche insère sa nouvelle entrée avant l'ancienne : l'arbitrage pèse alors l'ancienne, et la nouvelle garde la gravité choisie par la session (le test retouché pour insérer avant échoue sous le mutant).",
+    "mutation": "connuesA : `aLaBase.indexOf(d.texte)` remplacé par `aLaBase.findIndex((t) => t.split(\"\\n\")[0] === d.texte.split(\"\\n\")[0])` → les 5 tests de arbitrage-gravite.test.ts restent verts ; ils échouent seulement si l'entrée de la branche est insérée avant l'ancienne."
+   }
+  ],
+  "fermes": [
+   "A1-1",
+   "A1-2",
+   "B1-1"
+  ],
+  "resume": "J'ai rejoué A1-1, B1-1 et A1-2 sur 289ee47f, et aucun ne passe plus. Une entrée nouvelle sous un identifiant déjà connu est maintenant pesée : sans gravité retenue, la story s'arrête, et ce défaut figure dans la question posée au propriétaire. L'entrée de la base garde sa gravité. Une entrée qui porte deux gravités n'en garde qu'une, la retenue. Pour les scénarios 1 à 4, le code tient chaque promesse, et les mutations des lignes clés font échouer un test : sévérité réécrite, entrées de la base visées, question sans défauts, fin d'epic jamais ou toujours lancée. Deux mutants sans portée survivent : retirer le splice de connuesA, et rapprocher les entrées par identifiant. Le second ne laisse voir qu'une position non testée (A2-2, à peser). Reste un contournement de la garantie de sécurité (A2-1, bloquant). Le lecteur ligne à ligne ignore une entrée dont l'ouverture n'est pas exactement `  - bug_id: BUG-…` : identifiant entre guillemets en tête de liste, style flux, commentaire sur la ligne. Ainsi écrit, un défaut de la branche échappe à l'arbitrage ou se confond avec une entrée de la base. L'accord est inscrit, et la gravité choisie par la session reste au registre."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 52,
+    "constat": "La branche peut inscrire son défaut en réécrivant une entrée que la base porte déjà, cas que B1-1 nommait et que le correctif « adds or rewrites » prétend couvrir. Aucun test ne vérifie que cette entrée réécrite passe par l'arbitrage. Mutant : connuesA compare l'identifiant seul. Sonde jetable : la branche change seulement le titre de BUG-2026-01-01T000000 et l'arbitrage rend `gravites: []`. L'outil continue et inscrit l'accord, et la gravité choisie par la session reste au registre. Les cinq tests de arbitrage-gravite et ceux de registre et automate restent pourtant verts.",
+    "mutation": "`courant.texte = bloc.join(\"\\n\").trimEnd();` → `courant.texte = bloc[0]!;` (la correspondance avec la base ne lit plus que la ligne `- bug_id:`) : 25/25 tests verts, et la sonde de réécriture rend `{continuer: true}` au lieu de l'arrêt."
+   }
+  ],
+  "fermes": [
+   "A1-1",
+   "A1-2",
+   "B1-1"
+  ],
+  "resume": "Rejouée sur 289ee47f, la branche ne laisse plus passer un défaut inscrit sous un identifiant que la base porte déjà (A1-1, B1-1). L'arbitrage qui ne retient rien arrête la story en nommant ce défaut. La question au propriétaire le nomme avec sa gravité. Seule l'entrée de la branche reçoit la gravité retenue, et celle de la base garde la sienne. Une entrée ancienne que la branche réécrit est elle aussi pesée : sondé par un test jetable qui ne change que le titre, l'outil s'arrête. Une entrée à deux gravités ne garde que la gravité retenue (A1-2), et defautsOuverts relit cette gravité. Les mutants suivants font échouer les tests : retrait du filtre des entrées de la base dans fixerGravite, conservation des anciennes lignes `severity`, retour de la condition `gravite !== inscrite`, et suppression du contrôle de dernière story de l'epic dans main.ts. Reste une lacune, à corriger : aucun test ne tient la réécriture d'une entrée ancienne. Une correspondance faite sur l'identifiant seul laisse tous les tests verts, alors que l'entrée réécrite échappe à l'arbitrage. Côté sécurité, l'arbitrage reste limité au registre : fichiersChanges utilise --no-renames et un diff depuis `avant`, dont l'ascendance est vérifiée. Une entrée écrite sous une forme que le lecteur du cycle ne reconnaît pas reste invisible au cycle, ce qui revient à ne pas l'inscrire et n'est pas un contournement. Deux mutants survivent sans casser de promesse : copie exacte d'une entrée, position de la ligne `severity`."
+ }
+]

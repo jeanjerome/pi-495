@@ -1,0 +1,48 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 58,
+    "constat": "The registry is composed with `uniqueKeys: false`, and line 67 reads only the first `bugs` key of the root. A branch can append a second `bugs:` (or `\"bugs\":`) key holding a new defect at the severity its session chose. `defautsInscrits` never sees that defect, so the arbitration is not asked to weigh it and the story is accepted. The same defect is also missing from the owner's question (`questionDeRecette`) and from `defautsOuverts`. With its default options, Pi's YAML reader refuses this file (« Map keys must be unique »). At the diff base the cycle stopped on it (« line 7 is not in the form the cycle reads: bugs: »).",
+    "contournement": "La session qui introduit un défaut ne fixe plus seule ce qu'il pèse",
+    "mutation": "Throwaway probe through `apresIssue(ctx, \"recette\", …)` with an arbitration that retains no severity (`gravites: []`), the branch having appended `bugs:\\n  - bug_id: BUG-2026-10-10T120000 … severity: low …` after the existing list. At the head the result is `{continuer: true}`, the acceptance is recorded and the registry keeps `severity: low`. At 1c893fde the same probe stops the story. The variant with `\"bugs\":` behaves the same way."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "La dernière story d'une epic conduite seule lance la phase des défauts moyens",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "cycle/src/main.ts",
+    "ligne": 240,
+    "constat": "Removing `!auto ||` leaves `test/cycle/auto-fin-d-epic.test.ts` green, so no test tells a landing in `auto` from one without it. The promise only covers `cycle <story> auto` and a story that is not the last of its epic, and the test holds both of those. This line is outside the diff under review.",
+    "mutation": "`if (!auto || !derniereDeSonEpic(...))` → `if (!derniereDeSonEpic(...))`: the test still passes (exit 0)."
+   }
+  ],
+  "fermes": [],
+  "resume": "Scenarios 1 to 4 are held by the code and by the tests, with one exception: the registry form in A1-1. These mutations each make the named test fail: removing the stop on a defect with no retained severity, the `fixerGravite` call, the severities in the journal (written and retained), the reason, the list of defects in the owner's question, and the end-of-epic predicate. The surviving mutants on `registre.ts` lines 59-128, 191-198 and 224-259 fall into four groups, none of which leaves a promise of the story without a test: wording of messages, the `ajouterApres` path and the read-back (both already in the registry), the place where the kept severity is written, and `marquerCorrige`/`extraire` (the suite's repair, outside the promises). Security: the second guarantee (the arbitration may change only the registry) relies on `automate.ts`, which the diff does not touch, and I found no new path around it. The first guarantee is bypassed (A1-1). The YAML reader runs without unique keys, so a second root `bugs` key written by the branch hides a defect from the arbitration and the story is accepted at the severity its session chose. The diff introduces this: the base refused that line."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — La session qui introduit un défaut ne fixe plus seule ce qu'il pèse (et Scenario : L'arbitrage fixe la gravité des défauts que la branche introduit)",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 58,
+    "constat": "`lire` compose le registre avec `uniqueKeys: false`, puis ne prend que la première clé `bugs` (ligne 67). Une branche qui ajoute à la fin du registre une seconde clé `bugs:` portant un défaut `severity: low` le garde donc hors de `defautsInscrits` : l'arbitrage ne pèse rien, l'accord s'inscrit, et la gravité choisie par la session reste au registre. Le défaut est aussi absent de la question au propriétaire et de `defautsOuverts`. Le lecteur YAML lui-même refuse ce texte (`parse` lève « Map keys must be unique »), alors que la branche dit arrêter la story sur un registre que le lecteur ne lit pas. L'ancienne lecture ligne à ligne arrêtait la story sur la ligne `bugs:` en colonne 0.",
+    "scenario_detail": "",
+    "contournement": "La session qui introduit un défaut ne fixe plus seule ce qu'il pèse : rejoué par un test jetable copié des aides de test/cycle/arbitrage-gravite.test.ts. Avec `enRecette(arbitre([]), \"bugs:\\n\" + entree(ID, \"low\"))`, `apresIssue` rend `{continuer: true}` et `journal.dernier(\"acceptee\", \"recette\")` est inscrit. Le registre garde `severity: low` pour BUG-2026-10-10T120000, et `defautsOuverts(root, \"low\")` ne liste que l'entrée de la base.",
+    "mutation": ""
+   }
+  ],
+  "resume": "J'ai fait la relecture B, tour 1, de e39s04 : le verdict est fail, à cause d'un contournement de la sécurité.\n\n**Le contournement.** La branche lit le registre avec le lecteur YAML en acceptant les clés en double (`uniqueKeys: false`), et ne garde que la première clé `bugs`. Une session qui ajoute une seconde clé `bugs:` à la fin du registre y inscrit un défaut que l'arbitrage ne pèse jamais :\n- l'accord s'inscrit, alors que l'arbitrage ne retient aucune gravité ;\n- la gravité choisie par la session reste au registre ;\n- le défaut manque aussi à la question du propriétaire et à la phase des défauts moyens.\n\nLe lecteur YAML, utilisé seul, refuse ce texte. L'ancienne lecture ligne à ligne arrêtait la story. Je l'ai rejoué par un test jetable, puis supprimé. L'entrée ouverte BUG-2026-10-10T163131 ne le couvre pas : elle vise une clé racine autre que `bugs`, alors qu'ici la clé est bien `bugs`.\n\n**Les quatre promesses sont tenues par le code et par un test** (mutations faites à la main, une par une, sur la tête 608bcac3) :\n- **Gravité retenue par l'arbitrage :** retirer l'appel à `fixerGravite`, le champ `gravites` du journal, la gravité inscrite ou la raison fait échouer `arbitrage-gravite.test.ts`.\n- **Arbitrage muet sur un défaut :** neutraliser le contrôle `sansGravite` ou l'appel à `accepter` fait échouer le même fichier.\n- **Gravité dans la question au propriétaire :** vider la liste des défauts dans `questionDeRecette`, ou retirer la gravité de `ligneDeDefaut`, fait échouer `recette-gravite.test.ts`.\n- **Phase des défauts moyens en fin d'epic :** retirer le test `derniereDeSonEpic` fait échouer `auto-fin-d-epic.test.ts`. `defautsOuverts` filtré à `true` (le mutant de la ligne 140) fait aussi échouer un test.\n\n**Les mutants survivants listés** ne laissent aucune promesse sans test :\n- Lignes 194, 196 et 197 : ils déplacent la ligne `severity`, ou sont équivalents, sans changer la gravité lue.\n- Ligne 106 : équivalent pour low, medium et high.\n- Lignes 121 à 128 et 198 (ajout d'une gravité absente) et ligne 97 (relecture après écriture) : déjà au registre (BUG-2026-10-10T163128 et 163129).\n- Lignes 59 à 76 : chemins d'erreur de lecture ou valeurs par défaut, sans promesse qui les vise.\n- Lignes 224 à 259 : `marquerCorrige`, que la phase de défauts appelle mais qu'aucune promesse ne vise.\n\n**La seconde garantie** (l'arbitrage ne modifie que le registre) n'est pas touchée par ce diff, et je n'y ai trouvé aucun contournement. L'arbre est laissé propre."
+ }
+]

@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the arbitration sets the severity of the defects the branch records
+    # Subtest: la gravité que l'arbitrage retient pour un défaut de la branche est celle du registre et du journal, et un défaut sans gravité retenue arrête la story
+    ok 1 - la gravité que l'arbitrage retient pour un défaut de la branche est celle du registre et du journal, et un défaut sans gravité retenue arrête la story
+      ---
+      duration_ms: 910.27225
+      type: 'test'
+      ...
+    1..1
+ok 1 - the arbitration sets the severity of the defects the branch records
+  ---
+  duration_ms: 910.804959
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1049.982959

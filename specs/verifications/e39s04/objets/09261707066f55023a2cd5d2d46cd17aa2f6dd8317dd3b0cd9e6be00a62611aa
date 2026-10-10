@@ -1,0 +1,56 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 198,
+    "constat": "The mutants that survived on lines 198-201 are equivalent with respect to the promise. If the severity pair is no longer kept (198 → () => undefined), the retained severity is written again at the end of the entry, and the registry still carries it as its only severity. Dropping the removal of extra severities (199) never matters, because the reader refuses an entry with two severity keys (Map keys must be unique), and a test holds that refusal. The 201 → true mutant only reaches the path where an entry has no severity, which is already in the registry (BUG-2026-10-10T163128).",
+    "mutation": "registre.ts:198 find → () => undefined; :199 if → false; :201 if → true (rerun against test/cycle/arbitrage-gravite.test.ts: the registry and the journal still carry the retained severity)"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 73,
+    "constat": "No test holds the refusal « bugs is not a list ». Removing it changes no outcome: when bugs is a map or a scalar, the next line throws a TypeError, defautsInscrits throws, and arbitrer stops the story with no agreement. Only the message is lost. The same goes for the !!omap and !!pairs forms under %YAML 1.1, which end on « noeud.toJS is not a function »: the story stops, but the message does not name the registry.",
+    "mutation": "removing `if (!isSeq(liste)) throw illisible(\"bugs is not a list\")`: survives test/cycle/arbitrage-gravite.test.ts and test/cycle/registre.test.ts"
+   }
+  ],
+  "resume": "The code keeps the four promises, and a test holds each of them; every mutation I made on the lines that carry them was killed. Promises 1 and 2 (test/cycle/arbitrage-gravite.test.ts): removing the call to fixerGravite, recording g.gravite as the severity written, dropping the reason or the severities from the journal, or emptying the list of defects with no retained severity each makes the test fail. Promise 3 (test/cycle/recette-gravite.test.ts): taking the defects out of the question makes the test fail. Promise 4 (test/cycle/auto-fin-d-epic.test.ts): inverting derniereDeSonEpic, or using the high threshold instead of medium, makes the test fail. Several mutants that the list marks as not executed on lines 69, 72, 144 and 177 are in fact killed by arbitrage-gravite or registre.test.ts. The remaining survivors are either equivalent (A1-1, A1-2), or already in the registry (BUG-2026-10-10T165648, 165649, 163128, 163129, 165650, 165651). Others are on the move of an entry to the archive, which no promise of this story covers: the indentation shift on line 235, and the quoting on line 110, which changes nothing for low, medium or high. On the security side, I found no bypass, probing through the YAML reader the branch adds. Tags on the list or on an item (!!null, !!str, !foo) are read as a list and the entries are still seen. An item that is not a defect, or a non-defect item tagged !!null, is refused. %YAML 1.1 with !!omap, !!set or !!pairs makes the story stop. %YAML 1.1 and merge keys are still read with their severity. Under both readings, an entry whose content is the same as at the base is the same defect, so no new defect can hide behind the match against the base. For the arbitration, a registry turned into a symlink to another file ends with git commit failing on a commit with nothing staged, so the story stops with no agreement. Writing to a file outside the repository is something an unconfined session can do directly, which falls under BUG-2026-10-10T231500. I left nothing modified in the tree; the throwaway probes have been removed.",
+  "fermes": []
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/automate.ts",
+    "ligne": 158,
+    "constat": "Quand fixerGravite refuse d'écrire après l'arbitrage, son erreur sort de apresIssue sans être convertie en arrêt. Cela arrive par exemple quand le défaut de la branche porte `severity: &s low` et qu'une entrée de la base est réécrite en `severity: *s`, ce qui donne « the edit would not read back as intended ». Dans ce cas l'outil plante avec une Error brute au lieu de rendre un arrêt motivé. L'accord ne s'inscrit pas, donc aucune promesse n'est rompue.",
+    "mutation": "sonde jetable : registre de tête où l'ancre est sur la gravité du nouveau défaut et l'alias sur l'entrée de la base ; fixerGravite lève l'erreur de relecture"
+   },
+   {
+    "id": "B1-2",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 79,
+    "constat": "Un défaut que la branche inscrit sans champ severity est lu comme low. Le journal note donc « inscrite: low » alors que la session n'a écrit aucune gravité. La gravité retenue est bien écrite et journalisée.",
+    "mutation": ""
+   }
+  ],
+  "fermes": [],
+  "resume": "Les quatre promesses sont tenues par le code et par un test qui échoue sous mutation. P1 : retirer la gravité du journal, fausser inscrite ou raison, ou retirer l'appel à fixerGravite fait échouer arbitrage-gravite. P2 : neutraliser `if (sansGravite.length > 0)` le fait échouer aussi. P3 : vider la liste des défauts de la question, ou ôter la gravité de ligneDeDefaut, fait échouer recette-gravite. P4 : ôter le test derniereDeSonEpic fait échouer auto-fin-d-epic. Les mutants survivants listés aux lignes 110, 144, 195, 198-202 sont équivalents ou déjà au registre : 163128, 165651, et 199 qu'uniqueKeys rend mort. Deux mutants marqués « non exécutés » (ligne 72 → true, ligne 80 sur le titre) sont tués par arbitrage-gravite quand je les rejoue. Sécurité : aucun contournement trouvé. Une entrée de la branche cachée par alias, alias de gravité, clé de fusion YAML 1.1 ou 1.2, ou directive %YAML 1.1 est soit pesée par l'arbitrage et lue ensuite avec la gravité retenue, soit refusée. Le seul autre cas, une ancre sur la gravité du nouveau défaut reprise par une entrée de la base, fait planter l'outil sans inscrire l'accord. Côté garde de l'arbitrage, l'arbre propre, l'ascendance de la tête et la liste des fichiers changés sont vérifiés avant l'écriture de la gravité. Le commit de l'outil n'ajoute que le registre. Un registre remplacé par un lien symbolique ne permet pas d'écrire un autre fichier, car fixerGravite n'y trouve pas les entrées de la branche."
+ }
+]

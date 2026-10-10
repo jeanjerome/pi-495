@@ -1,0 +1,103 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit / Le propriétaire voit la gravité des défauts de la branche avant d'accepter",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 62,
+    "constat": "defautsInscrits tient pour antérieure toute entrée dont l'identifiant figure déjà dans le registre à la base. Une branche peut donc inscrire son défaut sous un identifiant que le registre porte déjà ; le registre réel en a un en double, BUG-2026-10-10T090000. Sondé par un test jetable avec une branche qui ajoute `BUG-2026-01-01T000000` (low), identifiant déjà présent à la base, et un arbitrage qui rend `gravites: []` : l'outil ne s'arrête pas, inscrit l'accord, et prochainPas vaut versement. defautsOuverts lit deux entrées low : la gravité choisie par la session reste au registre sans que l'arbitrage l'ait pesée. La question posée au propriétaire ne nomme pas non plus ce défaut.",
+    "contournement": "La session qui introduit un défaut ne fixe plus seule ce qu'il pèse"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 80,
+    "constat": "Quand une entrée porte deux lignes `severity:`, entrees() garde la dernière (ligne 43) et fixerGravite réécrit la première. Sondé par un test jetable avec une entrée inscrite par la branche avec `severity: high` puis `severity: low`, et un arbitrage qui retient medium. Le journal dit `inscrite: low, retenue: medium` et l'accord est inscrit. Le registre porte `severity: medium` puis `severity: low`, et defautsOuverts(root, \"medium\") rend []. Le défaut garde la gravité low choisie par la session, et il attendra la fin de la suite pour être corrigé.",
+    "contournement": "La session qui introduit un défaut ne fixe plus seule ce qu'il pèse"
+   },
+   {
+    "id": "A1-3",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 80,
+    "constat": "Aucun test ne vérifie que « le registre porte la gravité retenue » au sens où l'outil le lit. Le test se contente de chercher une ligne `severity: medium` sous l'entrée. Avec le mutant ci-dessous, fixerGravite écrase la ligne `date` de l'entrée et laisse `severity: low` après elle : le test reste vert alors que defautsOuverts(root, \"medium\") rend [] (sondé).",
+    "mutation": "registre.ts:80 `!lignes[i]!.startsWith(\"    severity: \")` → `lignes[i]!.startsWith(\"    severity: \")` : test/cycle/arbitrage-gravite.test.ts passe (même effet pour le mutant ConditionalExpression → false qu'a vu l'outil)"
+   }
+  ],
+  "resume": "Le relecteur A rend « fail » au tour 1 de e39s04 : deux contournements de la garantie « la session qui introduit un défaut ne fixe plus seule ce qu'il pèse », plus un manque de test.\n\n**Les contournements (bloquants, introduits par la branche)**, chacun rejoué par un test jetable :\n- A1-1 : la session inscrit son défaut sous un identifiant que le registre porte déjà à la base. L'arbitrage n'est alors interrogé sur aucun défaut, l'accord est inscrit, et la gravité choisie par la session reste au registre. La question posée au propriétaire ne nomme pas ce défaut.\n- A1-2 : la session écrit deux lignes `severity:` dans son entrée. L'outil réécrit la première mais lit la dernière. Le journal dit « retenue medium » alors que le registre, tel que l'outil le lit, reste à low.\n\n**Le manque de test (à corriger, A1-3)** : le test cherche seulement une ligne `severity: medium` sous l'entrée. Avec un mutant de `fixerGravite` qui écrase la ligne `date` à la place de la gravité, il reste vert, alors que le registre lu par l'outil garde low.\n\n**Ce qui tient** :\n- Garde « défaut sans gravité retenue », gravités inscrites au journal, appel à `fixerGravite`, gravité nommée dans la question du propriétaire, prédicat de la dernière story d'une epic, seuil medium de la phase des défauts : chaque mutation que j'ai faite sur ces points fait échouer le test nommé.\n- La garantie « l'arbitrage ne modifie que le registre » tient : les vérifications restent faites avant toute écriture de l'outil, et l'outil ne commite que le registre.\n\nLes mutants restants de la liste (schéma de sortie, branche « question reposée », `some`/`every`) ne laissent aucune promesse sans test. L'arbre est revenu à son état d'origine et rien n'est commité.",
+  "fermes": []
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — La session qui introduit un défaut ne fixe plus seule ce qu'il pèse",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 61,
+    "constat": "`defautsInscrits` ne compte comme défaut de la branche qu'une entrée dont l'identifiant manque au registre de la base. Une entrée nouvelle que la session écrit sous un `bug_id` déjà présent (ou une entrée ancienne qu'elle réécrit) échappe donc à l'arbitrage. Sonde jetable sur la tête : la branche ajoute `BUG-2026-01-01T000000` avec un titre nouveau et `severity: low`. L'invite de l'arbitrage montre « (aucun) », l'arbitrage rend `gravites: []`, l'outil inscrit l'accord, le journal porte `gravites: []`, la question au propriétaire ne nomme aucun défaut, et le registre garde la gravité choisie par la session. Le cas est réaliste : le registre réel porte déjà deux entrées `BUG-2026-10-10T090000`, et aucun contrôle ne refuse un identifiant en double. Même si l'entrée était retenue, `fixerGravite` réécrirait la première occurrence, donc l'ancienne entrée.",
+    "contournement": "La session qui introduit un défaut ne fixe plus seule ce qu'il pèse"
+   },
+   {
+    "id": "B1-2",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 80,
+    "constat": "Aucun test ne tient que « le registre porte la gravité retenue ». Avec la boucle qui cherche la ligne `severity` neutralisée, `fixerGravite` écrase la ligne `date:` par `severity: medium` et laisse `severity: low` en place. L'outil relit alors `low` : `defautsOuverts(…, \"medium\")` rend `[]`. Pourtant `arbitrage-gravite.test.ts` reste vert : son motif `(    .*\\n)*?    severity: medium` trouve la ligne ajoutée et ne vérifie ni l'absence de l'ancienne gravité, ni la gravité que l'outil relit.",
+    "mutation": "registre.ts:80 `while (i < lignes.length && …)` → `while (false && i < lignes.length && …)` : arbitrage-gravite.test.ts passe (1 pass, 0 fail)"
+   },
+   {
+    "id": "B1-3",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/automate.ts",
+    "ligne": 153,
+    "constat": "Le cas « pour chaque défaut que la branche inscrit » n'est essayé qu'avec un seul défaut retenu. Avec `retenues.find(() => true)` ou `gravites.every(…)`, tout continue de passer, alors qu'une branche qui inscrit deux défauts recevrait la gravité du premier pour les deux, ou serait arrêtée à tort. Le Given de la story ne parle que d'un défaut.",
+    "mutation": "automate.ts:153 ConditionalExpression → true et automate.ts:129 `some` → `every` (survivants de l'outil, équivalents sur un tableau d'un élément)"
+   },
+   {
+    "id": "B1-4",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/automate.ts",
+    "ligne": 100,
+    "constat": "Que la décision « donne la gravité retenue et sa raison » ne repose que sur le schéma passé à `claude --json-schema`. L'outil ne contrôle ni la présence de `raison` ni l'appartenance de `gravite` à low/medium/high avant de l'écrire au registre, et le faux Claude des tests ignore le schéma. D'où la survie de tous les mutants du schéma (lignes 100 à 113)."
+   },
+   {
+    "id": "B1-5",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/automate.ts",
+    "ligne": 154,
+    "constat": "`retenirGravites` compare la gravité retenue à celle lue avant la session. Si l'arbitrage, qui a le droit de commiter le registre, y change lui-même la gravité d'un défaut de la branche puis rend la gravité inscrite, l'outil n'écrit rien. Le registre porte alors une autre gravité que la « retenue » du journal."
+   },
+   {
+    "id": "B1-6",
+    "scenario": "Le propriétaire voit la gravité des défauts de la branche avant d'accepter",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/automate.ts",
+    "ligne": 90,
+    "constat": "Aucun test ne vérifie que l'invite de l'arbitrage liste les défauts de la branche (`{{defauts}}`). La promesse reste tenue par l'arrêt sur défaut sans gravité. Les mutants du gabarit (ligne 90) et de la question (cycle.ts:627, 693, 694) ne cassent aucune promesse : la question nomme toujours chaque défaut avec sa gravité, y compris quand elle est reposée."
+   }
+  ],
+  "fermes": [],
+  "resume": "Les quatre promesses sont tenues par le code dans le cas qu'elles décrivent. Les tests tiennent les scénarios 2, 3 et 4 ; les mutants de main.ts et plan.ts que l'outil n'avait pas suivis, parce qu'ils tournent dans un processus enfant, sont tous tués par auto-fin-d-epic.test.ts quand on les mute à la main. Deux constats retiennent la porte. B1-1 est un contournement de la garantie de sécurité : une entrée nouvelle écrite sous un identifiant déjà au registre échappe à l'arbitrage, et la gravité choisie par la session reste au registre ; sondé sur la tête, et le registre réel porte déjà un identifiant en double. B1-2 est à corriger : le test de l'arbitrage reste vert quand l'ancienne ligne `severity` survit à côté de la nouvelle, donc rien ne tient que le registre porte la gravité retenue. Les autres constats sont à peser."
+ }
+]

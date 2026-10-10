@@ -1,0 +1,95 @@
+[
+ {
+  "verdict": "fail",
+  "resume": "Verdict : échec, à cause d'un contournement bloquant (A1-1). Le code tient les quatre promesses et chacune a un test : les mutations essayées sur leurs lignes (automate.ts, cycle.ts, main.ts, plan.ts, ligneDeDefaut) font toutes échouer le test que la tâche nomme. Les gardes « l'arbitrage ne modifie que le registre » et « l'arbre reste propre » sont tenues par automate.test.ts.\n\nLe contournement : la branche peut ajouter au registre une seconde clé `bugs:` portant son défaut. L'outil lit le registre avec `uniqueKeys: false` et ne prend que la première clé `bugs`, ce qui produit trois effets :\n- le défaut n'est ni pesé par l'arbitrage ni montré au propriétaire, et la gravité choisie par la session reste dans le fichier ;\n- l'accord est inscrit avec `gravites: []` ;\n- le lecteur YAML par défaut, lui, refuse ce fichier.\nLa lecture ligne à ligne de 1c893fde arrêtait ce cas ; la branche l'a donc introduit.\n\nTrois points restent à peser :\n- l'écriture d'une gravité dans une entrée qui n'en porte pas marche à la sonde, mais aucun test ne l'exécute ;\n- les mutants qui neutralisent `verifier` survivent ;\n- avec le mutant `etranger > 0`, un élément étranger placé en tête de liste passe sans arrêt.",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit ; Le propriétaire voit la gravité des défauts de la branche avant d'accepter ; Sécurité",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 58,
+    "constat": "`lire` compose le registre avec `uniqueKeys: false` et ne lit que la première clé `bugs` (ligne 67). Une branche qui ajoute à la fin du registre une seconde clé `bugs:` portant son défaut à la gravité `low` passe donc inaperçue : `defautsInscrits` rend [], l'arbitrage ne pèse rien, l'accord s'inscrit avec `gravites: []`, et la question au propriétaire ne nomme pas le défaut. Pourtant un lecteur où la dernière clé l'emporte, `parse` de yaml avec `uniqueKeys: false` par exemple, lit ce défaut, et `parse` par défaut refuse le fichier (« Map keys must be unique »). La sonde jetable (enRecette avec une base d'une entrée plus `bugs:\\n<entrée de base><BUG-2026-10-10T120000 low>`) donne poursuite {continuer:true}, acceptee inscrite et gravites []. À 1c893fde, le contrôle de forme refusait cette ligne `bugs:`.",
+    "contournement": "La session qui introduit un défaut ne fixe plus seule ce qu'il pèse : un défaut écrit sous une seconde clé `bugs:` garde la gravité de la session, sans arbitrage ni question au propriétaire."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 198,
+    "constat": "Quand une entrée de la branche ne porte aucune gravité, la gravité retenue est ajoutée par `ajouterApres`. Une sonde jetable le confirme, en bloc comme en flux, mais aucun des tests de la story n'exécute ce chemin : les lignes 121-128 et 198 restent non exécutées. Le cas est hors du Given, où la session a choisi une gravité.",
+    "mutation": "cycle/src/registre.ts:198 MethodExpression → noeud.items, et 125 ConditionalExpression → true : aucun test n'exécute ces lignes"
+   },
+   {
+    "id": "A1-3",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 97,
+    "constat": "Neutraliser la vérification de relecture après écriture (`verifier`) laisse les tests verts. Sur les formes testées, le registre porte bien la gravité retenue ; c'est seulement le filet de sécurité qui n'est tenu par aucun test.",
+    "mutation": "cycle/src/registre.ts:95 BlockStatement → {} et 97 ConditionalExpression → false, qui survivent"
+   },
+   {
+    "id": "A1-4",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 174,
+    "constat": "Avec le mutant `etranger > 0`, un élément qui n'est pas un défaut, ajouté en tête de la liste `bugs`, n'arrête plus la story. Les tests placent toujours l'élément étranger après l'entrée de la base.",
+    "mutation": "cycle/src/registre.ts:174 EqualityOperator → etranger > 0, qui survit"
+   }
+  ],
+  "fermes": []
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 67,
+    "constat": "Le lecteur du registre compose avec `uniqueKeys: false` (ligne 58) et ne garde que la première clé `bugs` de la racine (ligne 67). Une branche qui ajoute une seconde clé `bugs:` à la racine et y inscrit son défaut obtient donc un registre que l'outil accepte. `defautsInscrits` ne voit pas ce défaut, l'arbitrage n'a aucune gravité à donner et l'accord s'inscrit avec la gravité choisie par la session. La question posée au propriétaire omet aussi ce défaut, et `defautsOuverts` ne le voit pas non plus. Or le lecteur YAML par défaut refuse ce texte (« Map keys must be unique »). Avec `uniqueKeys: false`, ce lecteur lit à l'inverse la seconde liste seule, donc l'outil lit le registre autrement qu'un lecteur YAML. Sonde jetable dans le harnais de `arbitrage-gravite.test.ts`, avec un arbitrage qui ne retient aucune gravité : `apresIssue` → `{continuer: true}`, accord inscrit, `defautsOuverts` ne liste que l'entrée de la base. À la base `1c893fde`, la lecture ligne à ligne arrêtait la story sur cette ligne `bugs:`.",
+    "contournement": "La session qui introduit un défaut ne fixe plus seule ce qu'il pèse."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 67,
+    "constat": "Une clé de la racine autre que `bugs` (par exemple `other:`), avec un défaut dessous, est ignorée sans un mot. Ce défaut, écrit dans le fichier du registre avec la gravité de sa session, n'est ni pesé ni corrigé, et l'accord s'inscrit (sonde jetable). À la base, la lecture ligne à ligne arrêtait la story. Un lecteur YAML ne le compte pas non plus dans `bugs`, d'où le classement à peser plutôt que contournement.",
+    "mutation": "sonde : registre + `other:\\n  - bug_id: …` → continuer: true, accord inscrit"
+   },
+   {
+    "id": "B1-3",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 97,
+    "constat": "La relecture qui vérifie qu'une écriture de `fixerGravite` ou de `marquerCorrige` relit bien ce qui était voulu n'est tenue par aucun test. Sa neutralisation laisse verts `arbitrage-gravite`, `registre` et `suite`. C'est un garde-fou défensif : le registre porte bien la gravité retenue dans tous les cas testés.",
+    "mutation": "`if (!isDeepStrictEqual(lus, attendus))` → `if (false)` : arbitrage-gravite, registre et suite restent verts"
+   },
+   {
+    "id": "B1-4",
+    "scenario": "L'arbitrage fixe la gravité des défauts que la branche introduit",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/registre.ts",
+    "ligne": 174,
+    "constat": "Le code est juste (`>= 0`), mais aucun test ne place en tête de liste un élément qui n'est pas un défaut avec `bug_id`. Le mutant `etranger > 0` survit : avec lui, un tel élément en première position passerait sans arrêter la story.",
+    "mutation": "`etranger >= 0` → `etranger > 0` (mutant survivant de l'outil)"
+   }
+  ],
+  "resume": "Verdict : échec. La relecture trouve un contournement introduit par la branche, B1-1. Le nouveau lecteur YAML garde la première clé `bugs` et tolère les clés en double. Une branche qui inscrit son défaut sous une seconde clé `bugs:` obtient l'accord de l'arbitrage sans gravité retenue, et le propriétaire ne voit pas ce défaut. Un lecteur YAML standard refuse ce registre, et l'ancienne lecture ligne à ligne arrêtait la story.\n\nLes quatre promesses sont tenues par le code et par un test ; chaque mutation essayée échoue :\n- **Gravité retenue** : la retirer du registre, inscrire la gravité retenue au lieu de la gravité inscrite, ou retirer la raison du journal fait échouer `arbitrage-gravite`.\n- **Défaut sans gravité retenue** : neutraliser l'arrêt fait échouer `arbitrage-gravite`.\n- **Question au propriétaire** : retirer la liste des défauts, ou leur gravité, de la question fait échouer `recette-gravite`.\n- **Fin d'epic** : retirer la condition de dernière story ou changer le seuil `medium` fait échouer `auto-fin-d-epic`.\n\nLa seconde garantie de sécurité est tenue : l'arbitrage qui touche un autre fichier que le registre, ou laisse l'arbre modifié, arrête l'outil. Neutraliser l'une ou l'autre de ces deux vérifications fait échouer `automate.test.ts` et `reprise.test.ts`.\n\nLes mutants survivants de `marquerCorrige` et `extraire` (lignes 224 à 259) sont tués par `registre.test.ts` et `suite.test.ts` sur les lignes essayées : 231, 243, 255 et 258.\n\nRestent à peser :\n- B1-2 : une autre clé de la racine que `bugs` est ignorée sans arrêt.\n- B1-3 : la relecture de vérification de l'écriture n'est tenue par aucun test.\n- B1-4 : aucun test ne place en tête de liste un élément qui n'est pas un défaut.\n\nLes sondes jetables sont supprimées et l'arbre est propre."
+ }
+]

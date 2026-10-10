@@ -1,0 +1,91 @@
+TAP version 13
+# Subtest: the arbitration sets the severity of the defects the branch records
+    # Subtest: la gravité que l'arbitrage retient pour un défaut de la branche est celle du registre et du journal, et un défaut sans gravité retenue arrête la story
+    ok 1 - la gravité que l'arbitrage retient pour un défaut de la branche est celle du registre et du journal, et un défaut sans gravité retenue arrête la story
+      ---
+      duration_ms: 1055.711167
+      type: 'test'
+      ...
+    # Subtest: un défaut que la branche inscrit sous un identifiant que le registre porte déjà est pesé par l'arbitrage, et l'entrée de la base garde sa gravité
+    ok 2 - un défaut que la branche inscrit sous un identifiant que le registre porte déjà est pesé par l'arbitrage, et l'entrée de la base garde sa gravité
+      ---
+      duration_ms: 1044.416709
+      type: 'test'
+      ...
+    # Subtest: un défaut que la branche inscrit avant l'entrée de la base qui porte le même identifiant est pesé par l'arbitrage, et l'entrée de la base garde sa gravité
+    ok 3 - un défaut que la branche inscrit avant l'entrée de la base qui porte le même identifiant est pesé par l'arbitrage, et l'entrée de la base garde sa gravité
+      ---
+      duration_ms: 549.94525
+      type: 'test'
+      ...
+    # Subtest: un défaut que la branche inscrit en réécrivant une entrée que la base porte déjà est pesé par l'arbitrage
+    ok 4 - un défaut que la branche inscrit en réécrivant une entrée que la base porte déjà est pesé par l'arbitrage
+      ---
+      duration_ms: 1024.949959
+      type: 'test'
+      ...
+    # Subtest: un défaut que la branche inscrit sous toute forme YAML valide est pesé par l'arbitrage, et le registre porte la gravité retenue
+    not ok 5 - un défaut que la branche inscrit sous toute forme YAML valide est pesé par l'arbitrage, et le registre porte la gravité retenue
+      ---
+      duration_ms: 241.803959
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6mlXd1/test/cycle/arbitrage-gravite.test.ts:160:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /no severity for the defects the branch records: BUG-2026-10-10T120000$/. Input:
+        
+        'specs/bugs/registry.yaml: line 2 is not in the form the cycle reads:   - bug_id: "BUG-2026-10-10T120000"'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'specs/bugs/registry.yaml: line 2 is not in the form the cycle reads:   - bug_id: "BUG-2026-10-10T120000"'
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6mlXd1/test/cycle/arbitrage-gravite.test.ts:176:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: un registre que le lecteur YAML ne lit pas, ou dont une entrée n'est pas un défaut, arrête la story, et l'accord ne s'inscrit pas
+    ok 6 - un registre que le lecteur YAML ne lit pas, ou dont une entrée n'est pas un défaut, arrête la story, et l'accord ne s'inscrit pas
+      ---
+      duration_ms: 931.099083
+      type: 'test'
+      ...
+    # Subtest: une entrée de la branche qui porte deux gravités ne garde que la gravité retenue
+    ok 7 - une entrée de la branche qui porte deux gravités ne garde que la gravité retenue
+      ---
+      duration_ms: 541.205375
+      type: 'test'
+      ...
+    # Subtest: chaque défaut que l'invite de l'arbitrage nomme reçoit la gravité retenue pour lui
+    ok 8 - chaque défaut que l'invite de l'arbitrage nomme reçoit la gravité retenue pour lui
+      ---
+      duration_ms: 545.200792
+      type: 'test'
+      ...
+    # Subtest: le registre porte la gravité retenue même quand l'arbitrage l'a changée lui-même
+    ok 9 - le registre porte la gravité retenue même quand l'arbitrage l'a changée lui-même
+      ---
+      duration_ms: 578.244541
+      type: 'test'
+      ...
+    1..9
+not ok 1 - the arbitration sets the severity of the defects the branch records
+  ---
+  duration_ms: 6513.70625
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6mlXd1/test/cycle/arbitrage-gravite.test.ts:85:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 9
+# suites 1
+# pass 8
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6655.335833
