@@ -7,6 +7,7 @@ import {
 	arbrePropre,
 	brancheCourante,
 	commitsEntre,
+	contenuA,
 	estCommitDeTestSeul,
 	fichiersChanges,
 	retirerArbre,
@@ -69,6 +70,14 @@ describe("the git operations of the cycle", () => {
 		assert.equal(existsSync(join(tree, "node_modules", ".keep")), true);
 		retirerArbre(root, tree);
 		assert.equal(existsSync(tree), false);
+	});
+
+	it("reads a file as a commit holds it, and null for a path the commit does not hold", () => {
+		const root = depot();
+		const sha = revision(root);
+		writeFiles(root, { "src/a.js": "export const a = 2;\n" });
+		assert.equal(contenuA(root, sha, "src/a.js"), "export const a = 1;");
+		assert.equal(contenuA(root, sha, "src/b.js"), null);
 	});
 
 	it("lands a branch on main as one squashed commit and keeps the branch", () => {

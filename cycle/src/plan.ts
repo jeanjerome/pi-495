@@ -101,6 +101,12 @@ export function marquerStoryListee(root: string, storyId: string): boolean {
 	return true;
 }
 
+/** Whether every story of the epic that lists `storyId` is landed, so that `storyId` was the last of its epic to land. */
+export function derniereDeSonEpic(plan: EpicDuPlan[], storyId: string): boolean {
+	const epic = plan.find((e) => e.stories.some((s) => s.id === storyId));
+	return epic !== undefined && prochaineStory(epic) === null;
+}
+
 export function marquerEpic(root: string, epicId: string, statut: "versé"): void {
 	reecrire(root, `the epic ${epicId} has no status line`, (lignes) => {
 		const debut = lignes.findIndex((l) => EPIC.exec(l)?.[1] === epicId);

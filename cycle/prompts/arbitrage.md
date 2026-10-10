@@ -24,6 +24,13 @@ Une question de produit que la story ne tranche pas, deux comportements égaleme
 prends celui qui arrête plutôt que celui qui laisse passer, et dis-le dans la note. Ne tranche pas
 au nom du propriétaire ce que la story ne lui a pas fait décider.
 
+La session qui a introduit un défaut a aussi choisi sa gravité ; c'est toi qui la fixes. Pour chaque
+défaut que la branche inscrit au registre (la liste plus bas), retiens une gravité, `low`, `medium` ou
+`high`, avec sa raison, selon ce qu'il coûte à qui se sert de 495 : un défaut qui fait échouer une
+campagne de référence ou un usage courant n'est pas `low`, et un `low` attend la fin de la suite pour
+être corrigé. N'en oublie aucun : l'outil arrête la story devant un défaut de la branche sans gravité
+retenue, puis écrit au registre celle que tu retiens ; ne la change pas toi-même dans le fichier.
+
 Un défaut que tu constates et que le registre `specs/bugs/registry.yaml` ne porte pas encore, plus
 ancien que la branche ou introduit sans affaiblir une garantie de la story : inscris-le au registre,
 au format des entrées qui y sont, et commite ce seul fichier (`docs: the registry records <le
@@ -33,7 +40,9 @@ défaut, en anglais>`). La note le nomme. Ne modifie aucun autre fichier, ne lan
 Ta sortie structurée : `decision` (`accepte` ou `ecart`), `note` (une ou deux phrases en français
 simple, qui iront au journal comme l'accord ou l'écart), `ecart` (ce qui manque, en français, avec
 le scénario ou la garantie concernés ; vide quand tu acceptes), `raisons` (pourquoi, en quelques
-lignes, avec ce que tu as vérifié).
+lignes, avec ce que tu as vérifié), `gravites` (pour chaque défaut que la branche inscrit au
+registre : `bug_id`, `gravite` retenue et `raison`, en français ; vide quand la branche n'en inscrit
+aucun).
 
 ---
 
@@ -42,6 +51,10 @@ lignes, avec ce que tu as vérifié).
 {{compte_rendu}}
 
 ## Défauts inscrits au registre par la branche
+
+{{defauts}}
+
+Les entrées, telles que la branche les écrit :
 
 {{registre}}
 

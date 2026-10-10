@@ -4,12 +4,14 @@ This directory holds the way a change to 495 is made: the six steps, the review 
 the story format, and the tool that drives them all. It says nothing about the product. What 495 is,
 what it still has to do and what it has proved live in `specs/`.
 
-The cycle depends on no outside package. On 2026-09-28 it replaced the bigpowers skills and the script
-that chained them, after measurement: a 3,900-line story cost 5 hours of agent time and $88, and the
-fix cycle for its four defects 7 hours and $105, stopped at a cap of five review rounds. More than
-half of that time went to reviewers who replayed mutations by hand and found another corner of the
-state machine at every round; per story, a thousand lines of records were written by hand and read
-again by every session; across all of `specs/`, a single tracking file was read by a check.
+The cycle depends on two outside packages, both development dependencies of the repository: Stryker,
+which runs the mutation (`D-89`), and the YAML reader Pi already installs, which reads the defect
+registry. On 2026-09-28 it replaced the bigpowers skills and the script that chained them, after
+measurement: a 3,900-line story cost 5 hours of agent time and $88, and the fix cycle for its four
+defects 7 hours and $105, stopped at a cap of five review rounds. More than half of that time went
+to reviewers who replayed mutations by hand and found another corner of the state machine at every
+round; per story, a thousand lines of records were written by hand and read again by every session;
+across all of `specs/`, a single tracking file was read by a check.
 
 ## A dedicated cycle, and a laboratory
 
@@ -231,7 +233,13 @@ Three of the owner's answers are delegated, each an act recorded in the record:
 
 - **Agreement after the acceptance run.** A fresh session, which drove neither the acceptance run
   nor the review, reads the story, the report of the acceptance run and the defects the branch
-  records in the registry, then decides `accepte` or `ecart` (`prompts/arbitrage.md`). A gap is a
+  records in the registry, then decides `accepte` or `ecart` (`prompts/arbitrage.md`). For each
+  defect the branch records, it retains a severity and says why: the registry carries it, the record
+  keeps it beside the severity the branch wrote, and the tool stops, naming the defect, when one has
+  none. The tool reads the registry with a YAML reader, so it sees an entry whatever valid YAML form
+  it is written in, and stops, naming the registry, when the reader does not read it or the branch
+  adds an item that is not a defect with an identifier. The owner, when the story waits for them,
+  sees those defects with their severity in the question. A gap is a
   written promise or a security guarantee not kept, a case the previous code stopped and the branch
   lets through, or a defect of the branch that weakens a guarantee of the story; otherwise the
   agreement carries a note naming what remains in the registry and what the acceptance run did not
@@ -247,13 +255,14 @@ Three of the owner's answers are delegated, each an act recorded in the record:
 - **A promise review did not get kept.** It goes back to red-green: it was not the owner's to waive.
 
 **Registry defects** are fixed too, at the right time (`D-73`): at the end of each epic, before the
-next one, those of medium or high severity; at the end of the run, the low ones. A session picks the
-first open defect that needs no product decision, writes its fix story under epic `e28` (which the
-plan never marks ready) citing the registry entry, and the tool drives it through the six steps; at
-landing, the entry moves from the registry to `specs/bugs/registry-fixed.yaml`, marked fixed at the
-landed revision. The defects the session sets aside because they need the owner are named at the end
-of the run, with the reason, without stopping it. One phase fixes at most `CYCLE_495_DEFAUTS_MAX`
-defects (5 by default); `npm run cycle -- defauts [severity]` runs that phase alone.
+next one, those of medium or high severity, whether the suite drove the epic or `cycle <story> auto`
+landed its last story; at the end of the run, the low ones. A session picks the first open defect
+that needs no product decision, writes its fix story under epic `e28` (which the plan never marks
+ready) citing the registry entry, and the tool drives it through the six steps; at landing, the
+entry moves from the registry to `specs/bugs/registry-fixed.yaml`, marked fixed at the landed
+revision. The defects the session sets aside because they need the owner are named at the end of the
+run, with the reason, without stopping it. One phase fixes at most `CYCLE_495_DEFAUTS_MAX` defects
+(5 by default); `npm run cycle -- defauts [severity]` runs that phase alone.
 
 The run stops, and hands back control, when a story has been sent back to red-green three times,
 when it has spent more than `CYCLE_495_PLAFOND_USD` ($80 by default), when a session does not return

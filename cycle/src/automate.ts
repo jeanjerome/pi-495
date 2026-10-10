@@ -9,13 +9,12 @@
 import { readFileSync } from "node:fs";
 import { messageOf } from "../../src/domain/errors.ts";
 import { type Contexte, type Issue, Blocage, accepter, rouvrir, session } from "./cycle.ts";
-import { arbrePropre, baseDe, estAncetre, fichiersChanges, git, revision } from "./git.ts";
+import { arbrePropre, baseDe, commiter, estAncetre, fichiersChanges, git, revision } from "./git.ts";
 import { invite } from "./invite.ts";
 import type { Pas } from "./journal.ts";
+import { type Defaut, type Gravite, REGISTRE, defautsInscrits, fixerGravite, ligneDeDefaut } from "./registre.ts";
 import type { Constat } from "./relecture.ts";
 import { lireStory } from "./story.ts";
-
-const REGISTRE = "specs/bugs/registry.yaml";
 
 /** How many times a story may go back to the red-green before the run gives it to the owner. */
 export const ECARTS_MAX = 3;
@@ -62,9 +61,24 @@ async function reouvrirSous(
 	return epingle ? await epingler(ctx, motif) : CONTINUER;
 }
 
+/** The severity the arbitration retains for one defect the branch records, and why. */
+interface GraviteRetenue {
+	bug_id: string;
+	gravite: Gravite;
+	raison: string;
+}
+
 async function arbitrer(ctx: Contexte, question: string): Promise<Poursuite> {
 	const preparee = ctx.journal.dernier("preparee", "recette");
-	const registre = git(ctx.root, ["diff", `${baseDe(ctx.root, ctx.cible)}...HEAD`, "--", REGISTRE]);
+	const base = baseDe(ctx.root, ctx.cible);
+	const registre = git(ctx.root, ["diff", `${base}...HEAD`, "--", REGISTRE]);
+	// The session that introduced a defect chose its severity: the arbitration, which did not, sets the one kept.
+	let inscrits: Defaut[];
+	try {
+		inscrits = defautsInscrits(ctx.root, base);
+	} catch (e) {
+		return arret(messageOf(e));
+	}
 	const avant = revision(ctx.root);
 	const s = await session(
 		ctx,
@@ -76,6 +90,7 @@ async function arbitrer(ctx: Contexte, question: string): Promise<Poursuite> {
 			tete: revision(ctx.root),
 			compte_rendu: String(preparee?.compte_rendu ?? question),
 			registre: registre.slice(0, 30_000) || "(aucune entrée)",
+			defauts: inscrits.map(ligneDeDefaut).join("\n") || "(aucun)",
 			story: readFileSync(ctx.story.chemin, "utf8"),
 		}),
 		{
@@ -85,20 +100,44 @@ async function arbitrer(ctx: Contexte, question: string): Promise<Poursuite> {
 				note: { type: "string" },
 				ecart: { type: "string" },
 				raisons: { type: "string" },
+				gravites: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							bug_id: { type: "string" },
+							gravite: { type: "string", enum: ["low", "medium", "high"] },
+							raison: { type: "string" },
+						},
+						required: ["bug_id", "gravite", "raison"],
+					},
+				},
 			},
-			required: ["decision", "note", "ecart", "raisons"],
+			required: ["decision", "note", "ecart", "raisons", "gravites"],
 		},
 	);
-	const sortie = s.sortie as { decision: string; note: string; ecart: string; raisons: string };
+	const sortie = s.sortie as {
+		decision: string;
+		note: string;
+		ecart: string;
+		raisons: string;
+		gravites?: GraviteRetenue[];
+	};
 	// The arbitration may record in the registry a defect it finds missing there, and nothing else.
 	if (!arbrePropre(ctx.root)) return arret("the arbitration left the tree modified");
 	// A rewound branch leaves the diff since `avant` empty, and would land a head no campaign was played at.
 	if (!estAncetre(ctx.root, avant)) return arret("the arbitration moved the branch off the head it was given");
 	const autres = fichiersChanges(ctx.root, avant).filter((f) => f !== REGISTRE);
 	if (autres.length > 0) return arret(`the arbitration changed files beyond the registry: ${autres.join(", ")}`);
+	const sansGravite = inscrits.filter((d) => !sortie.gravites?.some((g) => g.bug_id === d.id));
+	if (sansGravite.length > 0)
+		return arret(
+			`the arbitration retains no severity for the defects the branch records: ${sansGravite.map((d) => d.id).join(", ")}`,
+		);
+	const gravites = retenirGravites(ctx, base, inscrits, sortie.gravites ?? []);
 	// Only the fields of the decision: what else the output carries would land in the event, its genre included.
 	const { decision, note, ecart, raisons } = sortie;
-	ctx.journal.inscrire("recette", "arbitrage", { decision, note, ecart, raisons, origine: "automate" });
+	ctx.journal.inscrire("recette", "arbitrage", { decision, note, ecart, raisons, gravites, origine: "automate" });
 	if (sortie.decision === "accepte") {
 		// The tool checked that the arbitration committed the registry alone: the code it accepts is the one at `avant`.
 		accepter(ctx, `arbitrage automatique : ${sortie.note}`, avant);
@@ -106,6 +145,26 @@ async function arbitrer(ctx: Contexte, question: string): Promise<Poursuite> {
 	}
 	if (sortie.ecart.trim() === "") return arret("the arbitration names a gap but does not say which");
 	return await reouvrirSous(ctx, sortie.ecart, true);
+}
+
+/**
+ * Writes into the registry the severity the arbitration retains for each defect the branch records, commits it when
+ * one changed, and returns, for the journal, the severity each was recorded with beside the one retained. It writes
+ * it even when the branch recorded the same: the arbitration may have changed the registry since.
+ */
+function retenirGravites(ctx: Contexte, base: string, inscrits: Defaut[], retenues: GraviteRetenue[]) {
+	const releve = inscrits.map((d) => {
+		const g = retenues.find((r) => r.bug_id === d.id)!;
+		fixerGravite(ctx.root, base, d.id, g.gravite);
+		return { bug_id: d.id, inscrite: d.gravite, retenue: g.gravite, raison: g.raison };
+	});
+	if (!arbrePropre(ctx.root))
+		commiter(
+			ctx.root,
+			"docs: the registry carries the severity the arbitration retains for the defects of the branch",
+			[REGISTRE],
+		);
+	return releve;
 }
 
 /** Writes a gap into the story, checks the story still holds its format, and leaves the tree clean. */

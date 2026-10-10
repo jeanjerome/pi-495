@@ -1,6 +1,7 @@
 /**
  * `cycle <story>` drives the next steps of a story until one needs the owner or blocks;
- * `cycle <story> auto` does the same and answers by itself where the owner would be asked;
+ * `cycle <story> auto` does the same and answers by itself where the owner would be asked, and repairs
+ * the registry's medium defects once it lands the last story of its epic;
  * `cycle suite` runs, one after the other, the epics the plan marks `prete: oui`, writing their
  * stories and driving each to its landing, and repairs the registry's open defects between them;
  * `cycle defauts [gravité]` repairs the open defects alone;
@@ -31,7 +32,8 @@ import { apresIssue } from "./automate.ts";
 import { type Contexte, accepter, conduirePas, rouvrir } from "./cycle.ts";
 import { commiter, commitsEntre, revision } from "./git.ts";
 import { type Evenement, Journal, type Pas, racineCycle } from "./journal.ts";
-import { marquerStoryListee } from "./plan.ts";
+import { derniereDeSonEpic, lirePlan, marquerStoryListee } from "./plan.ts";
+import type { Gravite } from "./registre.ts";
 import { reprendre } from "./reprise.ts";
 import { type OptionsSuite, corrigerDefauts, suite } from "./suite.ts";
 import { lireStory } from "./story.ts";
@@ -128,13 +130,15 @@ async function lancerDefauts(seuil: string | undefined): Promise<number> {
 		console.error("usage: cycle defauts [low | medium | high]");
 		return 2;
 	}
-	const r = await corrigerDefauts(
-		optionsSuite(),
-		seuil ?? "medium",
-		"le propriétaire a demandé la correction des défauts ouverts",
-	);
+	const code = await corrigerEtNommer(seuil ?? "medium", "le propriétaire a demandé la correction des défauts ouverts");
+	sonner(code === 0 ? "les défauts sont corrigés" : "la correction est arrêtée");
+	return code;
+}
+
+/** One phase of repairs at or above `seuil`, naming at its end the defects set aside for the owner. */
+async function corrigerEtNommer(seuil: Gravite, motif: string): Promise<number> {
+	const r = await corrigerDefauts(optionsSuite(), seuil, motif);
 	for (const d of r.aDecider) console.log(annonce(`à décider : ${d.bug_id} — ${d.raison}`));
-	sonner(r.code === 0 ? "les défauts sont corrigés" : "la correction est arrêtée");
 	return r.code;
 }
 
@@ -223,11 +227,21 @@ async function main(argv: string[]): Promise<number> {
 	const refus = inscrireVerdict(ctx, id, commande, reste);
 	if (refus !== undefined) return refus;
 	const code = await derouler(ctx, id, commande === "auto");
+	if (code !== 0 || ctx.journal.prochainPas() !== null) return code;
+	return await marquerVersee(ctx, id, commande === "auto");
+}
+
+/** Marks a landed story in the plan and, in auto, follows the last story of an epic with the epic's repairs. */
+async function marquerVersee(ctx: Contexte, id: string, auto: boolean): Promise<number> {
 	// The suite marks the plan itself after each story it drives; a story driven alone is marked here.
-	if (code === 0 && ctx.journal.prochainPas() === null && marquerStoryListee(ctx.root, id)) {
-		commiter(ctx.root, `docs: the plan marks ${id} landed`, ["specs/plan.yaml"]);
-	}
-	return code;
+	if (!marquerStoryListee(ctx.root, id)) return 0;
+	commiter(ctx.root, `docs: the plan marks ${id} landed`, ["specs/plan.yaml"]);
+	// The defects of an epic are repaired at its end, whether a suite or one story at a time drove it.
+	if (!auto || !derniereDeSonEpic(lirePlan(ctx.root), id)) return 0;
+	return await corrigerEtNommer(
+		"medium",
+		"la dernière story d'une epic vient d'être versée : ses défauts se réparent avant la suivante",
+	);
 }
 
 let interruption: (() => void) | null = null;

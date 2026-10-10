@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import { strict as assert } from "node:assert";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { parse } from "yaml";
 import { defautDeLaStory, defautsOuverts, marquerCorrige } from "../../cycle/src/registre.ts";
 import { tempDir, removedAfterEach } from "../helpers/fixtures.ts";
 
@@ -87,6 +88,55 @@ describe("the registry as the cycle reads it", () => {
 			defautsOuverts(root, "low").map((d) => d.id),
 			["BUG-2026-09-01T100000"],
 		);
+	});
+
+	it("reads and moves to the archive an entry written in another YAML form", () => {
+		const root = racine();
+		const fichier = join(root, "specs", "bugs", "registry.yaml");
+		writeFileSync(
+			fichier,
+			`${REGISTRE}  - {bug_id: "BUG-2026-09-05T100000", title: "A compact defect", severity: medium, status: "open"}\n`,
+		);
+		assert.deepEqual(
+			defautsOuverts(root, "medium").map((d) => [d.id, d.gravite, d.titre]),
+			[
+				["BUG-2026-09-04T100000", "high", "A high defect"],
+				["BUG-2026-09-02T100000", "medium", "A medium defect"],
+				["BUG-2026-09-05T100000", "medium", "A compact defect"],
+			],
+		);
+		marquerCorrige(root, "BUG-2026-09-05T100000", "def5678");
+		assert.equal(readFileSync(fichier, "utf8"), REGISTRE);
+		assert.deepEqual(parse(readFileSync(join(root, "specs", "bugs", "registry-fixed.yaml"), "utf8")), {
+			bugs: [
+				{
+					bug_id: "BUG-2026-09-05T100000",
+					title: "A compact defect",
+					severity: "medium",
+					status: "fixed",
+					fixed_in: "def5678",
+				},
+			],
+		});
+	});
+
+	it("refuses a registry that holds a second bugs key, whose entries would otherwise go unread", () => {
+		const root = racine();
+		const second = `bugs:\n  - bug_id: BUG-2026-10-10T120000\n    title: "Hidden"\n    severity: low\n    status: open\n`;
+		writeFileSync(join(root, "specs", "bugs", "registry.yaml"), REGISTRE + second);
+		assert.throws(() => defautsOuverts(root, "low"), /specs\/bugs\/registry\.yaml: .*unique/);
+	});
+
+	it("refuses a registry whose root holds a key other than bugs, or bugs written through an alias", () => {
+		const entree = `  - bug_id: BUG-2026-10-10T120000\n    title: "Hidden"\n    severity: low\n    status: open\n`;
+		for (const texte of [
+			`${REGISTRE}defects:\n${entree}`,
+			`${REGISTRE.replace(/^bugs:/, "&k bugs:")}*k :\n${entree}`,
+		]) {
+			const root = racine();
+			writeFileSync(join(root, "specs", "bugs", "registry.yaml"), texte);
+			assert.throws(() => defautsOuverts(root, "low"), /specs\/bugs\/registry\.yaml: /, texte.slice(-120));
+		}
 	});
 
 	it("refuses to mark an entry that is unknown or not open", () => {

@@ -3045,3 +3045,352 @@ bugs:
       Confine the cycle's sessions so that they cannot write `~/.495/cycle/` nor `.git/config`, or replace them by 495's
       confined Pi worker.
     status: open
+  - bug_id: BUG-2026-10-10T151609
+    date: "2026-10-10"
+    title: "The cycle writes into the registry the severity the arbitration retains without checking that it is low, medium or high, nor that a reason comes with it"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `arbitrer` (`cycle/src/automate.ts`) reads the `gravites` of the arbitration's output and `retenirGravites` writes
+      each `gravite` into `specs/bugs/registry.yaml` and the journal as it comes. Only the schema passed to
+      `claude --json-schema` limits it to `low`, `medium` or `high` and requires `raison`; the tool checks neither, and
+      the fake claude of the tests ignores the schema, so every mutant of that schema survives.
+    what_expected: >
+      A retained severity outside `low`, `medium` and `high`, or one without its reason, stops the story naming the
+      defect, as a defect with no retained severity does.
+    steps_to_reproduce:
+      - "Give the arbitration of a story whose branch records one defect a fake claude that returns `gravites: [{ bug_id, gravite: \"critical\", raison: \"\" }]`."
+      - "The agreement is recorded and the registry carries `severity: critical`, which `defautsOuverts` orders as low."
+    root_cause: >
+      The output of the arbitration is cast to its type and trusted; the schema is the only check of its fields.
+    evidence: >
+      Introduced by the branch of the story e39s04. Found by mutation in the first review round (the mutants of the
+      schema of `gravites` survive).
+    risk_level: low
+    follow_ups: >
+      Refuse, in `arbitrer`, a retained severity outside the three the registry reads or without a reason, with a test
+      in `arbitrage-gravite.test.ts` where the arbitration returns one.
+    status: open
+  - bug_id: BUG-2026-10-10T163128
+    date: "2026-10-10"
+    title: "No test holds the path where the arbitration adds a severity to a defect of the branch that carries none"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      When an entry the branch records has no `severity`, `fixerGravite` (`cycle/src/registre.ts`) adds the retained
+      one through `ajouterApres`, after the last pair of the entry. A throwaway probe shows it writes the severity, in a
+      block entry as in a flow entry, but no test of the cycle runs that path: the mutants of `ajouterApres` (line 125
+      made always true) and of its call in `fixerGravite` (line 198) survive.
+    what_expected: >
+      A test of `arbitrage-gravite.test.ts` where the branch records an entry with no severity, in block and in flow
+      form, and the registry carries the retained severity once afterwards.
+    steps_to_reproduce:
+      - "Mutate `cycle/src/registre.ts:198` to pass `noeud.items` or line 125 to `true`; run `node --test test/cycle/arbitrage-gravite.test.ts test/cycle/registre.test.ts`: every test stays green."
+    root_cause: >
+      Every entry the tests add carries a severity, as the story's Given sets one.
+    evidence: >
+      Introduced by the branch of the story e39s04. Found by mutation in the first review round.
+    risk_level: low
+    follow_ups: >
+      Add the test; it adds no behaviour.
+    status: open
+  - bug_id: BUG-2026-10-10T163129
+    date: "2026-10-10"
+    title: "No test holds the read-back that refuses a registry edit which would read otherwise than intended"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `verifier` (`cycle/src/registre.ts`) reads back the text `fixerGravite` and `marquerCorrige` are about to write
+      and refuses it when a YAML reader reads other items than intended. Emptying its body, or making its condition
+      false, leaves `arbitrage-gravite`, `registre` and `suite` green: on every form the tests write, the edit reads back
+      as intended, so the guard is never reached.
+    what_expected: >
+      A test where an edit of the source tokens would read back otherwise, and the registry is left as it was with
+      the story stopped naming the registry.
+    steps_to_reproduce:
+      - "Replace `if (!isDeepStrictEqual(lus, attendus))` with `if (false)` in `cycle/src/registre.ts`; run the cycle's registry and arbitration tests: they stay green."
+    root_cause: >
+      The guard is defensive; no registry form the tests use makes a token edit read back differently.
+    evidence: >
+      Introduced by the branch of the story e39s04. Found by mutation by both reviewers of the first round.
+    risk_level: low
+    follow_ups: >
+      Find a registry form where a token edit reads back differently and hold the refusal with it, or drop the guard if
+      no such form exists.
+    status: open
+  - bug_id: BUG-2026-10-10T163130
+    date: "2026-10-10"
+    title: "No test holds the refusal of an item that is not a defect when the branch adds it first in the bugs list"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `defautsInscrits` (`cycle/src/registre.ts`) stops the story when the branch adds to `bugs` an item that is not a
+      defect with a `bug_id`, through `etranger >= 0`. The tests always place that item after the entry of the base, so
+      the mutant `etranger > 0` survives: with it, such an item in first position would pass without stopping the story.
+    what_expected: >
+      A test where the item that is not a defect is the first of the list, and the story stops naming entry 1.
+    steps_to_reproduce:
+      - "Replace `etranger >= 0` with `etranger > 0` in `cycle/src/registre.ts`; run `node --test test/cycle/arbitrage-gravite.test.ts`: every test stays green."
+    root_cause: >
+      The test of the foreign item puts it after the base entry, never at index 0.
+    evidence: >
+      Introduced by the branch of the story e39s04. Found by mutation by both reviewers of the first round.
+    risk_level: low
+    follow_ups: >
+      Add the test; it adds no behaviour.
+    status: open
+  - bug_id: BUG-2026-10-10T163920
+    date: "2026-10-10"
+    title: "No test tells the landing of the last story of an epic in auto from the same landing without auto"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `marquerVersee` (`cycle/src/main.ts`) runs the phase of medium repairs only when the story landed under
+      `cycle <story> auto` and is the last of its epic, through `!auto || !derniereDeSonEpic(...)`. The test of the end
+      of an epic (`test/cycle/auto-fin-d-epic.test.ts`) always lands in `auto`, so dropping `!auto ||` leaves it green:
+      with that mutant, a last story landed without `auto` would start the repairs.
+    what_expected: >
+      A test where the last story of an epic lands without `auto`, and no session of repairs runs.
+    steps_to_reproduce:
+      - "Replace `if (!auto || !derniereDeSonEpic(lirePlan(ctx.root), id))` with `if (!derniereDeSonEpic(lirePlan(ctx.root), id))` in `cycle/src/main.ts`; run `node --test test/cycle/auto-fin-d-epic.test.ts`: it stays green."
+    root_cause: >
+      The test exercises the last story and another story, both in `auto`, never a landing without it.
+    evidence: >
+      Found by mutation by a reviewer of the last round of the story e39s04, on a line outside its diff.
+    risk_level: low
+    follow_ups: >
+      Add the test; it adds no behaviour.
+    status: open
+  - bug_id: BUG-2026-10-10T165648
+    date: "2026-10-10"
+    title: "No test holds the refusal of a registry that holds more than one YAML document"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `lire` (`cycle/src/registre.ts`) stops the story when the registry holds more than one YAML document, through
+      `if (docs.length > 1) throw`. No test writes a second document, so the mutant `if (false) throw` leaves
+      `arbitrage-gravite`, `recette-gravite` and `registre` green: with it, a defect the branch writes in a second
+      document (`---\nbugs: [...]`) is read neither by `defautsInscrits` nor by `defautsOuverts`, and the arbitration
+      accepts without weighing it.
+    what_expected: >
+      A test of `arbitrage-gravite.test.ts` where the branch appends a second document carrying a defect, and the
+      story stops naming the registry without recording the acceptance.
+    steps_to_reproduce:
+      - "Replace `if (docs.length > 1) throw` with `if (false) throw` in `cycle/src/registre.ts`; run `node --test test/cycle/arbitrage-gravite.test.ts test/cycle/recette-gravite.test.ts test/cycle/registre.test.ts`: every test stays green."
+    root_cause: >
+      The tests of an unreadable registry cover a parse error and a second `bugs` key, never a second document.
+    evidence: >
+      Introduced by the branch of the story e39s04. Found by mutation in the last review round, after the acceptance
+      run reopened the story; the last round leaves it to the registry.
+    risk_level: low
+    follow_ups: >
+      Add the test; it adds no behaviour.
+    status: open
+  - bug_id: BUG-2026-10-10T165649
+    date: "2026-10-10"
+    title: "No test holds the refusal of a registry whose root is not a map"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `lire` (`cycle/src/registre.ts`) stops the story when the registry's root is neither empty nor a map, through
+      `if (racine !== null && !isMap(racine)) throw`. No test writes such a root, so the mutant `if (false) throw`
+      leaves every test of the cycle's registry and arbitration green: with it, a registry the branch rewrites as a
+      top-level list of defects reads as empty, the branch's defects go unweighed and the acceptance is recorded.
+    what_expected: >
+      A test of `arbitrage-gravite.test.ts` where the branch rewrites the registry as a top-level list of defects, and
+      the story stops naming the registry without recording the acceptance.
+    steps_to_reproduce:
+      - "Replace `if (racine !== null && !isMap(racine)) throw` with `if (false) throw` in `cycle/src/registre.ts`; run `node --test test/cycle/arbitrage-gravite.test.ts test/cycle/recette-gravite.test.ts test/cycle/registre.test.ts`: every test stays green."
+    root_cause: >
+      Every registry the tests write has a map at its root.
+    evidence: >
+      Introduced by the branch of the story e39s04. Found by mutation in the last review round, after the acceptance
+      run reopened the story; the last round leaves it to the registry.
+    risk_level: low
+    follow_ups: >
+      Add the test; it adds no behaviour.
+    status: open
+  - bug_id: BUG-2026-10-10T165650
+    date: "2026-10-10"
+    title: "No test holds that each entry of the registry at the base matches only one entry at the head"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `connusA` (`cycle/src/registre.ts`) removes each base item once it has matched a head item, through
+      `if (i >= 0) aLaBase.splice(i, 1)`. No test adds an exact copy of a base entry, so removing that line leaves
+      every test green: with it, an entry the branch adds as an exact copy of a base entry is not weighed by the
+      arbitration and `defautsOuverts` lists that defect twice.
+    what_expected: >
+      A test of `arbitrage-gravite.test.ts` where the branch adds an exact copy of a base entry, and the arbitration is
+      asked for the severity of that copy.
+    steps_to_reproduce:
+      - "Remove `if (i >= 0) aLaBase.splice(i, 1);` from `cycle/src/registre.ts`; run `node --test test/cycle/arbitrage-gravite.test.ts test/cycle/recette-gravite.test.ts test/cycle/registre.test.ts`: every test stays green."
+    root_cause: >
+      The tests of a reused identifier change the content of the entry; none duplicates one verbatim.
+    evidence: >
+      Introduced by the branch of the story e39s04. Found by mutation in the last review round, after the acceptance
+      run reopened the story; the last round leaves it to the registry.
+    risk_level: low
+    follow_ups: >
+      Add the test; it adds no behaviour.
+    status: open
+  - bug_id: BUG-2026-10-10T165651
+    date: "2026-10-10"
+    title: "No test holds the refusal to fix a severity on a defect of the branch the registry no longer carries"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `fixerGravite` (`cycle/src/registre.ts`) throws when no entry of the branch carries the identifier the
+      arbitration weighed, through `if (visees.length === 0)`. No test removes the entry or changes its `bug_id`
+      between the arbitration's read and the write, so the mutant `if (false)` survives: with it, the tool writes
+      nothing and the journal still records a retained severity for a defect the registry no longer carries.
+    what_expected: >
+      A test of `arbitrage-gravite.test.ts` where the arbitration's session removes the branch's entry, or renames its
+      `bug_id`, and the story stops naming the identifier without recording a retained severity.
+    steps_to_reproduce:
+      - "Replace `if (visees.length === 0)` with `if (false)` in `cycle/src/registre.ts`; run `node --test test/cycle/arbitrage-gravite.test.ts`: every test stays green."
+    root_cause: >
+      The tests of an arbitration that edits the registry change a severity, never the presence or identifier of the
+      entry.
+    evidence: >
+      Introduced by the branch of the story e39s04. Found by mutation in the last review round, after the acceptance
+      run reopened the story; the last round leaves it to the registry. The other survivors of `fixerGravite` (two
+      severities, now refused at read time, or the place of the severity line) are equivalent.
+    risk_level: low
+    follow_ups: >
+      Add the test; it adds no behaviour.
+    status: open
+  - bug_id: BUG-2026-10-10T173048
+    date: "2026-10-10"
+    title: "A failure of the cycle to write the retained severity after the arbitration escapes as a raw error instead of a stop that names the registry"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `retenirGravites` (`cycle/src/automate.ts`) calls `fixerGravite` (`cycle/src/registre.ts`) after the arbitration's
+      session. When the edit would not read back as intended, `fixerGravite` throws a plain `Error`, which `apresIssue`
+      rethrows since it is no `Blocage`: the tool crashes instead of returning a stop that says why. Two registries
+      reach it: a defect of the branch whose `severity: &s low` an entry of the base reuses as `severity: *s`, and a
+      defect of the branch written in block form with a `severity:` key and no value (BUG-2026-10-10T173049). The
+      acceptance is not recorded, so no promise is broken.
+    what_expected: >
+      The story stops, naming the registry and the reason, and the acceptance is not recorded.
+    steps_to_reproduce:
+      - "Give the arbitration of a story whose branch records `  - bug_id: X\\n    severity:\\n    status: open\\n` an accepting fake claude that retains `high` for X; `apresIssue` rejects with `specs/bugs/registry.yaml: holds at its root anything but one bugs key` instead of resolving to a stop."
+    root_cause: >
+      `arbitrer` converts the errors of `defautsInscrits` into a stop, but not those of `fixerGravite`, which runs after
+      the session.
+    evidence: >
+      Introduced by the branch of the story e39s04. Found by a reviewer of the first round with a throwaway probe, and
+      reproduced in the response to that round.
+    risk_level: low
+    follow_ups: >
+      Turn the error of `fixerGravite` into a stop of the story, as for `defautsInscrits`.
+    status: open
+  - bug_id: BUG-2026-10-10T173049
+    date: "2026-10-10"
+    title: "The arbitration cannot write the retained severity into a defect of the branch written in block form with a severity key and no value"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      For a block entry holding `severity:` with no value, `fixerGravite` (`cycle/src/registre.ts`) removes that pair and
+      adds the retained severity after the last pair. The newline and the indentation of the next key lie in the
+      separator of the removed pair, so the next key moves to column 0, the edit reads back as another root key, and
+      `verifier` refuses it. The flow form (`{bug_id: X, severity, status: open}`) is written correctly, and a test
+      holds it.
+    what_expected: >
+      The registry carries the retained severity as the entry's only one, in block form as in flow form.
+    steps_to_reproduce:
+      - "Write `bugs:\\n  - bug_id: X\\n    title: t\\n    severity:\\n    status: open\\n` as the registry at the head, with no X at the base; call `fixerGravite(root, base, \"X\", \"high\")`: it throws `the edit ... holds at its root anything but one bugs key`."
+    root_cause: >
+      `retirer` removes the whole source item of the pair, whose separator carries the line break and the indentation
+      of the pair that follows when the value is absent.
+    evidence: >
+      Introduced by the branch of the story e39s04. Found in the response to the first review round, by a test of an
+      empty severity that failed in block form.
+    risk_level: low
+    follow_ups: >
+      Write the retained severity into the empty pair, or hand the separator's trailing whitespace to the next item;
+      then add the block form to the test of an empty severity in `arbitrage-gravite.test.ts`.
+    status: open
+  - bug_id: BUG-2026-10-10T173050
+    date: "2026-10-10"
+    title: "A registry whose bugs list is tagged !!omap or !!pairs stops the story with a message that does not name the registry"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      Under `%YAML 1.1`, `bugs: !!omap` or `bugs: !!pairs` reads as a sequence whose items are pairs, not nodes, so
+      `lire` (`cycle/src/registre.ts`) throws `noeud.toJS is not a function`. The story stops and no defect goes
+      unweighed, but the stop names neither the registry nor the cause.
+    what_expected: >
+      The stop reads `specs/bugs/registry.yaml: bugs is not a list`, as for a map or a scalar.
+    steps_to_reproduce:
+      - "Write `%YAML 1.1\\n---\\nbugs: !!omap\\n  - a: 1\\n` as the registry; call `defautsInscrits`: it throws `noeud.toJS is not a function`."
+    root_cause: >
+      `isSeq` accepts the ordered-map and pairs collections of the YAML reader, whose items are pairs.
+    evidence: >
+      Introduced by the branch of the story e39s04. Found by a reviewer of the first round, and reproduced in the
+      response to that round.
+    risk_level: low
+    follow_ups: >
+      Refuse a list whose items are not nodes with the message that names the registry.
+    status: open
+  - bug_id: BUG-2026-10-10T173051
+    date: "2026-10-10"
+    title: "A defect the branch records with no severity is journaled as recorded low"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `lire` (`cycle/src/registre.ts`) reads an entry with no `severity`, or with an empty one, as `low`. The arbitration's
+      prompt lists it as `(low)`, and the journal of the arbitration records `inscrite: low` though the session wrote
+      no severity. The severity the arbitration retains is written and journaled correctly.
+    what_expected: >
+      The prompt and the journal say that the branch recorded no severity for that defect.
+    steps_to_reproduce:
+      - "Arbitrate a story whose branch records `{bug_id: X, title: t, status: open}`; the event `arbitrage` carries `inscrite: low` for X."
+    root_cause: >
+      The reader gives a missing severity the default `low`, which serves the order of `defautsOuverts`, and the same
+      value is reported as the severity recorded.
+    evidence: >
+      Found by a reviewer of the first round of the story e39s04, on behaviour older than its branch.
+    risk_level: low
+    follow_ups: >
+      Keep the default for the order of open defects, and report a missing severity as such where the recorded one is
+      shown.
+    status: open
+  - bug_id: BUG-2026-10-10T180000
+    date: "2026-10-10"
+    title: "A story that cycle auto stops after a step, the arbitration's stops included, leaves the reason of the stop out of its journal"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      When `apresIssue` (`cycle/src/automate.ts`) returns a stop, `main` (`cycle/src/main.ts`) prints
+      `⛔ <motif>` to the terminal and to `en-direct.log`, but no event of `journal.jsonl` carries the motif. After an
+      arbitration that retains no severity for a defect of the branch, the journal ends on the `proprietaire` event
+      and the arbitration's `session`, with nothing that says the story stopped or why.
+    what_expected: >
+      The journal records the stop and its reason, so that the dossier alone tells why the story did not go on.
+    steps_to_reproduce:
+      - "Run `cycle <story> auto` up to the acceptance run with an arbitration that leaves a defect of the branch without a retained severity; `en-direct.log` ends on `⛔ the arbitration retains no severity ...`, and `journal.jsonl` holds no event with that text."
+    root_cause: >
+      The motif of a `Poursuite` stop is handed to `rendre` for display only; `apresIssue` journals nothing on that path.
+    evidence: >
+      Observed in the acceptance run of the story e39s04 and checked on the code of `main` at 9db7ed95, which prints the
+      motif the same way without journaling it.
+    risk_level: low
+    follow_ups: >
+      Journal the stop and its motif where `apresIssue` returns `arret`, and hold it with a test of an arbitration that stops.
+    status: open

@@ -1,7 +1,7 @@
 /**
  * The git operations the cycle needs, and nothing more: where a branch stands, which commits it
- * carries and what each touched, a detached tree at one commit to replay a red in, and the one
- * squashed commit a branch lands as.
+ * carries and what each touched, a file as a commit holds it, a detached tree at one commit to
+ * replay a red in, and the one squashed commit a branch lands as.
  */
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, symlinkSync } from "node:fs";
@@ -79,6 +79,12 @@ export function fichiersChanges(cwd: string, base: string): string[] {
 		stdio: ["ignore", "pipe", "pipe"],
 	});
 	return out.split("\0").filter((f) => f !== "");
+}
+
+/** The content of `chemin` as `ref` holds it, or null when `ref` holds no such path. */
+export function contenuA(cwd: string, ref: string, chemin: string): string | null {
+	if (git(cwd, ["ls-tree", "--name-only", ref, "--", chemin]) === "") return null;
+	return git(cwd, ["show", `${ref}:${chemin}`]);
 }
 
 /** A detached worktree at `sha`, with the repository's `node_modules` linked so the suite can run. */

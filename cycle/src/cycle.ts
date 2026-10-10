@@ -51,7 +51,7 @@ import {
 import { contenuLu, dejaVerte, retenirVerte } from "./preflight.ts";
 import { preparer } from "./preparation.ts";
 import type { Evenement, Journal, Pas } from "./journal.ts";
-import { defautsOuverts } from "./registre.ts";
+import { defautsInscrits, defautsOuverts, ligneDeDefaut } from "./registre.ts";
 import {
 	type Constat,
 	type Rapport,
@@ -624,11 +624,7 @@ async function pasRecette(ctx: Contexte): Promise<Issue> {
 	const events = ctx.journal.depuisReouverture();
 	if (events.some((e) => e.genre === "acceptee")) return FINI;
 	const preparee = events.findLast((e) => e.genre === "preparee");
-	if (preparee)
-		return {
-			statut: "proprietaire",
-			question: `${String(preparee.compte_rendu)}\n\nAccepter : \`cycle ${ctx.story.id} accepte [note]\`. Nommer un écart : \`cycle ${ctx.story.id} ecart "<ce qui manque>"\`.`,
-		};
+	if (preparee) return questionDeRecette(ctx, String(preparee.compte_rendu));
 	await jouerCampagnes(ctx);
 	const s = await session(
 		ctx,
@@ -684,9 +680,22 @@ async function pasRecette(ctx: Contexte): Promise<Issue> {
 		campagnes: sortie.campagnes,
 		tete: revision(ctx.root),
 	});
+	return questionDeRecette(ctx, sortie.compte_rendu);
+}
+
+/**
+ * What the owner is asked once the acceptance run is prepared: its report, the defects the branch records with their
+ * severity, and the two answers.
+ */
+function questionDeRecette(ctx: Contexte, compteRendu: string): Issue {
+	const defauts = defautsInscrits(ctx.root, base(ctx)).map(ligneDeDefaut);
+	const registre =
+		defauts.length > 0
+			? `\n\nDéfauts que la branche inscrit au registre, avec leur gravité :\n${defauts.join("\n")}`
+			: "";
 	return {
 		statut: "proprietaire",
-		question: `${sortie.compte_rendu}\n\nAccepter : \`cycle ${ctx.story.id} accepte [note]\`. Nommer un écart : \`cycle ${ctx.story.id} ecart "<ce qui manque>"\`.`,
+		question: `${compteRendu}${registre}\n\nAccepter : \`cycle ${ctx.story.id} accepte [note]\`. Nommer un écart : \`cycle ${ctx.story.id} ecart "<ce qui manque>"\`.`,
 	};
 }
 
