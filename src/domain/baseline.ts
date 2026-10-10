@@ -13,13 +13,24 @@ import type { CandidateManifest } from "../contracts/v1/candidate.ts";
 import type { BaselineComparison, BaselineTolerance, Evidence, Finding } from "../contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../contracts/v1/protocol.ts";
 import { fingerprintOf, locate } from "./findings.ts";
+import type { FormalInputs } from "./formal-package.ts";
 
-/** What a control ran on. Two passes with the same inputs digest observed the same thing. */
+/**
+ * What a control ran on. Two passes with the same inputs digest observed the same thing. A control of the program is
+ * about its exact candidate, a file name or a commit being no identity of the bytes it ran on. An exploration of a
+ * formal model, given what it read, is about the frozen package — model, configuration, properties, tool, budget — and
+ * those bytes, whatever candidate holds them: the same model in another candidate keeps its key, and the controls of
+ * the program beside it do not.
+ */
 export function controlInputsDigest(
-	control: Pick<ControlDefinition, "command" | "cwd" | "env">,
+	control: Pick<ControlDefinition, "command" | "cwd" | "env" | "formal_package">,
 	subjectDigest: string,
+	formalInputs?: FormalInputs,
 ): string {
-	return digestValue({ command: control.command, cwd: control.cwd, env: control.env, candidate: subjectDigest });
+	const run = { command: control.command, cwd: control.cwd, env: control.env };
+	if (control.formal_package && formalInputs)
+		return digestValue({ ...run, package: control.formal_package, read: formalInputs });
+	return digestValue({ ...run, candidate: subjectDigest });
 }
 
 /**

@@ -33,6 +33,7 @@ import {
 	blockingCount,
 	candidateShape,
 	compareToReference,
+	controlInputsDigest,
 	divergesFromReference,
 	reusableReferencePass,
 	type CandidateShape,
@@ -45,12 +46,19 @@ import { declaresGenerated } from "../domain/generated-code.ts";
 import { asksAboutQuality, asksAboutStructure, controlsOfNature, placesOf, readerOf } from "../domain/survey.ts";
 import { DomainError } from "../domain/errors.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
-import type { ControlExecutionPort, ReportReader, WorkspacePolicy, WorkspacePort } from "../ports/execution.ts";
+import type {
+	ControlExecutionPort,
+	ControlInvocation,
+	ReportReader,
+	WorkspacePolicy,
+	WorkspacePort,
+} from "../ports/execution.ts";
 import type { LedgerPort } from "../ports/ledger.ts";
 import type { ObjectStorePort } from "../ports/object-store.ts";
 import { EXECUTOR_ACTOR } from "./actors.ts";
 import { openWorkspaceWithComplements } from "./complement.ts";
 import { introducedLinesOf, type IntroducedLinesResult } from "./coverage.ts";
+import { citationOf, establishedExploration, formalInputsOf } from "./formal-reuse.ts";
 import type { PreparationRecord, ReferenceSuiteObservation } from "./preparation.ts";
 import {
 	type ControlWitnesses,
@@ -209,6 +217,14 @@ export async function writeWitness(workspacePath: string, files: Record<string, 
 		await mkdir(dirname(target), { recursive: true });
 		await writeFile(target, content);
 	}
+}
+
+/**
+ * What blocks is what the frozen tolerance leaves blocking: without a reference pass, every blocking finding counts,
+ * because an unknown baseline is not a tolerance (VER-08).
+ */
+function blockingOf(evidence: Evidence): number {
+	return evidence.baseline ? evidence.baseline.blocking_findings : blockingCount(evidence.findings, "block_any");
 }
 
 /** What the kernel commits of one sealed evidence, with the blocking findings the frozen rule leaves. */
@@ -553,14 +569,23 @@ export class VerificationCoordinator {
 				producer: EXECUTOR_ACTOR,
 				introduced_lines: introduced.lines,
 			};
-			const observed = (await this.deps.controls.runControl(invocation)).evidence;
+			const planned = await this.citeOrPlanRun(input, control, invocation);
+			if ("cited" in planned) {
+				facts.push(factOf(planned.cited, blockingOf(planned.cited)));
+				continue;
+			}
+			const observed = (await this.deps.controls.runControl(planned.invocation)).evidence;
 			// A path the diff could not read is a limit of every control that judged the introduced lines,
 			// not a silent zero.
 			const limits =
 				introduced.notes.length > 0 && this.differential(control)
 					? { ...observed.limits, notes: [...observed.limits.notes, ...introduced.notes] }
 					: observed.limits;
-			let candidate: EvidenceCandidate = { ...observed, facts: { ...observed.facts, run: "candidate" }, limits };
+			let candidate: EvidenceCandidate = {
+				...observed,
+				facts: { ...observed.facts, run: "candidate", ...planned.facts },
+				limits,
+			};
 			const pass = passes.get(control.control_id);
 			if (pass) {
 				let outcome = compareToReference(observed.verdict, observed.findings, pass, shape, baseline.tolerance);
@@ -597,20 +622,42 @@ export class VerificationCoordinator {
 					},
 				};
 			}
-			const evidenceId = this.deps.id("evd");
-			const evidence = this.storeEvidence(input.change_id, candidate, evidenceId);
-			// What blocks is what the frozen tolerance leaves blocking: without a reference pass, every
-			// blocking finding counts, because an unknown baseline is not a tolerance (VER-08).
-			const blocking = evidence.baseline
-				? evidence.baseline.blocking_findings
-				: blockingCount(evidence.findings, "block_any");
-			facts.push(factOf(evidence, blocking));
+			const evidence = this.storeEvidence(input.change_id, candidate, this.deps.id("evd"));
+			facts.push(factOf(evidence, blockingOf(evidence)));
 		}
 		// Evidence is about the snapshot the protocol froze: the kernel says whether the tree the
 		// controls left behind is still that one (VER-03).
 		const writable = writablePrefixes(protocol.controls);
 		const after = await this.snapshotAfterControls(input, writable);
 		return { facts, candidate_moved: candidateMoved(manifest, after, writable) };
+	}
+
+	/**
+	 * The exploration of a formal model is about the model: the one an earlier candidate of this change made of the same
+	 * model is cited for this one and stored as its evidence. Otherwise, the invocation to run — for an exploration,
+	 * with what it reads, which identifies its result — and the facts saying why nothing was cited.
+	 */
+	private async citeOrPlanRun(
+		input: RunInput,
+		control: ControlDefinition,
+		invocation: ControlInvocation,
+	): Promise<{ cited: Evidence } | { invocation: ControlInvocation; facts: { rerun_because?: string } }> {
+		const pkg = control.formal_package;
+		if (!pkg) return { invocation, facts: {} };
+		const started = this.deps.now();
+		const reads = { model: pkg.model, config: pkg.config, cwd: control.cwd, tools: [pkg.tool.java, pkg.tool.jar] };
+		const inputs = await formalInputsOf({ ...reads, env_allowlist: control.env_allowlist }, input.workspace_path);
+		const key = controlInputsDigest(control, input.candidate.manifest_digest, inputs);
+		const found = await establishedExploration(this.deps.ledger.listEvidence(input.change_id), control, inputs, key, {
+			environment_digest: this.deps.environment.digest,
+			protocol: input.protocol_ref,
+			objects: this.deps.objects,
+		});
+		if ("rerun_because" in found)
+			return { invocation: { ...invocation, formal_inputs: inputs }, facts: { rerun_because: found.rerun_because } };
+		this.deps.progress(`control ${control.control_id} cites the exploration ${found.original.evidence_id}`);
+		const citation = citationOf(found.original, invocation, key, { started_at: started, ended_at: this.deps.now() });
+		return { cited: this.storeEvidence(input.change_id, citation, this.deps.id("evd")) };
 	}
 
 	/**

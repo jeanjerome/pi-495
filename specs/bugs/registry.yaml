@@ -3389,3 +3389,84 @@ bugs:
       Add a proof test where an `.olean` the build leaves is a link to a file that changes after the set-aside, and
       assert that the check reads the content copied at the set-aside.
     status: open
+  - bug_id: BUG-2026-10-10T215400
+    date: "2026-10-10"
+    title: "The identity of a preparation's exploration does not cover the libraries the formal checker loads from node_modules"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `identiteDExploration` (`cycle/src/explorations.ts`) covers the checker as `scripts/check-formal.ts` and `src` at
+      `HEAD`. The checker also loads `typebox` and `@rgrove/parse-xml` from `node_modules`, and an upgrade of either
+      leaves the identity unchanged, so a later preparation cites an exploration the earlier versions of these
+      libraries read and judged.
+    what_expected: >
+      A change of a library the checker loads changes the identity, or the exploration is not cited.
+    steps_to_reproduce:
+      - "Explore a manifest through the preparation, upgrade `typebox` or `@rgrove/parse-xml` in `node_modules`, examine the preparation of another story on the same manifest: the exploration is cited."
+    root_cause: >
+      The checker's identity lists the tracked files it loads (`VERIFICATEUR`), and the installed dependencies are not
+      tracked; nothing digests what `node_modules` holds.
+    evidence: >
+      Introduced by the branch of the story e38s12. Found by a reviewer of the first round, who traced the modules
+      `check-formal.ts` loads with a resolve hook. A verdict that changes with these two libraries is unlikely: they
+      validate the manifest and read TLC's XML.
+    risk_level: low
+    follow_ups: >
+      Add the digest of `node_modules/.package-lock.json`, which npm rewrites on every install, to the identity, and hold
+      it with a test where that file changes.
+    status: open
+  - bug_id: BUG-2026-10-10T215401
+    date: "2026-10-10"
+    title: "An exploration whose verdict depends on TLC's clock or random draw is cited as if running it again would conclude the same"
+    severity: medium
+    priority: p3
+    scope: application
+    what_happened: >
+      `TLC_STANDARD_MODULES` (`src/domain/formal-package.ts`) counts the module `TLC` as identified by the jar. That
+      module gives a model the clock (`JavaTime`) and a randomly seeded draw (`RandomElement`), which no key covers: an
+      exploration whose verdict depends on them is cited for a later candidate, whereas running it again could
+      conclude otherwise.
+    what_expected: >
+      A model that reads the clock or a random draw is explored again, or the inputs that fix them (a seed, a time) are
+      part of its identity.
+    steps_to_reproduce:
+      - "Adopt a model whose invariant reads `JavaTime` or `RandomElement`, verify a first candidate to PASS, then a second candidate holding the same model: the exploration is cited without TLC running."
+    root_cause: >
+      The identity covers what an exploration reads from files, tools and variables, not the nondeterministic operators
+      TLC evaluates at run time.
+    evidence: >
+      Introduced by the branch of the story e38s12. Found by a reviewer of the first round by reading the operators the
+      `TLC` module defines; not shown by a run, which needs an adopted model with such a dependency.
+    risk_level: low
+    follow_ups: >
+      Refuse the citation of an exploration whose closure uses `JavaTime`, `TLCGet`, `RandomElement` or `TLCEval` of a
+      random draw, or pass TLC a seed the identity carries.
+    status: open
+  - bug_id: BUG-2026-10-10T230141
+    date: "2026-10-10"
+    title: "The event of a cited exploration reads as the event of an exploration that ran"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `citeOrPlanRun` (`src/application/verification.ts`) stores a citation through `storeEvidence` and `factOf`, so the
+      change's journal records it as an `evidence.recorded` event identical in shape to an executed exploration's, and
+      the result line shows `✔ formal-model réussi` for both. Only the evidence document, read by its identifier, carries
+      `run: reused` and `reused_from`; a reader of the events or of the display cannot tell that TLC did not run.
+    what_expected: >
+      The event recording a citation, and the line that displays it, say that the exploration was cited and name the
+      original evidence.
+    steps_to_reproduce:
+      - "Verify a candidate holding an adopted TLA+ model, then a second candidate of the same change holding the same model; read the two `evidence.recorded` events of `formal-model` in `events`: nothing but the identifiers and the subject differs."
+    root_cause: >
+      `EvidenceFact` carries the verdict and the identity of the evidence, not how it was obtained, and the citation goes
+      through the same path as an execution.
+    evidence: >
+      Introduced by the branch of the story e38s12. Seen at its acceptance run in the dossier `~/.495-campagnes/e38s12-reuse`:
+      event 82 of the change has no mark of reuse, whereas its evidence `evd_mv2vexnge63fd2213b` holds `run: reused`.
+    risk_level: low
+    follow_ups: >
+      Carry `reused_from` on the `evidence.recorded` fact of a citation and show it on the result line, with a test on
+      the event a second candidate records.
+    status: open

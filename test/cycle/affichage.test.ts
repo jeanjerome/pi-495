@@ -102,18 +102,21 @@ describe("the line a journal event shows", () => {
 		);
 	});
 
-	it("shows a green preparation with each exploration's outcome, and a preparation cited by its fingerprint", () => {
+	it("shows a green preparation with each exploration's outcome and which ones are cited, and a preparation cited by its fingerprint", () => {
 		const verte = ligneDuJournal({
 			at: "2026-10-04T10:00:00.000Z",
 			pas: "rouge-vert",
 			genre: "preparation",
 			verte: true,
 			empreinte: `sha256:${"a".repeat(64)}`,
-			resultats: [{ manifeste: "specs/formal/a/manifest.json", issue: "completed" }],
+			resultats: [
+				{ manifeste: "specs/formal/a/manifest.json", issue: "completed", reutilise: null },
+				{ manifeste: "specs/formal/b/manifest.json", issue: "completed", reutilise: { story: "e01s05" } },
+			],
 		});
 		assert.equal(
 			stripVTControlCharacters(verte ?? ""),
-			"  ✓ préparation verte · specs/formal/a/manifest.json completed",
+			"  ✓ préparation verte · specs/formal/a/manifest.json completed · specs/formal/b/manifest.json completed réutilisée",
 		);
 		const retenue = ligneDuJournal({
 			at: "2026-10-04T10:00:00.000Z",

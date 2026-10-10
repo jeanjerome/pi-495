@@ -216,8 +216,8 @@ export function annonce(texte: string): string {
 
 /** The line a preparation shows: each exploration's outcome and, when it blocks, the first lines of why. */
 function lignePreparation(e: Evenement): string {
-	const resultats = (e.resultats as { manifeste: string; issue: string }[] | undefined) ?? [];
-	const explorations = resultats.map((r) => ` · ${r.manifeste} ${r.issue}`).join("");
+	const resultats = (e.resultats as { manifeste: string; issue: string; reutilise?: unknown }[] | undefined) ?? [];
+	const explorations = resultats.map((r) => ` · ${r.manifeste} ${r.issue}${r.reutilise ? " réutilisée" : ""}`).join("");
 	if (e.verte) return s("green", `  ✓ préparation verte${explorations}`);
 	const motif = String(e.motif).split("\n").slice(1, 4).join("\n    ");
 	return s("red", `  ✗ préparation bloquée${explorations}\n    ${motif}`);

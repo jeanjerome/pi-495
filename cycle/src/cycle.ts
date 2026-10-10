@@ -217,6 +217,7 @@ function preparationDuRougeVert(ctx: Contexte): ReturnType<typeof preparer> {
 				const octets = await ctx.journal.objets.get(digest);
 				return octets ? new TextDecoder().decode(octets) : null;
 			},
+			reutiliser: process.env.CYCLE_495_REUTILISATION !== "0",
 		},
 		ctx.journal,
 	);

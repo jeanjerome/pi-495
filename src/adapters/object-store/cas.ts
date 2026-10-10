@@ -34,7 +34,9 @@ export class CasObjectStore implements ObjectStorePort {
 		const digest = `sha256:${hex}`;
 		const finalPath = this.pathFor(digest);
 		const ref: ObjectRef = { algorithm: "sha256", digest, size_bytes: bytes.byteLength, media_type: mediaType };
-		if (await this.has(digest)) return ref;
+		// An object already there is kept only while it holds these bytes: one altered since is written again, so a run
+		// that reproduces a lost output leaves it readable.
+		if (await this.verify(digest)) return ref;
 		const tmp = join(this.root, "tmp", `${hex}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}`);
 		await mkdir(dirname(finalPath), { recursive: true });
 		const fh = await open(tmp, "w");

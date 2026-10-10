@@ -269,6 +269,14 @@ describe("CAS object store (§7.3)", () => {
 		const ref = await cas.putText("data");
 		assert.equal(await cas.verify(ref.digest), true);
 	});
+	it("writing bytes again restores an object whose stored bytes were altered", async () => {
+		const cas = new CasObjectStore(join(dir, "objects"));
+		const ref = await cas.putText("the output of a run");
+		writeFileSync(cas.pathFor(ref.digest), "an output nobody produced");
+		assert.equal(await cas.verify(ref.digest), false);
+		assert.deepEqual(await cas.putText("the output of a run"), ref);
+		assert.equal(await cas.verify(ref.digest), true, "the object holds the bytes its digest names again");
+	});
 });
 
 describe("Pi session lifecycle: reload, fork, and operations that must not run twice (UX-05, REC-40)", () => {

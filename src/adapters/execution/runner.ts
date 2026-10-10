@@ -239,7 +239,11 @@ export class GenericControlRunner implements ControlExecutionPort {
 			subject: invocation.subject,
 			protocol_revision: invocation.protocol,
 			environment: invocation.environment,
-			inputs_digest: controlInputsDigest({ ...control, command }, invocation.candidate.manifest_digest),
+			inputs_digest: controlInputsDigest(
+				{ ...control, command },
+				invocation.candidate.manifest_digest,
+				invocation.formal_inputs,
+			),
 			started_at: started,
 			ended_at: ended,
 			verdict: report.verdict,

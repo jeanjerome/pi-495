@@ -99,7 +99,11 @@ A story starts on a branch from `main`, on a green Preflight, and comes back to 
    session: an incomplete companion, an undetermined exploration or a counterexample of an adopted
    model sends the story back to its preparation, naming the trace, without spending a red-green
    attempt. A story reopened on an unchanged preparation is a code correction; a changed model or
-   promise withdraws the previous preparation, which is examined again.
+   promise withdraws the previous preparation, which is examined again. An exploration that would read
+   what an earlier conclusive one read — manifest, modules, configuration, Java, jar, variables, the
+   checker at `HEAD`, Node — cites it, in this story or another, while its output is intact; the record
+   says what ran and for how long, what was cited, how long the lookup took and why anything ran
+   (`CYCLE_495_REUTILISATION=0` turns the citation off).
 2. **Red-green.** Task by task: the test first, its red seen on the announced assertion, a test-only
    commit, then the code and a green commit. A missing file, an import or type error, or a red
    obtained by setting code aside is not that red. The tool replays each test-only commit of the

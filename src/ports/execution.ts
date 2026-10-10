@@ -11,6 +11,7 @@ import type { CandidateManifest, ReferenceSnapshot } from "../contracts/v1/candi
 import type { EvidenceCandidate, Finding, RequirementRef } from "../contracts/v1/evidence.ts";
 import type { ControlDefinition } from "../contracts/v1/protocol.ts";
 import type { OutputSchemaId } from "../contracts/v1/reports.ts";
+import type { FormalInputs } from "../domain/formal-package.ts";
 import type { ImposedLayer, ObservedLayers } from "../domain/imposed-layers.ts";
 import type { ModelLocation } from "../domain/policy.ts";
 import type { ReaderTraits } from "../domain/survey.ts";
@@ -136,6 +137,8 @@ export interface ControlInvocation {
 	requirement_refs: RequirementRef[];
 	producer: ActorRef;
 	introduced_lines?: IntroducedLines | null;
+	/** What the exploration of a formal model reads, which identifies its result instead of the candidate. */
+	formal_inputs?: FormalInputs;
 }
 
 /**

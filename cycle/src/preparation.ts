@@ -11,13 +11,25 @@
  * file of the models it explores — and recorded once: a launch that finds the same fingerprint cites the
  * record instead of exploring again. A story reopened on the same fingerprint is a code to correct; a
  * changed fingerprint is a rule revised, which withdraws the previous preparation.
+ *
+ * An exploration that would read what an earlier one read, in this story or another, cites it instead of running TLC
+ * again, while its output is intact (`explorations.ts`); `CYCLE_495_REUTILISATION=0` turns that off. Each result
+ * says how long the exploration ran, or which one it cites, how long the lookup took, and why it ran.
  */
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { performance } from "node:perf_hooks";
 import type { ObjectRef } from "../../src/contracts/v1/common.ts";
 import { digestValue } from "../../src/contracts/digest.ts";
 import type { Controle, Preuve } from "./controls.ts";
+import {
+	type ExplorationRetenue,
+	explorationAnterieure,
+	identiteDExploration,
+	modulesNonCouverts,
+	retenirExploration,
+} from "./explorations.ts";
 import type { Evenement, Journal } from "./journal.ts";
 import type { Story } from "./story.ts";
 import { cheminDuCompagnon, resumeDeVerification } from "./verification-contract.ts";
@@ -38,6 +50,14 @@ interface Resultat {
 	manifeste: string;
 	issue: IssueExploration;
 	trace: ObjectRef | null;
+	/** How long the exploration ran, as the runner measured it; null when an earlier one is cited. */
+	duree_ms: number | null;
+	/** How long looking for an earlier exploration took. */
+	recherche_ms: number;
+	/** The earlier exploration cited instead of running, whose output `trace` is; null when it ran. */
+	reutilise: { story: string; at: string } | null;
+	/** Why it ran; null when it is cited. */
+	motif: string | null;
 }
 
 interface Examen {
@@ -55,6 +75,8 @@ interface Outillage {
 	exploration: (manifeste: string) => Controle;
 	lancer: (c: Controle) => Promise<Preuve>;
 	lire: (digest: string) => Promise<string | null>;
+	/** Whether an earlier exploration of the same inputs is cited instead of running. */
+	reutiliser: boolean;
 }
 
 /** The preparation the red-green starts from: its account for the prompt, or the block it says. */
@@ -113,18 +135,78 @@ async function compteRendu(o: Outillage, r: Resultat): Promise<string> {
 	return [`- ${r.manifeste} : ${r.issue}, trace ${r.trace.digest}`, ...extrait].join("\n");
 }
 
+function dureeDe(preuve: Preuve): number {
+	const mesuree = preuve.facts.duration_ms;
+	return typeof mesuree === "number" ? mesuree : Date.parse(preuve.ended_at) - Date.parse(preuve.started_at);
+}
+
+/**
+ * The earlier conclusive exploration that read what `controle` would read, when its output is intact; otherwise why
+ * the model is explored again, and the identity the new exploration is kept under, when it has one.
+ */
+async function anterieure(
+	o: Outillage,
+	journal: Journal,
+	manifeste: string,
+	controle: Controle,
+): Promise<{ cite: ExplorationRetenue } | { motif: string; identite: string | null }> {
+	if (!o.reutiliser) return { motif: "réutilisation désactivée", identite: null };
+	const id = await identiteDExploration(o.root, manifeste, controle);
+	if ("non_identifiees" in id)
+		return { motif: `entrées non identifiées : ${id.non_identifiees.join(", ")}`, identite: null };
+	const trouvee = explorationAnterieure(dirname(journal.dir), id.identite);
+	if (!trouvee)
+		return {
+			motif: "aucune exploration antérieure concluante du même modèle, du même outil et du même vérificateur",
+			identite: id.identite,
+		};
+	if (!(await journal.objets.verify(trouvee.trace.digest)))
+		return {
+			motif: `la sortie de l'exploration de ${trouvee.story} du ${trouvee.at} est altérée ou perdue (${trouvee.trace.digest})`,
+			identite: id.identite,
+		};
+	const manques = modulesNonCouverts((await o.lire(trouvee.trace.digest)) ?? "", id.lu);
+	if (manques.length > 0)
+		return {
+			motif: `l'exploration de ${trouvee.story} du ${trouvee.at} a lu ${manques.join(", ")}, que son identité ne couvre pas`,
+			identite: id.identite,
+		};
+	return { cite: trouvee };
+}
+
+/** One exploration of the preparation: an earlier one cited, or this one run and kept when it concludes. */
+async function explorer(o: Outillage, journal: Journal, manifeste: string): Promise<Resultat> {
+	const debut = performance.now();
+	const controle = o.exploration(manifeste);
+	const trouvee = await anterieure(o, journal, manifeste, controle);
+	const recherche_ms = Math.round(performance.now() - debut);
+	if ("cite" in trouvee) {
+		const { issue, trace, story, at } = trouvee.cite;
+		return { manifeste, issue, trace, duree_ms: null, recherche_ms, reutilise: { story, at }, motif: null };
+	}
+	const preuve = await o.lancer(controle);
+	const trace = preuve.artifacts.find((a) => a.name === "stdout")?.ref ?? null;
+	const issue = issueDe(preuve);
+	if (trouvee.identite && trace && (issue === "completed" || issue === "counterexample"))
+		retenirExploration(dirname(journal.dir), {
+			identite: trouvee.identite,
+			manifeste,
+			issue,
+			trace,
+			story: journal.story,
+			at: preuve.ended_at,
+		});
+	return { manifeste, issue, trace, duree_ms: dureeDe(preuve), recherche_ms, reutilise: null, motif: trouvee.motif };
+}
+
 /** Examines the preparation of a story that has a companion: its diagnostic, then each upstream means it keeps. */
-async function examiner(o: Outillage): Promise<Examen> {
+async function examiner(o: Outillage, journal: Journal): Promise<Examen> {
 	const diagnostic = o.story.verification;
 	if (diagnostic && !diagnostic.prete) return bloquee(resumeDeVerification(diagnostic, o.root));
 	const indetermine = indetermines(o.story);
 	if (indetermine.length > 0) return bloquee(`exploration indéterminée :\n${indetermine.join("\n")}`);
 	const resultats: Resultat[] = [];
-	for (const manifeste of manifestesRetenus(o.story)) {
-		const preuve = await o.lancer(o.exploration(manifeste));
-		const trace = preuve.artifacts.find((a) => a.name === "stdout")?.ref ?? null;
-		resultats.push({ manifeste, issue: issueDe(preuve), trace });
-	}
+	for (const manifeste of manifestesRetenus(o.story)) resultats.push(await explorer(o, journal, manifeste));
 	const echecs = resultats.filter((r) => r.issue !== "completed");
 	if (echecs.length === 0) return { verte: true, motif: "", resultats };
 	const comptes = await Promise.all(echecs.map((r) => compteRendu(o, r)));
@@ -176,7 +258,10 @@ function resume(e: Evenement, reprise: string | null): string {
 	const resultats = (e.resultats as Resultat[] | undefined) ?? [];
 	return [
 		`préparation verte, empreinte ${String(e.empreinte)}`,
-		...resultats.map((r) => `- ${r.manifeste} : ${r.issue}, sortie ${r.trace?.digest ?? "aucune"}`),
+		...resultats.map(
+			(r) =>
+				`- ${r.manifeste} : ${r.issue}, sortie ${r.trace?.digest ?? "aucune"}${r.reutilise ? `, exploration de ${r.reutilise.story} réutilisée` : ""}`,
+		),
 		...(reprise ? [reprise] : []),
 	].join("\n");
 }
@@ -223,7 +308,7 @@ export async function preparer(o: Outillage, journal: Journal): Promise<Preparat
 			});
 			reprise = `reprise : révision de règle — la préparation ${String(precedente.empreinte)} est retirée, celle-ci la remplace ; a changé : ${changes.join(", ")}`;
 		}
-		e = journal.inscrire("rouge-vert", "preparation", { empreinte, composantes, ...(await examiner(o)) });
+		e = journal.inscrire("rouge-vert", "preparation", { empreinte, composantes, ...(await examiner(o, journal)) });
 	}
 	return e.verte === true ? { verte: true, resume: resume(e, reprise) } : { verte: false, motif: String(e.motif) };
 }

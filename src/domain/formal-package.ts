@@ -8,6 +8,49 @@ import type { ControlDefinition, FormalPackage, Protocol } from "../contracts/v1
 import type { EvidenceEntry, FrozenFormalPackage } from "./change/state.ts";
 import type { ActivePolicy } from "./policy.ts";
 
+/**
+ * What one exploration of a formal package reads besides its frozen control, each by path with the digest of its
+ * bytes: every module of the closure the root model reaches through `EXTENDS` and `INSTANCE`, as TLC resolves it from
+ * the directory it runs in before the model's, any file of those directories TLC would read in place of a module it
+ * ships, the configuration, the Java runtime and the jar. A null digest is an input that could not be identified — a
+ * module neither in the tree nor shipped by TLC, a tool that cannot be read — and a result that read one is never
+ * reused.
+ */
+export type FormalInputs = Readonly<Record<string, string | null>>;
+
+/**
+ * The modules `tla2tools.jar` 2.19 ships under `tla2sany/StandardModules`, which TLC reads when the model's directory
+ * holds no file of that name: they are part of the jar, identified with it.
+ */
+export const TLC_STANDARD_MODULES: ReadonlySet<string> = new Set([
+	"Bags",
+	"FiniteSets",
+	"Integers",
+	"Naturals",
+	"Randomization",
+	"RealTime",
+	"Reals",
+	"Sequences",
+	"TLC",
+	"Toolbox",
+]);
+
+const MODULE_NAME = "[A-Za-z0-9_]+";
+const EXTENDS = new RegExp(`\\bEXTENDS\\s+(${MODULE_NAME}(?:\\s*,\\s*${MODULE_NAME})*)`, "g");
+const INSTANCE = new RegExp(`\\bINSTANCE\\s+(${MODULE_NAME})`, "g");
+
+/**
+ * The modules a TLA+ module names after `EXTENDS` and `INSTANCE`, its comments set aside. What this reading misses is
+ * caught on TLC's own account of the modules it processed, which a reuse checks against the closure.
+ */
+export function importedModules(text: string): string[] {
+	const code = text.replace(/\(\*[\s\S]*?\*\)/g, " ").replace(/\\\*.*$/gm, " ");
+	const names = new Set<string>();
+	for (const [, list = ""] of code.matchAll(EXTENDS)) for (const name of list.split(",")) names.add(name.trim());
+	for (const [, name = ""] of code.matchAll(INSTANCE)) names.add(name);
+	return [...names];
+}
+
 /** The identity of a formal package, which the control exploring it carries as its version. */
 export function formalPackageDigest(pkg: FormalPackage): string {
 	return digestValue(pkg);
