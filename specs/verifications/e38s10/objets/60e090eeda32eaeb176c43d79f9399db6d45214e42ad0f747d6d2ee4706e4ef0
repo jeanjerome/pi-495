@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: G5 tells the proof on the model apart from the tests that tie it to the program
+    # Subtest: TLC seul ne satisfait pas une obligation programme et un paquet révisé invalide ses anciens résultats
+    not ok 1 - TLC seul ne satisfait pas une obligation programme et un paquet révisé invalide ses anciens résultats
+      ---
+      duration_ms: 1943.628584
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-K9Ee4b/test/v2-kernel/formal-control-acceptance.test.ts:12:2'
+      failureType: 'testCodeFailure'
+      error: 'TLC alone does not satisfy an obligation on the program'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'accepted'
+      actual: 'accepted'
+      operator: 'notStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-K9Ee4b/test/v2-kernel/formal-control-acceptance.test.ts:22:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - G5 tells the proof on the model apart from the tests that tie it to the program
+  ---
+  duration_ms: 1944.275292
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-K9Ee4b/test/v2-kernel/formal-control-acceptance.test.ts:11:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2215.670083

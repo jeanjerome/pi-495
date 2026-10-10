@@ -1,0 +1,62 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Un PASS du modèle ne prouve pas seul le programme",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/gates/g5.ts",
+    "ligne": 113,
+    "mutation": "Suppression de `for (const rid of formal.failed) failed.add(rid);` : les 7 tests formels restent verts.",
+    "constat": "Le cas « correspondance en échec » passe aujourd'hui par l'obligation elle-même. Le contrôle de correspondance est l'un des contrôles de l'obligation et son oracle porte le cas de replay, donc R1 échoue avant que la branche FAIL du jugement formel serve. Cette branche ne mord que sur un contre-exemple de l'exploration sur le candidat, et ce cas n'est pas atteignable tant que les fichiers du modèle restent protégés. La promesse est tenue ; la mutation survit seulement parce que la branche est redondante."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un projet sans modèle reste utilisable sans Java ni Lean",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/formal-control-qualification.test.ts",
+    "ligne": 143,
+    "constat": "L'assertion `existsSync(tool.ran) === false` ne peut pas échouer : le faux TLC n'est nommé nulle part dans le profil (formal_control: null). La promesse est tenue par le code (`withFormalControl` rend la détection telle quelle sans paquet) et par l'assertion qu'aucun contrôle `tlc` n'est gelé ; le constat « aucun outil lancé » n'ajoute rien."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Le modèle adopté est immuable pendant la production",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/change/contestation.ts",
+    "ligne": 49,
+    "constat": "Une sonde montre que G4 refuse un producteur qui réduit spec/Compteur.cfg (« protected path altered by the producer »), et que le lecteur rend INDETERMINATE sur une configuration réduite. La contestation, elle, ne porte que sur un cas lié à une obligation, et l'exploration en est exclue par construction. Une modification justifiée du modèle ne peut donc passer que par la contestation d'un cas de correspondance (constat requirement_change), jamais par celle du modèle lui-même. C'est une lecture de « suit la contestation » à peser, pas un manquement démontré."
+   }
+  ],
+  "resume": "Relecteur A, tour 1, e38s10 : verdict pass. Les quatre promesses sont tenues par le code.\n\n1. **Projet sans modèle** : la politique par défaut n'adopte aucun paquet et `withFormalControl` laisse la détection telle quelle. Aucun contrôle `tlc` n'est gelé et aucun outil n'est lancé.\n2. **Modèle immuable** : les fichiers du paquet sont des chemins protégés. Une sonde jetable confirme que G4 refuse un producteur qui réduit le .cfg. Le lecteur TLC rend INDETERMINATE sur un fichier dont l'empreinte diffère, sur un autre TLC ou sur une propriété requise non vérifiée.\n3. **Un PASS du modèle ne prouve pas seul le programme** : l'exploration est retirée des contrôles des obligations, et G5 garde R1 en indéterminé quand le cas de correspondance est absent, en échec quand le programme diverge.\n4. **Modèle modifié** : sondé par reprise.\n   - Si la préparation reprend avant le gel, le nouveau paquet est qualifié et gelé.\n   - Si le protocole est déjà gelé, G5 refuse les preuves de l'ancienne identité.\n\nMutations essayées (10). Neuf font échouer un test de la story :\n- indéterminé formel ;\n- adoption ;\n- identité de version ;\n- empreinte des fichiers ;\n- chemins protégés ;\n- exclusion des obligations ;\n- version de TLC ;\n- propriétés non vérifiées ;\n- boucle de correspondance.\n\nSeule survit la suppression de l'ajout des exigences en échec au jugement formel : cette branche est redondante avec l'obligation (A1-1, à peser).\n\nDeux autres constats à peser : l'assertion « aucun outil lancé » ne peut pas échouer (A1-2) ; la contestation ne vise pas le modèle lui-même (A1-3).\n\nSécurité : la commande vient de la seule politique, le mutant est lu dans la copie de la référence, et `src/` n'importe rien de cycle/.\n\nLes sondes et le helper modifié ont été retirés de l'arbre ; rien n'est commité."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le modèle adopté est immuable pendant la production",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v2-kernel/formal-control-qualification.test.ts",
+    "ligne": 69,
+    "constat": "Aucun test ne tient la seconde moitié du Then, « suit la contestation si elle est justifiée ». Aucun test de la story ne dépose ni n'examine une contestation. Côté code, le contrôle formel est exclu de toute obligation (verification.ts, `judging`). Une contestation qui cite l'exploration est donc refusée par `obligationIssues` (« control formal-model does not judge requirement »). Seuls les cas de correspondance d'un contrôle d'obligation restent contestables. La première moitié est tenue : une sonde jetable où le producteur retire `INVARIANT Borne` de spec/Compteur.cfg finit bloquée par G4 sur « protected path altered by the producer: spec/Compteur.cfg ». Le test lecteur tue aussi la mutation du condensat.",
+    "mutation": "Aucune mutation possible : aucun test de la story n'atteint contestation.ts. La mutation qui ignore le condensat dans `unapprovedExploration` (`actual === approved ? [] :` → `true ? [] :`) fait échouer « un contrôle qualifié distingue… », et `protected_paths: []` aussi."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Le modèle adopté est immuable pendant la production",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/formal-package.ts",
+    "ligne": 88,
+    "constat": "Aucun test ne vérifie que G5 refuse une exploration INDETERMINATE sur le candidat, c'est-à-dire la « preuve non valable » que rend le lecteur pour un autre TLC, une propriété non vérifiée ou un fichier épinglé absent. Sous la mutation, cette exploration passe pour PASS et l'obligation est tenue par la seule correspondance. Pour un fichier du paquet modifié, G4 refuse le candidat avant G5. Le chemin reste ouvert pour un TLC d'une autre version ou une exploration interrompue. Toujours sans échec : rendre FAIL une exploration en contre-exemple au lieu d'INDETERMINATE ne fait échouer aucun test.",
+    "mutation": "`if (run.verdict !== \"PASS\") reasons.push(...)` → `if (false) reasons.push(...)` : les 7 tests restent verts. Même résultat pour `run.verdict === \"FAIL\" ? \"FAIL\"` → `? \"INDETERMINATE\"`."
+   }
+  ],
+  "resume": "J'ai trouvé un constat « à corriger » introduit par la branche, d'où le verdict fail ; trois des quatre promesses sont tenues par le code et par leurs tests.\n\n- **Scénario 1, projet sans modèle** : tenu. Deux mutations sont tuées : ajouter une constatation formelle quand aucun paquet n'est adopté, et ajouter un contrôle tlc sans paquet.\n- **Scénario 3, un PASS du modèle ne suffit pas** : tenu. Neuf mutations sont tuées : sauter `formalFindings`, ne pas geler `formal`, compter le contrôle formel parmi les contrôles d'obligation, ignorer la correspondance, et inverser `mandatory`.\n- **Scénario 4, modèle modifié** : tenu. Ignorer le condensat adopté ou le préfixe de version de la preuve fait échouer le test d'acceptation. Une sonde de reprise sur un changement bloqué n'a rien observé de plus.\n- **Scénario 2, modèle immuable** : la première moitié est tenue. Le lecteur rend INDETERMINATE pour une configuration réduite, un autre TLC, une propriété requise non vérifiée ou un fichier épinglé absent : quatre mutations tuées. Une sonde montre aussi que G4 refuse le candidat qui modifie spec/Compteur.cfg. La seconde moitié n'est tenue par aucun test, voir B1-1.\n- **B1-2, à peser** : G5 ne prend pas en compte une exploration INDETERMINATE et aucun test ne le détecte.\n\nAucun test n'est commité et l'arbre est propre."
+ }
+]

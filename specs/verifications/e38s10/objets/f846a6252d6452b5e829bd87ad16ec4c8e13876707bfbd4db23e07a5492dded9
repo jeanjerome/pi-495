@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: G5 tells the proof on the model apart from the tests that tie it to the program
+    # Subtest: TLC seul ne satisfait pas une obligation programme et un paquet révisé invalide ses anciens résultats
+    ok 1 - TLC seul ne satisfait pas une obligation programme et un paquet révisé invalide ses anciens résultats
+      ---
+      duration_ms: 3112.379083
+      type: 'test'
+      ...
+    1..1
+ok 1 - G5 tells the proof on the model apart from the tests that tie it to the program
+  ---
+  duration_ms: 3112.923375
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3382.156833

@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the formal control is qualified and frozen with the other controls of the preparation
+    # Subtest: un contrôle qualifié distingue contre-exemple, absence d'outil et exploration interrompue
+    ok 1 - un contrôle qualifié distingue contre-exemple, absence d'outil et exploration interrompue
+      ---
+      duration_ms: 3142.567709
+      type: 'test'
+      ...
+    # Subtest: un projet sans modèle ne recherche ni ne lance aucun outil formel
+    ok 2 - un projet sans modèle ne recherche ni ne lance aucun outil formel
+      ---
+      duration_ms: 717.163458
+      type: 'test'
+      ...
+    1..2
+ok 1 - the formal control is qualified and frozen with the other controls of the preparation
+  ---
+  duration_ms: 3860.33075
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4125.856375

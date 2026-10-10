@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: a formal control is declared explicitly in the means the profile adopts
+    # Subtest: un paquet incomplet est refusé et un projet sans modèle ne réclame aucun outil
+    not ok 1 - un paquet incomplet est refusé et un projet sans modèle ne réclame aucun outil
+      ---
+      duration_ms: 0.91575
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-1U7OtE/test/v0-pure/formal-control-contract.test.ts:92:2'
+      failureType: 'testCodeFailure'
+      error: 'an adopted formal package is a setting of the profile'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-1U7OtE/test/v0-pure/formal-control-contract.test.ts:93:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    1..1
+not ok 1 - a formal control is declared explicitly in the means the profile adopts
+  ---
+  duration_ms: 1.262375
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-1U7OtE/test/v0-pure/formal-control-contract.test.ts:91:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 148.12325
