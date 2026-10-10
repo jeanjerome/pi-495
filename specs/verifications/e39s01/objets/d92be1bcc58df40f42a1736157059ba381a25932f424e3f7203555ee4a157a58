@@ -1,0 +1,78 @@
+TAP version 13
+# Subtest: the sorting of a round that shows a bypass of the security section
+    # Subtest: un contournement placé avant la branche retient la porte et va à la réponse, pas au registre
+    not ok 1 - un contournement placé avant la branche retient la porte et va à la réponse, pas au registre
+      ---
+      duration_ms: 0.616666
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7Nh5w2/test/cycle/relecture-contournement.test.ts:15:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the gate is refused
+        
+        'pass' !== 'fail'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'fail'
+      actual: 'pass'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7Nh5w2/test/cycle/relecture-contournement.test.ts:17:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Test.start (node:internal/test_runner/test:1262:17)
+        node:internal/test_runner/test:1903:71
+        node:internal/per_context/primordials:504:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:478:3)
+        node:internal/per_context/primordials:504:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: holds the gate on a bypass whatever its category
+    not ok 2 - holds the gate on a bypass whatever its category
+      ---
+      duration_ms: 0.116042
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7Nh5w2/test/cycle/relecture-contournement.test.ts:26:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        a_peser
+        
+        'pass' !== 'fail'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'fail'
+      actual: 'pass'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7Nh5w2/test/cycle/relecture-contournement.test.ts:29:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..2
+not ok 1 - the sorting of a round that shows a bypass of the security section
+  ---
+  duration_ms: 1.148
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7Nh5w2/test/cycle/relecture-contournement.test.ts:14:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 70.181583

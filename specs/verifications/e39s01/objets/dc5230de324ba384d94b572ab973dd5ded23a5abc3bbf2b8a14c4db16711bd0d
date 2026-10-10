@@ -1,0 +1,33 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "resume": "Le code tient les trois promesses, et un test tient chacune. Je n'ai trouvé aucun contournement de la garantie de sécurité hors des entrées déjà ouvertes du registre.\n\n**Scénario 1 (invite du relecteur).** `cycle/prompts/relecteur.md` demande, pour chaque garantie de la section Sécurité, un chemin concret par les entrées publiques de la branche. L'interdit de tout scénario de son cru reste écrit, limité aux promesses. Le schéma de sortie porte le champ `contournement`. Le texte de la section Sécurité arrive bien au relecteur par `promesses(ctx)` dans `cycle/src/cycle.ts`, que la branche ne change pas. Quatre mutations font chacune échouer `test/cycle/relecteur-securite.test.ts` :\n- retirer le paragraphe d'attaque ;\n- retirer « Pour les promesses, ne propose… » ;\n- retirer `contournement` du schéma de sortie ;\n- retirer la consigne correspondante de `reponse.md`.\n\n**Scénario 2 (tri d'un tour).** Dans `cycle/src/relecture.ts`, `retientLaPorte` et `trier` refusent la porte sur un contournement et l'envoient à la réponse, quels que soient son placement et sa catégorie, sans le ranger parmi les antérieurs. Quatre mutations font chacune échouer `test/cycle/relecture-contournement.test.ts` :\n- retirer `contourne(c) ||` dans `retientLaPorte` ;\n- retirer `&& !contourne(c)` dans le filtre des antérieurs ;\n- retirer `|| contourne(c)` dans le filtre des constats à traiter ;\n- faire renvoyer `false` à `contourne`.\n\n**Scénario 3 (après le dernier tour).** `apresDernierTour` envoie le contournement au propriétaire et jamais au registre. Ensuite :\n- `pasRelecture` ne donne à la réponse du dernier tour que `fin.registre`, et met le contournement dans la question posée au propriétaire (`nonTenues`) ;\n- en mode automatique, `apresIssue` renvoie `nonTenues` au rouge-vert.\n\nDeux mutations font chacune échouer `test/cycle/relecture-dernier-tour.test.ts` : retirer `|| contourne(c)` dans `auProprietaire`, et supprimer le filtre de `registre`.\n\n**Section Sécurité (attaque).** J'ai écrit un test jetable, non commité et supprimé ensuite, qui fait passer `pasRelecture` par deux tours avec un faux Claude :\n- au tour 1, un contournement placé `anterieur` et classé `a_peser`, sous un verdict `pass` du relecteur : la porte reste refusée et le constat va à la réponse ;\n- au tour 2, un contournement placé `anterieur` et classé `a_corriger` : il sort en question au propriétaire, et la réponse chargée d'inscrire au registre ne reçoit que le constat ordinaire.\n\nJ'ai aussi vérifié que :\n- `cycle accepte` n'écrit rien au registre ;\n- l'outil ne modifie le registre que par `marquerCorrige` ;\n- un `contournement` vide ou nul est compté comme un contournement.\n\nIl reste un seul chemin, et le registre l'a déjà ouvert sous BUG-2026-10-10T170000 : la réponse d'un tour non final peut encore classer un contournement en `registre` ou `conteste`, et le tour suivant ne le recompte pas. Je ne l'ai pas compté."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité",
+    "categorie": "bloquant",
+    "placement": "rendu_atteignable",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 430,
+    "constat": "La réponse d'un tour peut encore classer un contournement ailleurs, et la porte passe sans qu'il soit corrigé. Avant le dernier tour, `pasRelecture` envoie le contournement à la réponse. Le schéma de la réponse accepte encore `conteste` et `registre` pour tout constat, et `reponse.md` dit toujours « Un constat que tu contestes : … ne le corrige pas ». L'outil ne lit ni la sortie de la réponse ni la branche qu'elle laisse. Le tour 2 relit seulement le diff depuis la tête du tour 1 (`b = tete`), et `precedent` lui présente le contournement comme « déjà traité … ne les recompte pas ». Sondé par un test jetable passant par `conduirePas(ctx, \"relecture\")` avec le faux Claude de `test/helpers/cycle.ts`. Au tour 1, le relecteur A rend un contournement `bloquant`/`anterieur`. La réponse le conteste et ne commite rien. Le tour 2 lit un diff vide et ne relève rien. Résultat : tours `[[1,\"fail\"],[2,\"pass\"]]` et issue `{statut:\"fini\"}`. Le contournement sort de la relecture sans porte retenue ni propriétaire. La branche connaît ce chemin : elle l'a inscrit elle-même au registre (BUG-2026-10-10T170000, « Introduced by the branch of the story e39s01 »). Or la garantie interdit justement qu'un contournement parte au registre, et cette inscription ne peut donc pas le régler. Les lignes fautives (`cycle.ts:367` enum `action`, `cycle.ts:430` `precedent`) précèdent la branche, mais c'est la garantie que la branche pose qui rend ce chemin fautif.",
+    "contournement": "la réponse d'un tour ne peut pas le classer ailleurs (aucun contournement relevé par un relecteur ne part au registre)"
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Le relecteur cherche un contournement de chaque garantie de la section Sécurité",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/prompts/relecteur.md",
+    "ligne": 28,
+    "constat": "Si l'on retire de l'invite la phrase « Marque son constat du champ `contournement`, qui cite la garantie qu'il contourne. », tous les tests restent verts. L'assertion `/`contournement`/` trouve encore le mot dans le paragraphe de sortie. Ce n'est pas une promesse du `Then` : les deux phrases que le scénario exige, elles, sont tenues.",
+    "mutation": "suppression de la phrase « Marque son constat du champ `contournement`… » dans relecteur.md : 0 échec"
+   }
+  ],
+  "resume": "Les trois promesses sont tenues par le code et par un test. Le scénario 1 est tenu par relecteur-securite.test.ts : les mutations « chemin concret » → « scénario » et « Pour les promesses, ne propose ni » → « Propose » échouent chacune, et celle du prompt de réponse aussi. Le scénario 2 est tenu par relecture-contournement.test.ts : retirer `contourne` de `retientLaPorte`, de `anterieurs` ou de `aTraiter`, ou faire rendre `false` à `contourne`, fait échouer les tests. Le scénario 3 est tenu par relecture-dernier-tour.test.ts : retirer `|| contourne(c)` de `auProprietaire` échoue ; l'envoi au rouge-vert par `nonTenues` existait déjà. En revanche, la section Sécurité est contournée (B1-1, bloquant). Avant le dernier tour, la réponse peut contester ou inscrire au registre un contournement, et le tour suivant passe la porte. Une sonde par `conduirePas` l'a montré : tours fail puis pass, issue `fini`. La branche avait inscrit ce chemin au registre (BUG-2026-10-10T170000), mais la garantie interdit justement d'y envoyer un contournement : l'inscription ne le règle donc pas, et la porte reste retenue."
+ }
+]

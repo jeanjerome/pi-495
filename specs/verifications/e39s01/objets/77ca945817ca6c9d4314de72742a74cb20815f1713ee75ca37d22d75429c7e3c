@@ -1,0 +1,43 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité — un contournement que le dernier tour laisse ne part jamais au registre",
+    "categorie": "bloquant",
+    "placement": "rendu_atteignable",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 414,
+    "constat": "La réponse du tour 1 reçoit le contournement pour le corriger, mais rien n'empêche cette même réponse de l'écrire elle-même dans specs/bugs/registry.yaml. Elle répond `registre`, le tour 2 retient bien la porte et le cycle sort en `proprietaire`. Mais l'entrée ouverte reste commitée sur la branche. Une fois que l'automate rouvre au rouge-vert (apresIssue), le tour unique de la réouverture (toursMax=1, precedent=\"\") ne demande à personne de rejouer le contournement. Il le présente même aux relecteurs parmi les « Entrées ouvertes du registre … ne se comptent pas ». Des relecteurs qui suivent leur invite rendent `pass`, la relecture finit `fini`, et le contournement est sorti par le registre.",
+    "mutation": "Sonde jetable, non commitée : au tour 1, A relève A1-1 marqué `contournement`. La réponse commite une entrée `status: open` dont le titre porte A1-1 et répond `registre`. Le tour 2 n'a pas de `fermes` et finit `proprietaire`. Puis apresIssue(ctx, \"relecture\", issue, 0), rouge-vert et autocontrôle marqués finis, et une nouvelle relecture où les relecteurs rendent pass. Observé : issue {statut:\"fini\"} ; l'invite ne contient aucun « rejoue » ; sa section registre liste « BUG-2026-10-10T999999 — A1-1 … » ; registry.yaml à HEAD garde l'entrée ouverte.",
+    "contournement": "aucun contournement relevé par un relecteur ne part au registre, et la réponse d'un tour ne peut pas le classer ailleurs"
+   }
+  ],
+  "resume": "Les trois promesses sont tenues par le code, et chacune est tenue par un test. J'ai essayé une quinzaine de mutations et chacune fait échouer au moins un test. Celles qui touchent le cœur du changement : retirer la section Sécurité de l'invite des relecteurs ; retirer `|| contourne(c)` dans retientLaPorte, dans le tri des antérieurs ou dans auProprietaire ; remplacer every par some dans nonFermes ; retirer nonFermes ou le calcul de rejoues ; passer ABREVIATION_MIN à 6 ; ignorer l'action `corrige` ; ignorer le commit cité ; envoyer au registre ce qui revient au propriétaire ; supprimer le retour au propriétaire. La relecture de la section Sécurité en attaquant trouve en revanche un contournement (A1-1), donc le verdict est fail. Le tool ne contrôle pas le fichier du registre : la réponse d'un tour peut y écrire elle-même le contournement. Le tour 2 retient bien la porte, mais l'entrée reste commitée. Après la réouverture automatique, le tour unique ne demande pas de rejouer le contournement et le donne aux relecteurs comme une entrée de registre « qui ne se compte pas ». La relecture peut alors finir sans que personne ait rejoué le contournement. Une sonde jetable, non commitée et supprimée ensuite, l'a montré de bout en bout. Aucun contournement dit corrigé n'était à rejouer : c'est le tour 1, donc rien sous `fermes`."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/prompts/reponse.md",
+    "ligne": 1,
+    "constat": "La réponse d'un tour peut toujours répondre `registre` à un contournement et l'écrire elle-même dans `specs/bugs/registry.yaml`. L'outil retient bien la porte au tour suivant et rend le contournement au propriétaire, mais il ne refuse pas ni ne retire l'entrée commitée, qui reste au registre, ouverte, sur la branche. La sonde jetable (le relecteur A, tour 1, relève A1-1 marqué contournement ; la réponse commite `bug_id: A1-1, status: open` dans le registre et répond `registre`) se termine sur `proprietaire` avec A1-1, et HEAD:specs/bugs/registry.yaml porte A1-1. Je ne le compte pas comme un contournement : la porte est retenue et le propriétaire est informé, comme le prévoit cycle/README.md § Review (« whether contested, registered… holds the next round's gate »). Le registre reçoit pourtant l'entrée, ce que la seconde moitié de la garantie dit exclure."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Un contournement que le dernier tour laisse ne part jamais au registre",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 414,
+    "constat": "Une fois le contournement rendu au rouge-vert en mode automatique, la relecture repart sur un tour unique avec `precedent = \"\"` et `rejoues = []`. Ses relecteurs ne sont donc pas invités à rejouer le contournement qui a causé la réouverture, et la porte passe s'ils ne le retrouvent pas d'eux-mêmes. Or la branche pose la règle inverse entre deux tours : « un commit seul ne montre pas ce qu'il corrige », il faut que chaque relecteur le confirme fermé. Ce chemin dépend de ce que les relecteurs ratent, pas d'une décision de l'outil : je ne le compte donc pas comme un contournement."
+   }
+  ],
+  "resume": "Les trois promesses sont tenues par le code et chacune par au moins un test. Toutes les mutations essayées ont fait échouer un test, puis ont été remises en place ; voici les lignes mutées :\n- l'invite : la phrase « pour chaque garantie de la section Sécurité » et l'interdit des scénarios inventés ;\n- la section Sécurité retirée de `promesses()` ;\n- dans `trier` : `contourne(c)` retiré de `retientLaPorte` et des deux filtres ;\n- `|| contourne(c)` retiré de `auProprietaire` ;\n- `every` remplacé par `some` dans `nonFermes`, et `nonFermes` ou `laisses` retiré de `ouverts` ;\n- le contrôle de l'action `corrige`, et `ABREVIATION_MIN` passé à 1 puis à 8 ;\n- la liste des constats « déjà traités », qui reprend alors les contournements, et le texte de rejeu supprimé ;\n- au dernier tour, le registre recevant `tri.aTraiter`, et la question au propriétaire désactivée.\n\nPour la garantie de sécurité, j'ai cherché un chemin par les sorties des relecteurs, de la réponse et des commits :\n- **Réponse sans correction** : un contournement contesté, inscrit au registre, ou dit corrigé sans commit, ou avec une abréviation trop courte, reste dans `laisses`.\n- **Réponse dite corrigée** : il ne sort que si chaque relecteur du tour suivant le cite sous `fermes`.\n- **Dernier tour** : la réponse ne reçoit que `fin.registre`, sans contournement, et le propriétaire, ou le rouge-vert en mode automatique, reçoit le contournement.\n- **Sortie mal formée** : la sortie structurée est validée par `--json-schema`, ce qui ferme le chemin d'un `fermes` donné en chaîne.\n\nJe n'ai trouvé aucun contournement. Deux remarques à peser : la réponse peut encore écrire un contournement dans le registre pendant que la porte le retient, et le tour unique après une réouverture ne demande pas de rejouer le contournement. Aucun contournement n'était dit corrigé par un tour précédent de cette relecture, donc il n'y a rien sous `fermes`."
+ }
+]

@@ -1,0 +1,78 @@
+TAP version 13
+# Subtest: the sorting of a round that shows a bypass of the security section
+    # Subtest: un contournement placé avant la branche retient la porte et va à la réponse, pas au registre
+    ok 1 - un contournement placé avant la branche retient la porte et va à la réponse, pas au registre
+      ---
+      duration_ms: 0.602583
+      type: 'test'
+      ...
+    # Subtest: holds the gate on a bypass whatever its category
+    ok 2 - holds the gate on a bypass whatever its category
+      ---
+      duration_ms: 0.114917
+      type: 'test'
+      ...
+    1..2
+ok 1 - the sorting of a round that shows a bypass of the security section
+  ---
+  duration_ms: 1.106334
+  type: 'suite'
+  ...
+# Subtest: a bypass the response of a round does not fix
+    # Subtest: still holds the gate in the next round and goes to the owner when the response contests
+    ok 1 - still holds the gate in the next round and goes to the owner when the response contests
+      ---
+      duration_ms: 682.272666
+      type: 'test'
+      ...
+    # Subtest: still holds the gate in the next round and goes to the owner when the response registers
+    ok 2 - still holds the gate in the next round and goes to the owner when the response registers
+      ---
+      duration_ms: 660.472208
+      type: 'test'
+      ...
+    # Subtest: still holds the gate in the next round and goes to the owner when the response claims to fix without a commit
+    ok 3 - still holds the gate in the next round and goes to the owner when the response claims to fix without a commit
+      ---
+      duration_ms: 658.367666
+      type: 'test'
+      ...
+    # Subtest: still holds the gate in the next round and goes to the owner when the response claims it fixed by a commit of an unrelated file that no reviewer confirms closed
+    ok 4 - still holds the gate in the next round and goes to the owner when the response claims it fixed by a commit of an unrelated file that no reviewer confirms closed
+      ---
+      duration_ms: 688.744208
+      type: 'test'
+      ...
+    # Subtest: still holds the gate in the next round and goes to the owner when the response claims it fixed by a commit of the bypass into the registry that no reviewer confirms closed
+    ok 5 - still holds the gate in the next round and goes to the owner when the response claims it fixed by a commit of the bypass into the registry that no reviewer confirms closed
+      ---
+      duration_ms: 676.597125
+      type: 'test'
+      ...
+    # Subtest: still holds the gate when only one reviewer of the next round confirms the bypass closed
+    ok 6 - still holds the gate when only one reviewer of the next round confirms the bypass closed
+      ---
+      duration_ms: 682.376417
+      type: 'test'
+      ...
+    # Subtest: leaves the gate to the next round's reviewers once the response commits its fix and each of them confirms it closed
+    ok 7 - leaves the gate to the next round's reviewers once the response commits its fix and each of them confirms it closed
+      ---
+      duration_ms: 683.874083
+      type: 'test'
+      ...
+    1..7
+ok 2 - a bypass the response of a round does not fix
+  ---
+  duration_ms: 4733.174416
+  type: 'suite'
+  ...
+1..2
+# tests 9
+# suites 2
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4866.244125

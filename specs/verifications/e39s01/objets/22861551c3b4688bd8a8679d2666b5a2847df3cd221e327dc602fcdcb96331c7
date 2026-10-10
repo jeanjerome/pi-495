@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the reviewer's prompt on the security section
+    # Subtest: l'invite du relecteur demande un contournement de chaque garantie de la section Sécurité et garde l'interdit pour les promesses
+    ok 1 - l'invite du relecteur demande un contournement de chaque garantie de la section Sécurité et garde l'interdit pour les promesses
+      ---
+      duration_ms: 0.285541
+      type: 'test'
+      ...
+    1..1
+ok 1 - the reviewer's prompt on the security section
+  ---
+  duration_ms: 0.636833
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 68.898333

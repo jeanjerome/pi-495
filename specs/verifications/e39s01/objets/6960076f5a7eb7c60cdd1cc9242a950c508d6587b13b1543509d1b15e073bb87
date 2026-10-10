@@ -1,0 +1,54 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Sécurité",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/relecture.ts",
+    "ligne": 100,
+    "constat": "`contournementsLaisses` treats a bypass as fixed as soon as the response answers `corrige` with the sha of any commit it made, whatever that commit changes. `precedent` (cycle.ts:454) then lists the bypass to the next round's reviewers as « déjà traités … ne les recompte pas ». Throwaway test through `conduirePas(ctx, \"relecture\")` with the fake Claude: at round 1 A reports a `bloquant`/`anterieur` bypass. The response's only commit writes that bypass into `specs/bugs/registry.yaml`, and it answers `{action:\"corrige\", commit:<that sha>}`. Round 2 gets A1-1 listed as already handled and reports nothing. Result: rounds `[[1,\"fail\"],[2,\"pass\"]]`, outcome `{statut:\"fini\"}`. The bypass ends up in the registry, labelled fixed, with no gate held and no owner asked.",
+    "contournement": "Aucun contournement relevé par un relecteur ne part au registre, et la réponse d'un tour ne peut pas le classer ailleurs (une garantie ne se contourne pas sans que la relecture retienne la porte)."
+   },
+   {
+    "id": "A2-2",
+    "scenario": "Le relecteur cherche un contournement de chaque garantie de la section Sécurité",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 350,
+    "constat": "No test opens a review round and reads that the prompt the tool sends carries the guarantees of the story's Sécurité section. `relecteur-securite.test.ts` calls `invite()` with a hand-written `PROMESSES` string. So the When (« l'outil ouvre un tour de relecture ») and the « pour chaque garantie de cette section » of the Then are held by no test. The code itself does pass the section today.",
+    "mutation": "`promesses()` returns `## Promesses\\n\\n${ctx.story.promesses}` without the Sécurité section: all 172 tests of `npm run test:cycle` stay green."
+   }
+  ],
+  "resume": "I found a bypass, so the verdict is fail.\n\n**A2-1 (blocking, bypass):** the response can still send a bypass out of the review. It answers `corrige`, citing the sha of a commit it made that fixes nothing, for example the commit that writes the bypass into the registry. The tool only checks that the commit exists and is the response's own. It then tells the round-2 reviewers the bypass is already handled and not to count it again. My throwaway test ends with rounds `[[1,\"fail\"],[2,\"pass\"]]` and outcome `fini`, with the bypass sitting in the registry.\n\n**A2-2 (to fix):** no test checks that the prompt the tool actually sends contains the story's Sécurité section. The prompt test builds its own text by hand. Cutting the section out of `promesses()` leaves all 172 tests of `npm run test:cycle` green.\n\nEverything else holds. Each of these mutations made at least one test fail:\n- In the sorting: the gate held by a bypass, the bypass kept out of earlier defects, and an earlier bypass kept for the response.\n- After the last round: the bypass going to the owner rather than the registry.\n- In the new mechanism: a commit the response did not make, an empty list of open bypasses, and those bypasses not added to the next round.\n- In the prompt: the attack sentence and the ban on invented scenarios.\n\nSending a bypass back to the red-green step in automatic mode goes through `automate.ts`, which is older and already tested.\n\nI committed nothing. The probe was deleted, every mutation was put back, and the tree is clean."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Sécurité",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/relecture.ts",
+    "ligne": 99,
+    "constat": "The round's response can still mark a bypass as fixed without fixing it. `contournementsLaisses` treats as fixed any `corrige` that cites a commit the response made, whatever that commit touches. That bypass then leaves `laisses`, and `precedent` (cycle.ts:454) lists it to the round-2 reviewers as « déjà traités … ne les recompte pas », while their diff holds only the response's commit. Probed by a throwaway test through `conduirePas(ctx, \"relecture\")` with the fake Claude: A1-1 is a `bloquant`/`anterieur` bypass, and the response commits an unrelated `README.sham` and answers `{action:\"corrige\", commit:<its sha>}`. The round-2 prompt reads the diff of that commit alone and lists A1-1 as already handled. The rounds come out `[[1,\"fail\"],[2,\"pass\"]]` and the issue is `{statut:\"fini\"}`. The branch's own test « leaves the gate … once the response commits its fix » commits only `test/guard.test.js // guarded` and gets the same result.",
+    "contournement": "la réponse d'un tour ne peut pas le classer ailleurs (aucun contournement relevé ne sort de la relecture sans que la porte soit retenue)"
+   },
+   {
+    "id": "B2-2",
+    "scenario": "Sécurité",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/relecture.ts",
+    "ligne": 99,
+    "constat": "No test checks the `action !== \"corrige\"` condition. Removing it leaves every test green. The `registre` case in the test cites no commit, so it is held by the missing commit, not by the action.",
+    "mutation": "`action !== \"corrige\" || commit === undefined` replaced by `commit === undefined`: relecture-contournement, relecteur-securite and relecture-dernier-tour stay 0 fail"
+   }
+  ],
+  "resume": "The three promises are kept, and a test holds each one. The prompt asks for a concrete path around each guarantee and still forbids the reviewer's own scenarios: mutating the prompt fails relecteur-securite. A bypass holds the gate and goes to the response, not the registry: the retientLaPorte and trier mutations fail. A bypass the last round leaves goes to the owner and never to the registry: the auProprietaire mutation fails, and the bypass pushed into the next round makes three tests fail. The fix from round 1 holds for a response that contests a bypass, registers it, or claims a fix without a commit. One bypass of the security section remains (B2-1). A response that cites any commit it made, even an unrelated one, as the fix of a bypass takes it out of the gate. The next round is then told not to recount it, and the review ends `fini`. Probed through `conduirePas`, and shown by the branch's own fourth test. Separately, no test holds the `corrige` action check (B2-2, to weigh)."
+ }
+]

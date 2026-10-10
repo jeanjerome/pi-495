@@ -1,0 +1,199 @@
+TAP version 13
+# Subtest: the sorting of a round that shows a bypass of the security section
+    # Subtest: un contournement placé avant la branche retient la porte et va à la réponse, pas au registre
+    ok 1 - un contournement placé avant la branche retient la porte et va à la réponse, pas au registre
+      ---
+      duration_ms: 0.581042
+      type: 'test'
+      ...
+    # Subtest: holds the gate on a bypass whatever its category
+    ok 2 - holds the gate on a bypass whatever its category
+      ---
+      duration_ms: 0.093917
+      type: 'test'
+      ...
+    1..2
+ok 1 - the sorting of a round that shows a bypass of the security section
+  ---
+  duration_ms: 1.05525
+  type: 'suite'
+  ...
+# Subtest: a bypass the response of a round does not fix
+    # Subtest: still holds the gate in the next round and goes to the owner when the response contests citing a commit of the branch, though each reviewer lists it closed
+    ok 1 - still holds the gate in the next round and goes to the owner when the response contests citing a commit of the branch, though each reviewer lists it closed
+      ---
+      duration_ms: 694.493958
+      type: 'test'
+      ...
+    # Subtest: still holds the gate in the next round and goes to the owner when the response registers citing a commit of the branch, though each reviewer lists it closed
+    ok 2 - still holds the gate in the next round and goes to the owner when the response registers citing a commit of the branch, though each reviewer lists it closed
+      ---
+      duration_ms: 669.145792
+      type: 'test'
+      ...
+    # Subtest: still holds the gate in the next round and goes to the owner when the response claims to fix without a commit, though each reviewer lists it closed
+    ok 3 - still holds the gate in the next round and goes to the owner when the response claims to fix without a commit, though each reviewer lists it closed
+      ---
+      duration_ms: 652.694459
+      type: 'test'
+      ...
+    # Subtest: still holds the gate in the next round and goes to the owner when the response claims to fix citing six characters of its commit, though each reviewer lists it closed
+    ok 4 - still holds the gate in the next round and goes to the owner when the response claims to fix citing six characters of its commit, though each reviewer lists it closed
+      ---
+      duration_ms: 684.644458
+      type: 'test'
+      ...
+    # Subtest: still holds the gate in the next round and goes to the owner when the response claims it fixed by a commit of an unrelated file that no reviewer confirms closed
+    ok 5 - still holds the gate in the next round and goes to the owner when the response claims it fixed by a commit of an unrelated file that no reviewer confirms closed
+      ---
+      duration_ms: 677.576958
+      type: 'test'
+      ...
+    # Subtest: still holds the gate in the next round and goes to the owner when the response claims it fixed by a commit of the bypass into the registry that no reviewer confirms closed
+    ok 6 - still holds the gate in the next round and goes to the owner when the response claims it fixed by a commit of the bypass into the registry that no reviewer confirms closed
+      ---
+      duration_ms: 675.040458
+      type: 'test'
+      ...
+    # Subtest: still holds the gate when only one reviewer of the next round confirms the bypass closed
+    ok 7 - still holds the gate when only one reviewer of the next round confirms the bypass closed
+      ---
+      duration_ms: 674.674917
+      type: 'test'
+      ...
+    # Subtest: leaves the gate to the next round's reviewers once the response commits its fix and each of them confirms it closed
+    ok 8 - leaves the gate to the next round's reviewers once the response commits its fix and each of them confirms it closed
+      ---
+      duration_ms: 670.108042
+      type: 'test'
+      ...
+    # Subtest: leaves the gate to the next round's reviewers when the response cites seven characters of its commit and each of them confirms it closed
+    ok 9 - leaves the gate to the next round's reviewers when the response cites seven characters of its commit and each of them confirms it closed
+      ---
+      duration_ms: 676.990334
+      type: 'test'
+      ...
+    1..9
+ok 2 - a bypass the response of a round does not fix
+  ---
+  duration_ms: 6075.8725
+  type: 'suite'
+  ...
+# Subtest: a review step relaunched after a block, once a round's response has answered a bypass
+    # Subtest: un contournement que la réponse d'un tour laisse ouvert retient encore la porte quand la relecture, bloquée parce que le commit de sa réponse laisse la Preflight rouge, est relancée
+    not ok 1 - un contournement que la réponse d'un tour laisse ouvert retient encore la porte quand la relecture, bloquée parce que le commit de sa réponse laisse la Preflight rouge, est relancée
+      ---
+      duration_ms: 740.515292
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gKv4DL/test/cycle/relecture-contournement.test.ts:206:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        the bypass still holds the gate and goes to the owner
+        + actual - expected
+        
+        + 'fini'
+        - 'proprietaire'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'proprietaire'
+      actual: 'fini'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gKv4DL/test/cycle/relecture-contournement.test.ts:221:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: un contournement que la réponse d'un tour laisse ouvert retient encore la porte quand la relecture, bloquée parce que un relecteur du tour suivant échoue, est relancée
+    not ok 2 - un contournement que la réponse d'un tour laisse ouvert retient encore la porte quand la relecture, bloquée parce que un relecteur du tour suivant échoue, est relancée
+      ---
+      duration_ms: 762.515459
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gKv4DL/test/cycle/relecture-contournement.test.ts:206:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        the bypass still holds the gate and goes to the owner
+        + actual - expected
+        
+        + 'fini'
+        - 'proprietaire'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'proprietaire'
+      actual: 'fini'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gKv4DL/test/cycle/relecture-contournement.test.ts:221:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: un contournement que la réponse d'un tour laisse ouvert retient encore la porte quand la relecture, bloquée parce que un relecteur du tour suivant échoue avant de rejouer le contournement que la réponse dit corrigé, est relancée
+    not ok 3 - un contournement que la réponse d'un tour laisse ouvert retient encore la porte quand la relecture, bloquée parce que un relecteur du tour suivant échoue avant de rejouer le contournement que la réponse dit corrigé, est relancée
+      ---
+      duration_ms: 761.203667
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gKv4DL/test/cycle/relecture-contournement.test.ts:206:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        the bypass still holds the gate and goes to the owner
+        + actual - expected
+        
+        + 'fini'
+        - 'proprietaire'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'proprietaire'
+      actual: 'fini'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gKv4DL/test/cycle/relecture-contournement.test.ts:221:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: un contournement que la réponse d'un tour laisse ouvert retient encore la porte quand la relecture, bloquée parce que la session de la réponse échoue après son commit, est relancée
+    not ok 4 - un contournement que la réponse d'un tour laisse ouvert retient encore la porte quand la relecture, bloquée parce que la session de la réponse échoue après son commit, est relancée
+      ---
+      duration_ms: 572.198833
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gKv4DL/test/cycle/relecture-contournement.test.ts:206:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        the bypass still holds the gate and goes to the owner
+        + actual - expected
+        
+        + 'fini'
+        - 'proprietaire'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'proprietaire'
+      actual: 'fini'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gKv4DL/test/cycle/relecture-contournement.test.ts:221:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..4
+not ok 3 - a review step relaunched after a block, once a round's response has answered a bypass
+  ---
+  duration_ms: 2836.725333
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gKv4DL/test/cycle/relecture-contournement.test.ts:160:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..3
+# tests 15
+# suites 3
+# pass 11
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9037.952625

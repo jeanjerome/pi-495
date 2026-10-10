@@ -1,0 +1,36 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 428,
+    "constat": "Un contournement que la réponse du tour 1 conteste (ou dit corrigé) n'est porté au tour 2 que par les variables `laisses` et `rejoues` de la boucle de `pasRelecture`. Rien ne les inscrit au journal. Si le pas relecture est bloqué avant la fin du tour 2, puis relancé par `npm run cycle -- <story>` (qui « reprend au pas en cours »), la relecture repart d'un tour 1 vierge. Il suffit pour ce blocage d'une session de relecteur qui échoue, d'une Preflight de la réponse restée rouge ou d'une interruption. Le contournement est alors oublié : la classification `conteste` de la réponse tient, et la porte passe si les nouveaux relecteurs ne le retrouvent pas d'eux-mêmes. La graine lue dans le journal ne vaut que pour l'événement `rouvert`, pas pour une reprise après blocage dans une relecture à deux tours.",
+    "mutation": "Sonde jetable (test/cycle/zz-sonde-a1.test.ts, supprimée), avec un faux Claude. Au tour 1, A relève A1-1 marqué `contournement`. La réponse le `conteste` en citant un commit de la branche. Le relecteur A du tour 2 lève une erreur une fois. Premier `conduirePas(ctx, \"relecture\")` → `bloque`. Second `conduirePas(ctx, \"relecture\")` → `{ statut: \"fini\" }`, avec pour tours journalisés [[1,\"fail\"],[1,\"pass\"]]. A1-1 n'est ni rendu au propriétaire ni rejoué.",
+    "contournement": "la réponse d'un tour ne peut pas le classer ailleurs (une garantie de la section Sécurité ne se contourne pas sans que la relecture retienne la porte)"
+   }
+  ],
+  "resume": "Les trois promesses sont tenues par le code et chacune par un test. P1 : en retirant « pour chaque garantie » ou l'interdit pour les promesses de cycle/prompts/relecteur.md, relecteur-securite.test.ts échoue. P2 : en laissant `trier` ranger un contournement antérieur parmi les antérieurs, ou en retirant `contourne` de `retientLaPorte`, relecture-contournement.test.ts échoue (10 et 11 échecs). P3 : chacune de ces mutations fait échouer au moins un test de test/cycle :\n- retirer `contourne` de `apresDernierTour` ;\n- donner les contournements à la réponse du dernier tour pour le registre ;\n- remettre `rejoues` à vide après une réouverture ;\n- arrêter au lieu de rouvrir dans `apresIssue`.\n\nSans mutation, les 179 tests de test/cycle passent.\n\nEn attaquant la section Sécurité, j'ai trouvé un contournement, A1-1. Entre les deux tours d'une relecture qui n'a pas été rouverte, les contournements laissés ou à rejouer ne vivent qu'en mémoire. Un blocage au tour 2, suivi d'une relance de la story, fait repartir la relecture d'un tour 1 vierge. Une réponse qui a contesté le contournement n'est alors plus contredite, et la porte passe. La sonde jetable le montre.\n\nAucun contournement n'était à rejouer pour ce tour, donc `fermes` est vide. L'arbre est rendu propre : la sonde est supprimée et toutes les mutations sont remises."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 431,
+    "constat": "pasRelecture keeps `laisses` and `rejoues` only in memory: the bypasses a response left open, and the ones it claims fixed, are recorded nowhere. If the step stops after that response, they are gone. One way is the response's own commit turning Preflight red, which raises a Blocage from `preflightVerte`; others are a failed session or an interruption. Relaunching with `npm run cycle -- <id>` restarts the review at round 1 with empty `laisses` and `rejoues`, so the response's `registre` answer stands and the gate passes unless fresh reviewers raise the bypass again. If that response also wrote the bypass into the registry, the reviewers are told open registry entries do not count, the gate passes, and the bypass stays in the registry. Throwaway probe (not committed): round 1, A raises bypass A1-1. The response answers `registre`, writes the entry and commits a failing test; Preflight stays red after the two corrections, and the step returns `bloque`. The owner removes the red test and relaunches; the relaunched reviewers raise nothing. Result: issue `{statut: \"fini\"}`, rounds `[[1,\"fail\"],[1,\"pass\"]]`. Without the interruption, the same exchange goes to the owner. This is distinct from BUG-2026-10-10T170100: there the gate holds, here it no longer does.",
+    "mutation": "No mutation: a probe on the code as it stands (test/cycle/zz-sonde-b1.test.ts, removed). It shows that relaunching an interrupted review step restores neither `laisses` nor `rejoues`.",
+    "contournement": "Une garantie de la section Sécurité ne se contourne pas sans que la relecture retienne la porte : aucun contournement relevé par un relecteur ne part au registre, et la réponse d'un tour ne peut pas le classer ailleurs."
+   }
+  ],
+  "resume": "The code holds all three promises, and each is held by a test. Every mutation made a test fail.\n\n- **Prompt (scenario 1):** dropping \\\"chaque garantie\\\", dropping the ban on invented scenarios, or removing the security section from `promesses()` each fails relecteur-securite.test.ts.\n- **Sorting (scenario 2):** removing `contourne(c)` from `retientLaPorte`, `trier`/anterieurs or `trier`/aTraiter fails relecture-contournement.test.ts.\n- **After the last round (scenario 3):** these mutations each fail a test:\n  - removing `|| contourne(c)` from `apresDernierTour`\n  - not passing `issue.contournements` to `apresIssue`\n  - dropping the spread of `contournements` in `rouvrir`\n  - starting `rejoues` at `[]`\n  - starting `precedent` at `\\\"\\\"`\n  - setting the issue's `contournements` to `[]`\n  - removing `laisses` from `ouvertsDuTourPrecedent`\n  - replacing `every` with `some` in `nonFermes`\n  - wiring `aRegistre` to everything\n\n**Security:** one bypass, B1-1. The bypasses a response leaves open, or claims fixed, live only in the memory of `pasRelecture`. If the step stops after that response (Preflight turned red by the response's commit, a failed session, an interruption), the relaunch restarts at round 1 without them. The response's `registre` answer then stands, and the gate passes. A throwaway probe reproduced this. The verdict is fail on this bypass, which the branch introduces.\n\n**Closed bypasses (`fermes`):** none to cite, since this is round 1 and no earlier response claimed one fixed."
+ }
+]

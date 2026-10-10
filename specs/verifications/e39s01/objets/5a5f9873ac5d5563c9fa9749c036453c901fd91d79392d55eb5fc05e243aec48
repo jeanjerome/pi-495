@@ -1,0 +1,51 @@
+TAP version 13
+# Subtest: the end of the review when the last round leaves a bypass
+    # Subtest: après le dernier tour, un contournement classé à corriger va au propriétaire et non au registre
+    ok 1 - après le dernier tour, un contournement classé à corriger va au propriétaire et non au registre
+      ---
+      duration_ms: 0.5845
+      type: 'test'
+      ...
+    # Subtest: un contournement que la réponse écrit au registre retient encore la porte du tour unique qui suit la réouverture, tant que ses relecteurs ne le trouvent pas fermé
+    not ok 2 - un contournement que la réponse écrit au registre retient encore la porte du tour unique qui suit la réouverture, tant que ses relecteurs ne le trouvent pas fermé
+      ---
+      duration_ms: 866.530791
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7KsBAM/test/cycle/relecture-dernier-tour.test.ts:39:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the bypass is put back as a promise the code does not keep
+        + actual - expected
+        
+        + 'fini'
+        - 'proprietaire'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'proprietaire'
+      actual: 'fini'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7KsBAM/test/cycle/relecture-dernier-tour.test.ts:71:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - the end of the review when the last round leaves a bypass
+  ---
+  duration_ms: 867.81275
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-7KsBAM/test/cycle/relecture-dernier-tour.test.ts:22:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 994.515375

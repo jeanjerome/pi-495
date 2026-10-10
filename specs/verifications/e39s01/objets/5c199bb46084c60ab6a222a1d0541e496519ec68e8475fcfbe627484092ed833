@@ -1,0 +1,199 @@
+TAP version 13
+# Subtest: the sorting of a round that shows a bypass of the security section
+    # Subtest: un contournement placé avant la branche retient la porte et va à la réponse, pas au registre
+    ok 1 - un contournement placé avant la branche retient la porte et va à la réponse, pas au registre
+      ---
+      duration_ms: 0.572292
+      type: 'test'
+      ...
+    # Subtest: holds the gate on a bypass whatever its category
+    ok 2 - holds the gate on a bypass whatever its category
+      ---
+      duration_ms: 0.099541
+      type: 'test'
+      ...
+    1..2
+ok 1 - the sorting of a round that shows a bypass of the security section
+  ---
+  duration_ms: 1.045625
+  type: 'suite'
+  ...
+# Subtest: a bypass the response of a round does not fix
+    # Subtest: still holds the gate in the next round and goes to the owner when the response contests
+    ok 1 - still holds the gate in the next round and goes to the owner when the response contests
+      ---
+      duration_ms: 690.4665
+      type: 'test'
+      ...
+    # Subtest: still holds the gate in the next round and goes to the owner when the response registers
+    ok 2 - still holds the gate in the next round and goes to the owner when the response registers
+      ---
+      duration_ms: 651.360375
+      type: 'test'
+      ...
+    # Subtest: still holds the gate in the next round and goes to the owner when the response claims to fix without a commit
+    ok 3 - still holds the gate in the next round and goes to the owner when the response claims to fix without a commit
+      ---
+      duration_ms: 661.698666
+      type: 'test'
+      ...
+    # Subtest: still holds the gate in the next round and goes to the owner when the response claims it fixed by a commit of an unrelated file that no reviewer confirms closed
+    not ok 4 - still holds the gate in the next round and goes to the owner when the response claims it fixed by a commit of an unrelated file that no reviewer confirms closed
+      ---
+      duration_ms: 675.414291
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zkC3EH/test/cycle/relecture-contournement.test.ts:110:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          [
+            [
+              1,
+              'fail'
+            ],
+            [
+              2,
+        +     'pass'
+        -     'fail'
+            ]
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          0: 1
+          1: 'fail'
+        1:
+          0: 2
+          1: 'fail'
+      actual:
+        0:
+          0: 1
+          1: 'fail'
+        1:
+          0: 2
+          1: 'pass'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zkC3EH/test/cycle/relecture-contournement.test.ts:112:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: still holds the gate in the next round and goes to the owner when the response claims it fixed by a commit of the bypass into the registry that no reviewer confirms closed
+    not ok 5 - still holds the gate in the next round and goes to the owner when the response claims it fixed by a commit of the bypass into the registry that no reviewer confirms closed
+      ---
+      duration_ms: 676.512
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zkC3EH/test/cycle/relecture-contournement.test.ts:110:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          [
+            [
+              1,
+              'fail'
+            ],
+            [
+              2,
+        +     'pass'
+        -     'fail'
+            ]
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          0: 1
+          1: 'fail'
+        1:
+          0: 2
+          1: 'fail'
+      actual:
+        0:
+          0: 1
+          1: 'fail'
+        1:
+          0: 2
+          1: 'pass'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zkC3EH/test/cycle/relecture-contournement.test.ts:112:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: still holds the gate when only one reviewer of the next round confirms the bypass closed
+    not ok 6 - still holds the gate when only one reviewer of the next round confirms the bypass closed
+      ---
+      duration_ms: 698.858083
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zkC3EH/test/cycle/relecture-contournement.test.ts:127:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          [
+            [
+              1,
+              'fail'
+            ],
+            [
+              2,
+        +     'pass'
+        -     'fail'
+            ]
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          0: 1
+          1: 'fail'
+        1:
+          0: 2
+          1: 'fail'
+      actual:
+        0:
+          0: 1
+          1: 'fail'
+        1:
+          0: 2
+          1: 'pass'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zkC3EH/test/cycle/relecture-contournement.test.ts:131:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: leaves the gate to the next round's reviewers once the response commits its fix and each of them confirms it closed
+    ok 7 - leaves the gate to the next round's reviewers once the response commits its fix and each of them confirms it closed
+      ---
+      duration_ms: 676.869125
+      type: 'test'
+      ...
+    1..7
+not ok 2 - a bypass the response of a round does not fix
+  ---
+  duration_ms: 4731.6405
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zkC3EH/test/cycle/relecture-contournement.test.ts:41:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..2
+# tests 9
+# suites 2
+# pass 6
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4858.405125

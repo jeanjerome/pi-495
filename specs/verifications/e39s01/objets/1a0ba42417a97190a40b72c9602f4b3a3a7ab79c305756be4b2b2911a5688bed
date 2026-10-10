@@ -1,0 +1,46 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité / Un contournement que le dernier tour laisse ne part jamais au registre",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 467,
+    "constat": "Un contournement relevé au dernier tour disparaît si la réponse qui inscrit le reste au registre (celle que lance `clore`) bloque l'étape. Le blocage survient avant que `clore` rende le contournement au propriétaire. Aucun événement `ouverts` ne garde ce tour : à la relance, `depart` rejoue le dernier tour à partir des `ouverts` du tour 1. Si les nouveaux relecteurs ne relèvent plus le contournement, la porte passe et l'étape rend `fini` : il n'est ni rendu au propriétaire ni renvoyé au rouge-vert, et la réponse l'a effacé. Sonde jetable rejouée deux fois. Au tour 1, un constat ordinaire est corrigé. Au tour 2, A relève un contournement A2-1 et B un constat à peser. La réponse au tour 2 échoue dans un cas, et dans l'autre commite un test rouge, ce qui laisse la Preflight rouge. Dans les deux cas : premier passage `bloque`, portes [1 fail, 2 fail] ; relance, où les relecteurs ne relèvent plus rien : `{statut: \"fini\"}`, avec une porte [2 pass]. Même chemin au tour unique qui suit une réouverture : `depart` ne rejoue alors que les contournements du `rouvert`.",
+    "mutation": "aucune : sonde jetable par conduirePas, non commitée",
+    "contournement": "aucun contournement relevé par un relecteur ne part au registre, et la réponse d'un tour ne peut pas le classer ailleurs",
+    "scenario_detail": "Given le dernier tour, qui laisse un contournement non corrigé ; When l'outil clôt la relecture et la réponse d'inscription bloque, puis l'étape est relancée ; Then attendu : propriétaire ; obtenu : fini"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un contournement que la réponse d'un tour laisse ouvert retient la porte à la relance (README, § Review)",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 522,
+    "constat": "Retirer le second `inscrireOuverts`, celui qui suit la réponse et range un contournement dit corrigé parmi ceux à rejouer, laisse tous les tests verts. À la relance, le premier `ouverts`, plus strict, retient alors ce contournement tel quel, même si chaque relecteur le trouve fermé. Aucun test ne tient la reprise d'un contournement dit corrigé puis confirmé fermé. Ce n'est pas un contournement : la porte est retenue davantage, pas moins.",
+    "mutation": "suppression de la ligne `inscrireOuverts(ctx, { tour, tete, traites: tri.aTraiter, laisses, rejoues });` : relecture-contournement et relecture-dernier-tour restent vertes (17/17)"
+   }
+  ],
+  "resume": "J'ai trouvé un contournement de la garantie de la section Sécurité, donc la porte est refusée.\n\nLes trois scénarios sont tenus par le code et par des tests ; chaque mutation a fait échouer au moins un test :\n- **L'invite du relecteur** : la phrase qui demande un chemin concret pour chaque garantie, l'interdit de proposer un scénario pour les promesses, et l'envoi de la section Sécurité à chaque relecteur (mutations sur `relecteur.md` et sur `promesses()`).\n- **Le tri** : un contournement placé avant la branche, ou classé à corriger ou à peser, retient la porte et va à la réponse plutôt qu'au registre (mutations sur `retientLaPorte` et `trier`).\n- **La clôture** : le contournement va au propriétaire, ou au rouge-vert en mode automatique, et le registre ne le reçoit pas (mutations sur `apresDernierTour`, `clore`, `apresIssue` et le passage des contournements à `rouvrir`).\n- **La relance après un blocage**, ajoutée par le diff : retirer le premier `ouverts`, ou vider les contournements laissés ou à rejouer qu'on reprend, fait échouer les tests de relance.\n\n**A1-1, bloquant, contournement.** Un contournement relevé au dernier tour disparaît quand la réponse qui inscrit le reste au registre bloque l'étape : elle peut échouer, ou commiter un test rouge qui laisse la Preflight rouge. Rien de ce tour n'est gardé dans le journal. À la relance, l'étape rejoue le dernier tour avec de nouveaux relecteurs ; s'ils ne relèvent plus le contournement, elle se termine sans le rendre au propriétaire. Je l'ai sondé deux fois, sous les deux formes de blocage, par un test jetable : premier passage bloqué, relance terminée sans rien rendre. Le même chemin existe au tour unique qui suit une réouverture.\n\n**A1-2, à peser.** Retirer le second enregistrement des contournements, celui qui suit la réponse, laisse tous les tests verts. Ce n'est pas un contournement : la relance retient alors la porte davantage, pas moins.\n\nLa sonde et le script de mutation sont supprimés ; l'arbre est propre."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Un contournement que le dernier tour laisse ne part jamais au registre",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/cycle.ts",
+    "ligne": 522,
+    "constat": "No test holds the second `ouverts` write, made once the response has answered. That write lets a review step relaunched after a block replay a bypass the response claims fixed, instead of holding it open as it stands. Without the write, the first record (every bypass left open) applies, which is only stricter: the gate is still held and nothing reaches the registry, so no promise is broken.",
+    "mutation": "Removing `inscrireOuverts(ctx, { tour, tete, traites: tri.aTraiter, laisses, rejoues })` after the response leaves all 35 tests of relecture-contournement, relecteur-securite, relecture-dernier-tour and automate green."
+   }
+  ],
+  "resume": "The code keeps all three promises, and a mutation of each holding line makes a test fail. (1) The reviewer's prompt asks, for each guarantee of the security section, for a concrete path through the public inputs the branch exposes, and still forbids a scenario of the reviewer's own for the promises. The section reaches each reviewer through `promesses()`. Removing either sentence from relecteur.md, or the section from `promesses()`, fails relecteur-securite.test.ts. (2) `trier` keeps a bypass out of `anterieurs` and `retientLaPorte` holds the gate on a bypass whatever its placement or category. Mutating either fails the sorting tests and the round-2 integration tests. (3) `apresDernierTour` puts every bypass to the owner and never in `registre`. `clore` hands only `fin.registre` to the last-round response, and `apresIssue` reopens to the red-green with the bypasses, which the next round must replay. Removing `|| contourne(c)`, replacing `fin.registre` with the full list, or dropping the bypasses passed to the reopening each fail a test. The branch's new resume after a block has the same protection: the `ouverts` record written before the response holds every bypass open on a relaunch, and removing it fails the test where the response session is interrupted. Security attack: through the inputs the branch exposes (relaunch after a block, `accepte`/`ecart`, the response's answers marked contested, registered, or fixed with no commit, a commit of an unrelated file, or a commit abbreviated to under seven characters, plus the reviewers' `fermes` list), I found no path that lets the tool send a bypass to the registry or let a response class it elsewhere. A round resumed past the round limit, which would end the step as finished, cannot be reached: `rouvrir` always writes a `story` event that resets the passage. A response session that writes into registry.yaml itself is already open in the registry (BUG-2026-10-10T170100) and is not counted. Only one point to weigh remains (B1-1). Working tree restored after each mutation."
+ }
+]

@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the end of the review when the last round leaves a bypass
+    # Subtest: après le dernier tour, un contournement classé à corriger va au propriétaire et non au registre
+    ok 1 - après le dernier tour, un contournement classé à corriger va au propriétaire et non au registre
+      ---
+      duration_ms: 0.599292
+      type: 'test'
+      ...
+    # Subtest: un contournement que la réponse écrit au registre retient encore la porte du tour unique qui suit la réouverture, tant que ses relecteurs ne le trouvent pas fermé
+    ok 2 - un contournement que la réponse écrit au registre retient encore la porte du tour unique qui suit la réouverture, tant que ses relecteurs ne le trouvent pas fermé
+      ---
+      duration_ms: 757.750625
+      type: 'test'
+      ...
+    1..2
+ok 1 - the end of the review when the last round leaves a bypass
+  ---
+  duration_ms: 758.850584
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 883.187
