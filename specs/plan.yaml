@@ -484,7 +484,7 @@ epics:
 
   - id: e39
     title: "Le cycle tient ce que sa relecture et sa recette promettent"
-    status: à faire
+    status: versé
     source: specs/epics/e39-le-cycle-tient-ce-que-sa-relecture-et-sa-recette-promettent.md
     objet: >
       La section sécurité d'une story est relue en attaquant, les relecteurs reçoivent les mutants qui
