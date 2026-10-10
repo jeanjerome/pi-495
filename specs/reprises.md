@@ -831,3 +831,13 @@ Statut : versée
 - Reprise : Un `it` par arrêt avec les helpers existants (`depot`, `fauxClaude`, `contexte`, `depotSuite`, `depotCorrectifs`), qui affirme l'issue et le motif.
 - Règle : Principe 11 ; CONVENTIONS § Tests.
 - Limite : N'ajoute que des tests. N'écrit aucun test du diff que relit le tour de relecture d'après un écart : il figerait un défaut connu (le tour relit toute la branche, cycle/README.md promet le diff de l'écart).
+
+## R101 — Le plan se lit et se réécrit avec le lecteur YAML que Pi installe
+
+Statut : à faire
+
+- Où : cycle/src/plan.ts:33-122 (`lirePlan`, `texteDeLEpic`, `reecrire`, `marquerStory`, `marquerStoryListee`, `marquerEpic`) · test/cycle/plan.test.ts
+- Constat : `specs/plan.yaml` est lu ligne par ligne (`split("\n")`) et réécrit par remplacement d'expressions régulières sur les lignes (`status: "[^"]+"`). Une story ou une epic écrite sous une autre forme YAML valide (clé entre guillemets, style compact, autre indentation) est lue autrement qu'un lecteur YAML la lit, ou pas du tout. Le registre des défauts a eu ce défaut et se lit désormais avec `yaml` (`D-89`, précision du 2026-10-10).
+- Reprise : Lire le plan avec `yaml` (`parseDocument`), comme `cycle/src/registre.ts` lit le registre, et réécrire un statut par les jetons source du lecteur, de sorte que chaque ligne que le cycle ne change pas reste telle qu'elle est écrite ; relire le texte écrit pour vérifier qu'il se lit comme voulu.
+- Règle : `D-89`, précision du 2026-10-10 ; CONVENTIONS § Pi is the host.
+- Limite : Ne change ni ce que le plan dit, ni l'ordre des epics et des stories, ni les messages ; un plan que le lecteur YAML refuse, aujourd'hui lu à moitié, s'arrête sur l'erreur du lecteur, ce qui est un comportement nouveau : si la reprise le rencontre sur le vrai plan, elle s'écarte et le cas va au registre.
