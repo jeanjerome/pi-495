@@ -1,0 +1,54 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le parcours négatif distingue le comportement livré",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/acceptance-recipe.ts",
+    "ligne": 123,
+    "constat": "The reader ties the negative control, and each observation, to the requirement the recipe declares: a probe shows that a refused negative control reported under R2 when R1 is declared, or observation O1 reported under R2, is INDETERMINATE. No test holds this. The reader tests and kernel tests stay green when the requirement comparison is removed, so the part of the Then that says the result is tied to its promise is held by no test.",
+    "mutation": "`if (!observed || observed.requirement_id !== negative.requirement_id)` → `if (!observed)`: 7/7 tests pass in acceptance-recipe-reader.test.ts and acceptance-recipe.test.ts. Also tried `same()` reduced to `observed.observation_id === declared.observation_id`: 7/7 pass."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un avis de modèle conserve sa provenance",
+    "categorie": "a_peser",
+    "placement": "anterieur",
+    "fichier": "src/domain/gates/g5.ts",
+    "ligne": 174,
+    "constat": "The promise is kept by the IH-10 requirement under g5_human_acceptance and by the mapping to request_decision:IH-10. That code predates the branch. The new test acceptance-recipe-gate.test.ts holds it, and Pi's presentation is observed through the onDecisionRequested hook of the harness, not in a real Pi.",
+    "mutation": "`if (policy.g5_human_acceptance)` → `if (false)`: the test fails (\"a model's approval does not stand for the human decision\"). The request_decision:IH-10 branch replaced by resolve_incident: the test fails."
+   }
+  ],
+  "resume": "I checked the three promises against the code and with mutations; my throwaway probe and every mutation were reverted, and the tree is clean. Verdict fail, on one introduced to-correct finding.\n\nScenario 1 (green review, required run not done): held by code and test. G5 treats the frozen recipe as an obligation of its own: when no run of it on this candidate exists, it records recipe:<id> as missing and states the reason. A run on another candidate or a FAIL under an exhausted budget does not pass either. Four mutations each make acceptance-recipe-gate.test.ts fail: removing the `if (recipe)` block, freezing acceptance_recipe_control_id as null in decide.ts, making the FAIL check always false, and dropping the missing.push.\n\nScenario 2 (negative witness): held by the code, partly by tests. The reader requires a negative control reported as refused, and inverting or bypassing that check fails the reader and kernel tests. A1-1 (to correct, introduced): the tie to the promise has no test. The reader checks that the negative control and each observation carry the requirement the recipe declares, and a probe shows a mismatch gives INDETERMINATE. Removing that comparison leaves all 7 tests green.\n\nScenario 3 (model opinion vs human acceptance): held by code and test. A recipe reviewer that approves does not accept the change: G5 stays INDETERMINATE with request_decision:IH-10, and the IH-10 request reaches the hook Pi presents. Two mutations fail the test. A1-2 (to weigh, pre-existing): that code predates the branch, and the presentation is observed through the harness's decision hook, not in a real Pi.\n\nSecurity: no import from cycle/. The recipe control can write only its report path under the sandbox, and the copy deprived of the mechanism is made by the recipe itself, outside the candidate. The network is per control (denied by default), and external data is declared."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le parcours négatif distingue le comportement livré",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/acceptance-recipe.ts",
+    "ligne": 91,
+    "constat": "The code ties the negative control to its requirement: a probe shows that a report whose negative control is refused but filed under R2, when the recipe declares it for R1, stays INDETERMINATE with 'the negative control of R1 is not reported'. No test asserts this tie. Every test either reports the negative control under the declared requirement or omits it (null), so dropping the requirement comparison leaves all tests green. The 'lié à la promesse concernée' part of the Then is held by no test.",
+    "mutation": "`if (!observed || observed.requirement_id !== negative.requirement_id)` → `if (!observed)`: all 9 tests in the four story files still pass."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Le parcours négatif distingue le comportement livré",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/acceptance-recipe.ts",
+    "ligne": 121,
+    "constat": "Same gap on the positive side: an observation O1 reported under another requirement than the declared one is correctly not counted (probe: INDETERMINATE, 'observation O1 of R1 is not reported'). No test holds this, because every test reports O1 under R1. It sits at the edge of the scenario, which promises the tie for the negative control only.",
+    "mutation": "`same()` reduced to `observed.observation_id === declared.observation_id`: the reader test and the two kernel tests (8 tests) still pass."
+   }
+  ],
+  "resume": "The verdict is fail on one à corriger finding: on scenario 2, no test holds the tie between the negative control and the requirement it concerns.\n\nWhat I did: read the full diff and ran the 9 tests in the four story files, green at the start. I applied 13 mutations to the source and restored each one with git. The probe test I wrote was removed, and the tree is clean apart from the linked node_modules.\n\n- **Scenario 1 (green review without the required run): held by code and test.** If the recipe is missing, the G5 gate (`g5.ts`) records `recipe:acceptance-recipe` as missing and names it (\"was not run on the candidate\"). A FAIL stays a FAIL when the attempt budget is used up. Each of these mutations fails `acceptance-recipe-gate.test.ts`:\n  - removing the `missing.push` for the recipe;\n  - removing the `indeterminate.add` for the recipe (the verdict then becomes PASS, so this block is the only thing keeping the candidate unaccepted);\n  - removing the `failed.add` for the recipe;\n  - forcing `acceptance_recipe_control_id` to null in `decide.ts`;\n  - not substituting `{candidate}` in `runner.ts`.\n- **Scenario 2 (negative control): the refusal is held, the tie is not.** Removing the `refused` check, or skipping the negative-control block entirely, fails the reader tests. A report about another candidate, or with no observations, is also covered: mutations of both checks fail `acceptance-recipe.test.ts`. But a refused negative control filed under another requirement is correctly left INDETERMINATE by the code (confirmed by probe), and dropping that comparison leaves every test green (B1-1). The same holds for an observation filed under another requirement (B1-2, à peser).\n- **Scenario 3 (model approval vs owner acceptance): held.** Turning off the policy's human-acceptance branch, or changing the next action away from IH-10, fails the gate test. The test checks that the IH-10 request reaches Pi's decision port.\n- **Sécurité:** `src/` imports nothing from `cycle/`. The recipe control writes only to its report path, and its network setting is per control (denied by default), with no general network shutdown. Outside data the recipe reads is declared in `external_data`."
+ }
+]

@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: G5 judges the acceptance recipe among the frozen obligations
+    # Subtest: les tests verts ne compensent pas la recette manquante et un avis ne remplace pas IH-10
+    not ok 1 - les tests verts ne compensent pas la recette manquante et un avis ne remplace pas IH-10
+      ---
+      duration_ms: 802.00025
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-hSN9pP/test/v2-kernel/acceptance-recipe-gate.test.ts:14:2'
+      failureType: 'testCodeFailure'
+      error: 'green tests do not stand for the missing acceptance run'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'PASS'
+      actual: 'PASS'
+      operator: 'notStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-hSN9pP/test/v2-kernel/acceptance-recipe-gate.test.ts:60:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - G5 judges the acceptance recipe among the frozen obligations
+  ---
+  duration_ms: 802.671208
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-hSN9pP/test/v2-kernel/acceptance-recipe-gate.test.ts:13:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1067.503292

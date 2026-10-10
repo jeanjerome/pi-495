@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the review and the acceptance run are declared before the protocol is frozen
+    # Subtest: une recette obligatoire sans observation ni témoin négatif applicable est incomplète
+    ok 1 - une recette obligatoire sans observation ni témoin négatif applicable est incomplète
+      ---
+      duration_ms: 3.060958
+      type: 'test'
+      ...
+    1..1
+ok 1 - the review and the acceptance run are declared before the protocol is frozen
+  ---
+  duration_ms: 3.490875
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 124.281958

@@ -2,7 +2,7 @@
 
 Story : e38s09
 Epic : e38
-Statut : en cours
+Statut : versée
 
 Surface : pi-495 — protocole de revue et recette G5
 Dépendances : e38s08
