@@ -1959,3 +1959,127 @@ bugs:
     follow_ups: "none"
     status: fixed
     fixed_in: 12a801b1
+  - bug_id: BUG-2026-10-10T170000
+    date: "2026-10-10"
+    title: "A bypass of the security section that the response of a round contests or registers no longer holds the gate in the next round"
+    severity: medium
+    priority: p2
+    scope: cycle
+    what_happened: >
+      Before the last round, `pasRelecture` (`cycle/src/cycle.ts`) sends a bypass to the response session, whose prompt
+      now says to fix it and never register it, but the tool reads neither the response's action nor the branch after
+      it: the response's schema still offers `registre` and `conteste` for every finding. The next round reads only the
+      diff since the previous head (`b = tete`), and its reviewers are told that the previous findings are handled and
+      must not be counted again. A bypass the response contests or registers instead of fixing therefore leaves the
+      gate, and never reaches the owner. Introduced by the branch of the story e39s01, whose security section says the
+      response of a round cannot class a bypass elsewhere.
+    what_expected: >
+      A bypass that a round leaves unfixed still holds the gate in the next round and, after the last, goes to the owner
+      as a promise the code does not keep; the response cannot answer `registre` for it.
+    steps_to_reproduce:
+      - "Let a reviewer of round 1 return a finding marked `contournement`, placed `anterieur`."
+      - "Let the response answer `conteste` (or write it to the registry) and commit nothing."
+      - "Round 2 reads the empty diff since round 1's head, is told not to count round 1's findings again, and passes the gate."
+    root_cause: >
+      The gate of a round is decided only from the reviewers' reports of that round; what the response does with a
+      gate-holding finding is recorded, not checked, and the previous round's findings are handed to the next as
+      already handled.
+    evidence: >
+      Read at the self-review of e39s01: `reponse()` discards the session's structured output, the `action` enum is
+      `corrige | registre | conteste` for every finding, and `precedent` lists `tri.aTraiter` (bypasses included) under
+      "déjà traités ... ne les recompte pas".
+    risk_level: medium
+    follow_ups: >
+      Carry an unfixed bypass to the next round as still open (or to the owner when no round follows), and refuse
+      `registre` for a finding marked `contournement` in the response's schema, with a test/cycle test of a round whose
+      response contests a bypass.
+    status: fixed
+    fixed_in: 1a636f95
+  - bug_id: BUG-2026-10-10T094941
+    date: "2026-10-10"
+    title: "No test opens a review round and reads that the reviewer's prompt carries the guarantees of the story's security section"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `promesses()` (`cycle/src/cycle.ts`) builds the promises the reviewers receive from `ctx.story.promesses` and
+      `ctx.story.securite`. `test/cycle/relecteur-securite.test.ts` calls `invite()` with a hand-written promises
+      string, so no test drives a review round from a story and reads that the prompt sent carries each guarantee of
+      its security section. Introduced by the branch of the story e39s01: the code passes the section today, but
+      dropping it from `promesses()` leaves every test of `npm run test:cycle` green.
+    what_expected: >
+      A test opens a review round on a story whose security section names a guarantee and reads that guarantee in the
+      prompt the tool sends to each reviewer.
+    steps_to_reproduce:
+      - "Change `promesses()` to return `## Promesses\\n\\n${ctx.story.promesses}` without the security section."
+      - "Run `npm run test:cycle`: all tests pass."
+    root_cause: >
+      The prompt is tested from `invite()` with a literal argument, below the place where the tool assembles it from
+      the story.
+    evidence: >
+      Read at 3c664df5 at the round-2 review of e39s01: `relecteur-securite.test.ts` passes a `PROMESSES` literal to
+      `invite()`; the mutation above leaves the 172 tests of `test:cycle` green.
+    risk_level: low
+    follow_ups: >
+      Add a cycle test that runs a review round with a scripted reviewer on a story whose security section names a
+      guarantee, and asserts the guarantee appears in the prompt the reviewer received.
+    status: fixed
+    fixed_in: 017d6a4d
+  - bug_id: BUG-2026-10-10T094942
+    date: "2026-10-10"
+    title: "No test holds that a bypass answered `registre` or `conteste` with a commit of the branch still holds the gate"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `contournementsLaisses` (`cycle/src/relecture.ts`) counts a bypass as fixed only when the response answers it
+      `corrige` with a commit of its own. The `registre` and `conteste` cases of
+      `test/cycle/relecture-contournement.test.ts` cite no commit, so they are held by the missing commit, not by the
+      action: removing `action !== "corrige"` leaves every test green. Introduced by the branch of the story e39s01.
+    what_expected: >
+      A test answers a bypass `registre` (and `conteste`) citing a real commit of the branch, and reads that the bypass
+      still holds the next round's gate.
+    steps_to_reproduce:
+      - "Replace `action !== \"corrige\" || commit === undefined` by `commit === undefined` in `contournementsLaisses`."
+      - "Run `node --test test/cycle/relecture-contournement.test.ts test/cycle/relecteur-securite.test.ts test/cycle/relecture-dernier-tour.test.ts`: 0 fail."
+    root_cause: >
+      The cases that exercise a non-`corrige` action also omit the commit, so two conditions are covered by one input.
+    evidence: >
+      Read at 3c664df5 at the round-2 review of e39s01: the `registre` and `conteste` responses of the test carry no
+      `commit`; the mutation above was run by the reviewer with no failure.
+    risk_level: low
+    follow_ups: >
+      Give the `registre` and `conteste` cases a commit made on the branch, so that only the action keeps the bypass
+      open.
+    status: fixed
+    fixed_in: 01825e4c
+  - bug_id: BUG-2026-10-10T170200
+    date: "2026-10-10"
+    title: "The one review round after a bypass sends the story back to the red-green does not ask its reviewers to replay that bypass"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      When the last round leaves a bypass and the automatic mode sends the story back to the red-green, the review that
+      follows runs a single round (`toursMax` is 1 once `ctx.journal.rouvert()`) with `precedent = ""` and
+      `rejoues = []` (`pasRelecture`, `cycle/src/cycle.ts`). Its reviewers are not told which bypass reopened the story
+      nor asked to replay it, and the gate passes if they do not find it again on their own.
+    what_expected: >
+      As between two rounds, the bypass that reopened the story holds the gate of the review that follows until each
+      reviewer replays its path on the head of the branch and finds it closed.
+    steps_to_reproduce:
+      - "Run a story in automatic mode where the last review round leaves a finding marked as a bypass: the story goes back to the red-green."
+      - "After the red-green, the single review round's reviewers receive no previous round and no bypass to replay."
+      - "If neither raises it again, the gate passes."
+    root_cause: >
+      The bypasses to replay are carried only from one round to the next inside the loop of `pasRelecture`; the
+      `rouvert` event keeps them as text in its motive, which the red-green reads but the review that follows does not.
+    evidence: >
+      Introduced by the branch of the story e39s01, which sends a bypass left by the last round back to the red-green
+      in automatic mode. Read in `pasRelecture` at ee85e13b; raised by a reviewer of the first review round.
+    risk_level: low
+    follow_ups: >
+      Record the bypasses in the `rouvert` event and seed `rejoues` from them in the reopened round, with a cycle test
+      where the reopened round's reviewers do not raise the bypass again and the gate stays held.
+    status: fixed
+    fixed_in: 0ef9a226

@@ -2,7 +2,7 @@
 
 Story : e39s01
 Epic : e39
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

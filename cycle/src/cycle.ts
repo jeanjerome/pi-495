@@ -30,9 +30,22 @@ import {
 import { invite } from "./invite.ts";
 import { contenuLu, dejaVerte, retenirVerte } from "./preflight.ts";
 import { preparer } from "./preparation.ts";
-import type { Journal, Pas } from "./journal.ts";
+import type { Evenement, Journal, Pas } from "./journal.ts";
 import { defautsOuverts } from "./registre.ts";
-import { type Rapport, SCHEMA_RAPPORT, TOURS_MAX, apresDernierTour, trier } from "./relecture.ts";
+import {
+	type Constat,
+	type Rapport,
+	type Reponse,
+	type Tri,
+	SCHEMA_RAPPORT,
+	SCHEMA_REPONSE,
+	TOURS_MAX,
+	apresDernierTour,
+	contournementsLaisses,
+	contourne,
+	ouvertsDuTourPrecedent,
+	trier,
+} from "./relecture.ts";
 import { type Session, sessionInscrite } from "./session.ts";
 import { type Story, avecStatut, lireStory } from "./story.ts";
 
@@ -55,8 +68,9 @@ export interface Contexte {
 
 export type Issue =
 	| { statut: "fini" }
-	// `nonTenues`: the promises the review left unkept, when the review is what asks the owner.
-	| { statut: "proprietaire"; question: string; nonTenues?: string }
+	// `nonTenues`: the promises the review left unkept, when the review is what asks the owner, and among them
+	// `contournements`, the bypasses of the security section the review that follows a reopening replays.
+	| { statut: "proprietaire"; question: string; nonTenues?: string; contournements?: Constat[] }
 	// `origine`: the preparation, when the block is a model or a requirement to revise rather than code to write.
 	| { statut: "bloque"; motif: string; origine?: "preparation" };
 
@@ -342,8 +356,33 @@ function promesses(ctx: Contexte): string {
 	return `## Promesses\n\n${ctx.story.promesses}\n\n## Sécurité\n\n${ctx.story.securite}`;
 }
 
-async function reponse(ctx: Contexte, tour: number, constats: unknown[], mode: string): Promise<void> {
-	await session(
+function resumer(cs: Constat[]): string {
+	return JSON.stringify(
+		cs.map((c) => ({ id: c.id, constat: c.constat })),
+		null,
+		1,
+	);
+}
+
+/** What the reviewers are asked of the bypasses to replay, which `provenance` qualifies: to replay each on the head. */
+function aRejouer(rejoues: Constat[], provenance: string): string {
+	return rejoues.length === 0
+		? ""
+		: `Contournements ${provenance} : rejoue le chemin de chacun sur la tête de la branche ; s'il ne passe plus, cite son identifiant sous \`fermes\`, sinon relève-le de nouveau.\n${resumer(rejoues)}\n\n`;
+}
+
+/**
+ * What the reviewers of the next round are told of this one: the bypasses its response claims fixed, to replay on
+ * the head, and the other findings, already handled.
+ */
+function tourPrecedent(aTraiter: Constat[], rejoues: Constat[]): string {
+	return `${aRejouer(rejoues, "que la réponse du tour précédent dit corrigés")}Constats du tour précédent, déjà traités, et leurs réponses : voir le journal ; ne les recompte pas.\n${resumer(
+		aTraiter.filter((c) => !contourne(c)),
+	)}`;
+}
+
+async function reponse(ctx: Contexte, tour: number, constats: unknown[], mode: string): Promise<Reponse[]> {
+	const s = await session(
 		ctx,
 		"relecture",
 		`reponse-tour-${tour}`,
@@ -354,40 +393,108 @@ async function reponse(ctx: Contexte, tour: number, constats: unknown[], mode: s
 			mode,
 			constats: JSON.stringify(constats, null, 1),
 		}),
-		{
-			type: "object",
-			properties: {
-				status: { type: "string", enum: ["fini", "bloque"] },
-				reponses: {
-					type: "array",
-					items: {
-						type: "object",
-						properties: {
-							id: { type: "string" },
-							action: { type: "string", enum: ["corrige", "registre", "conteste"] },
-							commit: { type: "string" },
-							motif: { type: "string" },
-						},
-						required: ["id", "action", "motif"],
-					},
-				},
-				resume: { type: "string" },
-			},
-			required: ["status", "reponses", "resume"],
-		},
+		SCHEMA_REPONSE,
 	);
-	await preflightVerte(ctx, "relecture", true);
+	return (s.sortie as { reponses?: Reponse[] } | null)?.reponses ?? [];
+}
+
+/**
+ * What a round that does not close the review leaves open for the next one: the findings its response handles, the
+ * bypasses that hold the next gate as they stand, and those to replay. Written to the journal before the response,
+ * every bypass left open, and again once the response has answered, so that a review step relaunched after a block
+ * resumes at the next round with them rather than at a first round that has forgotten them.
+ */
+interface Ouverts {
+	tour: number;
+	tete: string;
+	traites: Constat[];
+	laisses: Constat[];
+	rejoues: Constat[];
+}
+
+function inscrireOuverts(ctx: Contexte, ouverts: Ouverts): void {
+	ctx.journal.inscrire("relecture", "ouverts", { ...ouverts });
+}
+
+/** The last round of this run of the review step that left bypasses open, a run resumed after a block included. */
+function ouvertsRepris(ctx: Contexte): Ouverts | null {
+	const ouverts = ctx.journal.passage("relecture").findLast((e) => e.genre === "ouverts");
+	return ouverts ? (ouverts as Evenement & Ouverts) : null;
+}
+
+/**
+ * Where the review step starts: its first round, the revision that round's diff starts from, the bypasses the
+ * previous round's response left open, which hold the gate as they stand, those it claims fixed, which hold it until
+ * each reviewer of the round finds them closed, and what the reviewers are told of the previous round. A step
+ * relaunched after a block resumes at the round after the last one answered.
+ */
+function depart(ctx: Contexte): {
+	premier: number;
+	depuis: string;
+	laisses: Constat[];
+	rejoues: Constat[];
+	precedent: string;
+} {
+	const repris = ouvertsRepris(ctx);
+	if (repris)
+		return {
+			premier: repris.tour + 1,
+			depuis: repris.tete,
+			laisses: repris.laisses,
+			rejoues: repris.rejoues,
+			precedent: tourPrecedent(repris.traites, repris.rejoues),
+		};
+	// After a gap, the one round reads the diff made since the story was reopened and replays the bypasses that sent
+	// the story back to the red-green.
+	const rouvert = ctx.journal.dernier("rouvert");
+	const rejoues = (rouvert?.contournements as Constat[] | undefined) ?? [];
+	return {
+		premier: 1,
+		depuis: typeof rouvert?.tete === "string" ? rouvert.tete : base(ctx),
+		laisses: [],
+		rejoues,
+		precedent: aRejouer(rejoues, "qui ont rouvert la story au rouge-vert"),
+	};
+}
+
+/**
+ * The end of the review, on a round whose gate passed or on the last one: what remains goes to the registry, and a
+ * promise the code does not keep, a bypass of the security section included, is put to the owner.
+ */
+async function clore(ctx: Contexte, tour: number, tri: Tri, rapports: Rapport[]): Promise<Issue> {
+	const fin = apresDernierTour(rapports);
+	const aRegistre = tri.porte === "pass" ? [...tri.aTraiter, ...tri.anterieurs] : fin.registre;
+	if (aRegistre.length > 0) {
+		await reponse(
+			ctx,
+			tour,
+			aRegistre,
+			tri.porte === "pass"
+				? "La porte est passée : corrige ce qui n'ajoute aucun comportement, inscris le reste au registre."
+				: "C'était le dernier tour : ce qui reste s'inscrit au registre, rien ne se corrige ici.",
+		);
+		await preflightVerte(ctx, "relecture", true);
+	}
+	if (tri.porte === "fail" && fin.proprietaire.length > 0) {
+		const nonTenues = fin.proprietaire.map((c) => `- ${c.id} (${c.scenario}) : ${c.constat}`).join("\n");
+		return {
+			statut: "proprietaire",
+			question: `Après ${tour} tours, le code ne tient pas ${fin.proprietaire.length} promesse(s) :\n${nonTenues}\nDécidez : \`cycle ${ctx.story.id} accepte\` verse tel quel, sinon corrigez et relancez.`,
+			nonTenues,
+			contournements: fin.proprietaire.filter(contourne),
+		};
+	}
+	return FINI;
 }
 
 async function pasRelecture(ctx: Contexte): Promise<Issue> {
 	const toursMax = ctx.journal.rouvert() ? 1 : TOURS_MAX;
-	// After a gap, the one round reads the diff made since the story was reopened.
-	const rouvert = ctx.journal.dernier("rouvert");
-	let b = typeof rouvert?.tete === "string" ? rouvert.tete : base(ctx);
-	let precedent = "";
-	for (let tour = 1; tour <= toursMax; tour += 1) {
+	const debut = depart(ctx);
+	let { depuis: b, laisses, rejoues, precedent } = debut;
+	for (let tour = debut.premier; tour <= toursMax; tour += 1) {
 		const tete = revision(ctx.root);
-		const rapports = await relecteurs(ctx, tour, b, tete, precedent);
+		const relus = await relecteurs(ctx, tour, b, tete, precedent);
+		const rapports = [...relus, ...ouvertsDuTourPrecedent(laisses, rejoues, relus)];
 		const tri = trier(rapports);
 		const ref = await ctx.journal.garder(JSON.stringify(rapports, null, 1), "application/json");
 		ctx.journal.inscrire("relecture", "tour", {
@@ -398,40 +505,23 @@ async function pasRelecture(ctx: Contexte): Promise<Issue> {
 			constats: rapports.flatMap((r) => r.constats).length,
 			rapports: ref,
 		});
-		const dernier = tour === toursMax;
-		if (tri.porte === "pass" || dernier) {
-			const fin = apresDernierTour(rapports);
-			const aRegistre = tri.porte === "pass" ? [...tri.aTraiter, ...tri.anterieurs] : fin.registre;
-			if (aRegistre.length > 0)
-				await reponse(
-					ctx,
-					tour,
-					aRegistre,
-					tri.porte === "pass"
-						? "La porte est passée : corrige ce qui n'ajoute aucun comportement, inscris le reste au registre."
-						: "C'était le dernier tour : ce qui reste s'inscrit au registre, rien ne se corrige ici.",
-				);
-			if (tri.porte === "fail" && fin.proprietaire.length > 0) {
-				const nonTenues = fin.proprietaire.map((c) => `- ${c.id} (${c.scenario}) : ${c.constat}`).join("\n");
-				return {
-					statut: "proprietaire",
-					question: `Après ${tour} tours, le code ne tient pas ${fin.proprietaire.length} promesse(s) :\n${nonTenues}\nDécidez : \`cycle ${ctx.story.id} accepte\` verse tel quel, sinon corrigez et relancez.`,
-					nonTenues,
-				};
-			}
-			return FINI;
-		}
-		await reponse(
+		if (tri.porte === "pass" || tour === toursMax) return await clore(ctx, tour, tri, rapports);
+		inscrireOuverts(ctx, { tour, tete, traites: tri.aTraiter, laisses: tri.aTraiter.filter(contourne), rejoues: [] });
+		const reponses = await reponse(
 			ctx,
 			tour,
 			[...tri.aTraiter, ...tri.anterieurs],
 			"Corrige ce qui retient la porte ; un tour suivant relira ton diff.",
 		);
-		precedent = `Constats du tour précédent, déjà traités, et leurs réponses : voir le journal ; ne les recompte pas.\n${JSON.stringify(
-			tri.aTraiter.map((c) => ({ id: c.id, constat: c.constat })),
-			null,
-			1,
-		)}`;
+		laisses = contournementsLaisses(
+			tri.aTraiter,
+			reponses,
+			commitsEntre(ctx.root, tete).map((c) => c.sha),
+		);
+		rejoues = tri.aTraiter.filter((c) => contourne(c) && !laisses.includes(c));
+		inscrireOuverts(ctx, { tour, tete, traites: tri.aTraiter, laisses, rejoues });
+		await preflightVerte(ctx, "relecture", true);
+		precedent = tourPrecedent(tri.aTraiter, rejoues);
 		b = tete;
 	}
 	return FINI;
@@ -509,8 +599,17 @@ async function pasRecette(ctx: Contexte): Promise<Issue> {
 }
 
 /** Sends the story back to the red-green, for a gap of the acceptance run or a promise the review left unkept. */
-export function rouvrir(ctx: Contexte, motif: string, origine: "recette" | "relecture" = "recette"): void {
-	ctx.journal.inscrire(origine, "rouvert", { motif, tete: revision(ctx.root) });
+export function rouvrir(
+	ctx: Contexte,
+	motif: string,
+	origine: "recette" | "relecture" = "recette",
+	contournements: Constat[] = [],
+): void {
+	ctx.journal.inscrire(origine, "rouvert", {
+		motif,
+		tete: revision(ctx.root),
+		...(contournements.length > 0 ? { contournements } : {}),
+	});
 	ctx.journal.inscrire("story", "fini");
 }
 

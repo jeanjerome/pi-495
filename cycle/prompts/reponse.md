@@ -3,6 +3,8 @@ constats des deux relecteurs sont ci-dessous, déjà situés et classés.
 
 Pour chaque constat :
 
+- Un constat marqué `contournement`, quels que soient son placement et sa catégorie : corrige-le sur
+  la branche ; il ne va jamais au registre.
 - **bloquant** ou **à corriger**, introduit ou rendu atteignable : corrige-le sur la branche, test
   d'abord quand un test manque, en commits séparés. Une correction qui ajoute un mécanisme (un état,
   un refus, un cycle de vie) est conçue avant d'être posée : dis où l'état naît, qui le lit, combien

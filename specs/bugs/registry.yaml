@@ -2750,3 +2750,94 @@ bugs:
       Route a package mismatch at G5 back to the preparation (or to the owner with that choice), with a v2 test where the
       profile revises the package after the freeze and the change is requalified without a contestation.
     status: open
+  - bug_id: BUG-2026-10-10T170100
+    date: "2026-10-10"
+    title: "The response to a review round can write a bypass into the registry itself, and the entry stays there while the gate holds"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      The response prompt (`cycle/prompts/reponse.md`) tells the session never to register a bypass, and `pasRelecture`
+      (`cycle/src/cycle.ts`) holds the next round's gate on a bypass answered `registre`, then puts it to the owner after
+      the last round. Nothing refuses or removes an entry the response committed itself to `specs/bugs/registry.yaml`
+      for that bypass: the entry stays on the branch, open, while the bypass is put to the owner.
+    what_expected: >
+      A bypass a reviewer raised never reaches the registry, as the security section of the story says: an entry the
+      response commits for it is refused or withdrawn, not only outvoted by the held gate.
+    steps_to_reproduce:
+      - "In a throwaway run, let reviewer A of round 1 raise A1-1 marked as a bypass."
+      - "Let the response commit `bug_id: A1-1, status: open` to `specs/bugs/registry.yaml` and answer `registre`."
+      - "The review ends on `proprietaire` with A1-1, and `HEAD:specs/bugs/registry.yaml` holds A1-1."
+    root_cause: >
+      The tool judges the response by its structured answer only; it reads neither the registry diff of the round nor
+      the commits it cites against the registry.
+    evidence: >
+      Introduced by the branch of the story e39s01, which adds the rule that a bypass never reaches the registry.
+      Probed by a reviewer of its first review round; the gate is held and the owner is told, so nothing is let through,
+      but the registry receives the entry.
+    risk_level: low
+    follow_ups: >
+      After a response, refuse or revert a registry entry added for a finding marked as a bypass, with a cycle test
+      where the response commits one.
+    status: open
+  - bug_id: BUG-2026-10-10T190000
+    date: "2026-10-10"
+    title: "No test holds that a review step relaunched after a block replays a bypass the response claimed fixed instead of holding it as it stands"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `pasRelecture` (`cycle/src/cycle.ts`) writes the `ouverts` event twice in a round: once before the response, every
+      bypass left open, and once after it, splitting the bypasses into those left open and those claimed fixed, to be
+      replayed. Removing the second write leaves `relecture-contournement`, `relecture-dernier-tour`, `relecteur-securite`
+      and `automate` green: a step relaunched after a block then resumes on the first record and holds a bypass claimed
+      fixed as it stands, even when each reviewer of the next round finds it closed.
+    what_expected: >
+      A cycle test relaunches the review step after a block that follows a response claiming a bypass fixed with a commit,
+      and asserts the next round replays it and lets the gate pass once each reviewer finds it closed.
+    steps_to_reproduce:
+      - "Delete `inscrireOuverts(ctx, { tour, tete, traites: tri.aTraiter, laisses, rejoues });` after the response in `pasRelecture`."
+      - "Run `node --test test/cycle/relecture-contournement.test.ts test/cycle/relecture-dernier-tour.test.ts test/cycle/automate.test.ts`: every test passes."
+    root_cause: >
+      The resume tests relaunch the step after a block on a bypass left open, never on one the response claimed fixed, so
+      the second record is read by no assertion.
+    evidence: >
+      Introduced by the branch of the story e39s01, which adds the resume after a block. Found by both reviewers of its
+      first review round by mutation. Without the second record the gate is only held longer, never let through, and no
+      bypass reaches the registry.
+    risk_level: low
+    follow_ups: >
+      Add the cycle test above; the mutation that removes the second record must make it fail.
+    status: open
+  - bug_id: BUG-2026-10-10T210000
+    date: "2026-10-10"
+    title: "A bypass the last review round raises is lost when the step blocks during that round's response, and a relaunch whose fresh reviewers miss it lets the gate pass"
+    severity: medium
+    priority: p2
+    scope: cycle
+    what_happened: >
+      `pasRelecture` (`cycle/src/cycle.ts`) records the bypasses a round leaves open (`ouverts`) only around the
+      response of a round that is not the last. When the last round raises a bypass, the response that writes the rest to
+      the registry runs before `clore` hands the bypass to the owner. If that response fails, or its commit turns
+      Preflight red, the step blocks with no record of the last round's bypass. On the relaunch, `depart` replays the
+      last round from the `ouverts` of the round before it; fresh reviewers that do not raise the bypass again let the
+      gate pass, and the step ends `fini`: the bypass is neither handed to the owner nor sent back to the red-green.
+    what_expected: >
+      A bypass a round raises is recorded before that round's response runs, so a relaunch after any block replays it,
+      whichever round raised it, including the single round that follows a reopening.
+    steps_to_reproduce:
+      - "Drive the review step with the fake Claude: round 1 fixes an ordinary finding; at round 2, reviewer A raises a bypass and B a finding to weigh."
+      - "Make the round 2 response fail, or commit a red test so Preflight stays red: the step blocks, gates [1 fail, 2 fail]."
+      - "Relaunch the step with reviewers that raise nothing: it ends `fini` with gate [2 pass]."
+    root_cause: >
+      What a round raised is kept in memory until its response is done; only the round before the last writes it to the
+      journal, and nothing persists the last round's findings before its response.
+    evidence: >
+      Introduced by the branch of the story e39s01, which adds the bypass review and its resume. Found by reviewer A of
+      the single round after its third reopening, with a throwaway probe replayed twice (a failing response and a red
+      Preflight). The owner landed the story with this entry rather than a fourth pass, on 2026-10-10.
+    risk_level: medium
+    follow_ups: >
+      Record each round's bypasses before its response, and replay them on any relaunch; with the cycle test above,
+      which a mutation removing that record must make fail.
+    status: open

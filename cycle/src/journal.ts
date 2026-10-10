@@ -79,10 +79,14 @@ export class Journal {
 	 * ran in between does not, and neither does the run before a reopening.
 	 */
 	debutDePassage(pas: Pas): string | null {
-		const events = this.lire();
-		const autre = events.findLastIndex((e) => e.pas !== pas);
-		const debut = events.slice(autre + 1).find((e) => e.pas === pas && e.genre === "debute");
+		const debut = this.passage(pas).find((e) => e.genre === "debute");
 		return typeof debut?.revision === "string" ? debut.revision : null;
+	}
+
+	/** The events of the run `pas` is in, as `debutDePassage` counts it: since the last event of another step. */
+	passage(pas: Pas): Evenement[] {
+		const events = this.lire();
+		return events.slice(events.findLastIndex((e) => e.pas !== pas) + 1);
 	}
 
 	/** How many times the story went back to the red-green: the `rouvert` events of the journal. */

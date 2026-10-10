@@ -12,6 +12,7 @@ import { type Contexte, type Issue, Blocage, accepter, rouvrir, session } from "
 import { arbrePropre, baseDe, fichiersChanges, git, revision } from "./git.ts";
 import { invite } from "./invite.ts";
 import type { Pas } from "./journal.ts";
+import type { Constat } from "./relecture.ts";
 import { lireStory } from "./story.ts";
 
 const REGISTRE = "specs/bugs/registry.yaml";
@@ -34,7 +35,7 @@ export async function apresIssue(ctx: Contexte, pas: Pas, issue: Issue, reouvert
 		if (issue.statut === "proprietaire") {
 			if (pas === "recette") return await arbitrer(ctx, issue.question);
 			// A promise the review left unkept is corrected, never waived: the story already says it.
-			return reouvrirSous(ctx, issue.nonTenues ?? issue.question, false, "relecture");
+			return reouvrirSous(ctx, issue.nonTenues ?? issue.question, false, "relecture", issue.contournements);
 		}
 		if (ctx.journal.reouvertures() > reouvertAvant) return await epingler(ctx, String(lastReouverture(ctx)));
 		return arret(issue.motif);
@@ -53,10 +54,11 @@ async function reouvrirSous(
 	motif: string,
 	epingle: boolean,
 	origine: "recette" | "relecture" = "recette",
+	contournements: Constat[] = [],
 ): Promise<Poursuite> {
 	if (ctx.journal.reouvertures() >= ECARTS_MAX)
 		return arret(`the story went back to the red-green ${ECARTS_MAX} times: the owner decides what is left\n${motif}`);
-	rouvrir(ctx, motif, origine);
+	rouvrir(ctx, motif, origine, contournements);
 	return epingle ? await epingler(ctx, motif) : CONTINUER;
 }
 

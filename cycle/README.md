@@ -128,12 +128,26 @@ its diff, then to the acceptance run.
 
 ## Review
 
-What reviewers check: the promises of the story, and nothing else. For each scenario: does the code
-keep it, and does a test hold it, one that a one-line mutation of the line keeping the promise must
-make fail. A promise the code does not keep is blocking; a promise no test holds is to be fixed.
-Conventions, design and smells belong to the self-review, which comes first. The prompt offers the
-reviewers no scenario, state or interleaving of its own invention: a defect on a path no promise
-covers will be found by the acceptance run, by use, or by the story that makes it a promise.
+What reviewers check: the promises of the story and its security section, and nothing else. For
+each scenario: does the code keep it, and does a test hold it, one that a one-line mutation of the
+line keeping the promise must make fail. A promise the code does not keep is blocking; a promise no
+test holds is to be fixed. Conventions, design and smells belong to the self-review, which comes
+first. For the promises, the prompt offers the reviewers no scenario, state or interleaving of its
+own invention: a defect on a path no promise covers will be found by the acceptance run, by use, or
+by the story that makes it a promise.
+
+The security section is reviewed by attacking it (`specs/adr/D-89`): for every guarantee of that
+section, each reviewer looks for a concrete path, through the public entries the branch exposes, that
+obtains what the guarantee refuses. A path found is a bypass, marked as such in the finding with the
+guarantee it gets around. A bypass is blocking and holds the gate whatever its location; it never
+goes to the registry, and after the last round it is put to the owner as a promise the code does not
+keep. The answer to a round cannot class it elsewhere: a bypass it does not answer as fixed by a
+commit it made, whether contested, registered or claimed fixed without one, holds the next round's
+gate as it stands. One it answers as fixed holds that gate too, until each reviewer of the next round
+has replayed its path on the head of the branch and found it closed: a commit alone does not show
+what it fixes. A bypass the last round sends back to step 2 holds, in the same way, the gate of the
+round that follows the reopening. A review step relaunched after a block resumes at the round that
+follows the last one answered, with the bypasses that answer left open or claimed fixed.
 
 A finding is located before it is handled. A defect the branch introduces or makes reachable belongs
 to it, even when the faulty line predates it; a defect it neither introduces nor makes reachable goes
@@ -148,8 +162,8 @@ fix against its finding.
 
 The gate closes without a percentage. After the second round, what remains goes to the registry
 `specs/bugs/registry.yaml`, named as introduced by the branch when it is, except a promise the code
-does not keep, which is put to the owner: they decide between landing and a fix, which goes back
-through step 2 and one round on its diff.
+does not keep, a bypass of the security section included, which is put to the owner: they decide
+between landing and a fix, which goes back through step 2 and one round on its diff.
 
 Records do not move during review. The revision, timestamps and test count of a record are set when
 the gate passes. A record lagging behind the reviewed revision is not a finding, any more than the

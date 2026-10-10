@@ -53,6 +53,21 @@ describe("the journal of a story", () => {
 		assert.equal(journal.debutDePassage("rouge-vert"), "ccc");
 	});
 
+	it("lists the events of a step's run since the last event of another step, none when another step wrote last", () => {
+		const journal = new Journal("e01s05", tempDir("495-", cleanups));
+		assert.deepEqual(journal.passage("relecture"), []);
+		journal.inscrire("relecture", "ouverts", { tour: 1 });
+		journal.inscrire("autocontrole", "fini");
+		journal.inscrire("relecture", "debute");
+		journal.inscrire("relecture", "bloque");
+		journal.inscrire("relecture", "debute");
+		assert.deepEqual(
+			journal.passage("relecture").map((e) => e.genre),
+			["debute", "bloque", "debute"],
+		);
+		assert.deepEqual(journal.passage("autocontrole"), []);
+	});
+
 	it("keeps what an event points at in a content-addressed store shared by every story", async () => {
 		const racine = tempDir("495-", cleanups);
 		const a = new Journal("e01s05", racine);
