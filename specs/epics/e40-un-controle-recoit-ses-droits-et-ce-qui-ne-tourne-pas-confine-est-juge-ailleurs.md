@@ -1,4 +1,4 @@
-# e40 — Un contrôle reçoit les droits dont il a besoin, et ce qui ne peut pas tourner confiné est jugé ailleurs
+# e40 — Un contrôle reçoit les droits dont il a besoin, et les tests de bac à sable de pi-495 tournent dans un bac à sable qui fonctionne
 
 Statut : à faire
 Point de départ : `b3e88aa9`, branche main, le 11 octobre 2026.
@@ -15,11 +15,13 @@ Décision : `specs/adr/D-90-un-controle-recoit-ses-droits-du-proprietaire-et-ce-
 - La configuration git du propriétaire, qui signe ses commits avec une clé de `~/.ssh`, ne fait plus échouer les
   tests d'une cible.
 
-**Ce qui ne peut pas tourner confiné.** Un test qui démarre lui-même un bac à sable ne disparaît pas du jugement :
-- sous le confinement, il se saute avec son motif ;
-- l'acceptation exige qu'une exécution sur la même révision, dans une VM que le noyau lance, l'ait réglé.
+**Les tests de bac à sable de pi-495.** Un test qui démarre lui-même un bac à sable tourne dans un bac à sable qui
+fonctionne, et 495 le juge :
+- sous Linux, bubblewrap démarré sous le confinement bubblewrap de 495 ;
+- sous macOS, où Seatbelt refuse un second profil, dans une VM macOS qui confine le contrôle à la place de Seatbelt ;
+- là où il ne peut pas tourner, il se saute avec son motif et reste une obligation, jamais comptée comme passée.
 
-Le dogfooding de pi-495 atteint l'intégration avec toute sa suite jugée, chaque test là où il peut tourner.
+Le dogfooding de pi-495 atteint l'intégration avec toute sa suite jugée par 495.
 
 ## Ce que la campagne du 11 octobre a montré
 
@@ -44,7 +46,8 @@ modèle, dans trois séries de campagnes (`~/.495/campagnes/dogfood-20261011T*`)
 | La qualification de Seatbelt vérifie la plateforme et la présence de `sandbox-exec`, sans appliquer de profil (`src/adapters/sandbox/backends.ts:115-127`) | Sous un autre Seatbelt, 495 se croit qualifié, et chaque contrôle échoue au lieu de refuser par `capability_missing` |
 | Le noyau distingue un test qui échoue sans assertion (« proves nothing ») d'un échec d'assertion | Une erreur d'environnement n'est pas prise pour un défaut du candidat |
 | Le contrôle `test` du dogfooding se limite à `test/v0-pure` et `test/cycle`. `v1` à `v4` ne sont jugées que par la Preflight non confinée et la VM Linux, et « un dogfooding ne les compte pas comme passées » (`specs/experiments/e38/dogfood/README.md`) | Aucun jugement ne lit ces exécutions |
-| `scripts/linux/test.sh` copie l'arbre git dans une VM d'Apple `container` et y fait tourner toute la suite sous bubblewrap, sans privilège (`D-84`) | Un environnement séparé existe, hors du jugement du contrôleur |
+| Le confinement bubblewrap de 495 ne pose ni filtre seccomp ni interdiction de nouveaux espaces de noms utilisateur (`src/adapters/sandbox/backends.ts:218-235`) | Un bubblewrap démarré à l'intérieur peut fonctionner ; Nix le fait sur plusieurs niveaux. Pas essayé |
+| `scripts/linux/test.sh` copie l'arbre git dans une VM d'Apple `container` et y fait tourner toute la suite sous bubblewrap, sans privilège (`D-84`) | La VM Linux où l'essai de bubblewrap emboîté se fait |
 
 Essais du 11 octobre sur cette machine (macOS 27, Apple Silicon), décrits dans l'étude :
 - Sous un profil Seatbelt qui restreint quoi que ce soit, `sandbox-exec` refuse un second profil, sauf profil
@@ -62,24 +65,25 @@ Essais du 11 octobre sur cette machine (macOS 27, Apple Silicon), décrits dans 
 | e40s04 | Sous Linux, la proposition vient des chemins lus dans la sortie du contrôle, et le propriétaire la voit comme une indication du candidat, non vérifiée | e40s03 |
 | e40s05 | Le dogfooding de pi-495 atteint G2, construit le candidat et l'intègre sous le contrôleur identifié au départ, avec `suite_paths` tel que `e38s13` l'a laissé | e40s01, e40s02 |
 
-## Partie 2 — Ce qui ne peut pas tourner confiné est jugé dans une VM, sur la même révision
+## Partie 2 — Les tests de bac à sable de pi-495 tournent dans un bac à sable qui fonctionne
 
 | Story | Livraison observable | Prérequis |
 | --- | --- | --- |
 | e40s06 | La qualification de Seatbelt applique un vrai profil restrictif. Sous un autre Seatbelt, elle échoue, et 495 refuse par `capability_missing`. Les tests de pi-495 qui démarrent un bac à sable se sautent alors, avec leur motif | Aucun |
 | e40s07 | Un test sauté faute de pouvoir tourner confiné reste une obligation. Le jugement la dit non réglée tant qu'une exécution sur la même révision ne l'a pas réglée, et un saut n'est jamais compté comme un passage | e40s06 |
-| e40s08 | La configuration du contrôleur envoie un contrôle dans la VM Linux d'Apple `container`. Le noyau l'y lance sur une copie de la révision figée, en reçoit les observations rattachées à cette révision, et le code du candidat y démarre bubblewrap. Commence par l'essai du démarrage bloqué de `container` signalé sous macOS 27 | e40s07 |
-| e40s09 | Les tests de pi-495 qui démarrent Seatbelt sont jugés dans une VM macOS, sans Seatbelt autour, sur la même révision. Commence par la lecture et l'essai de l'outil de virtualisation, dont le bilan revient au propriétaire s'il ne tient pas. Le contrôle `test` de pi-495 retrouve `v1` à `v4`, et le dogfooding atteint l'intégration avec chaque test jugé, confiné ou dans sa VM | e40s05, e40s08 |
+| e40s08 | Sous Linux, les tests de pi-495 qui démarrent bubblewrap tournent sous le confinement bubblewrap de 495 et passent. Commence par l'essai dans la VM Linux de `scripts/linux`, précédé de celui du démarrage bloqué de `container` signalé sous macOS 27. Si le noyau refuse, ces tests restent des obligations et le bilan revient au propriétaire | e40s07 |
+| e40s09 | Sous macOS, la configuration du contrôleur peut confiner un contrôle par une VM macOS au lieu de Seatbelt : la VM reçoit une copie de la révision figée, et c'est elle qui protège l'hôte. Les tests de pi-495 qui démarrent Seatbelt y tournent et passent. Le contrôle `test` de pi-495 retrouve `v1` à `v4`, et le dogfooding atteint l'intégration avec toute sa suite jugée par 495. Commence par la lecture et l'essai de l'outil de virtualisation, dont le bilan revient au propriétaire s'il ne tient pas | e40s05, e40s07 |
 
 ## Limites
 
 - Aucun droit n'est accordé sans l'adoption du propriétaire, et aucun ne se lit dans la copie du candidat.
-- Aucun code du candidat ne tourne sur l'hôte sans confinement. Ce qui ne peut pas tourner confiné tourne dans une VM
-  que le noyau lance, ou reste une obligation non réglée.
-- Aucun emboîtement de Seatbelt n'est recherché ; un bac à sable dans une VM n'est pas un emboîtement.
-- Apple `container` crée sous macOS la VM Linux qui sert à produire pi-495 ; ce n'est pas un choix pour les projets
-  cibles. La conteneurisation n'y est pas abordée : 495 y génère du code applicatif, Dockerfile compris, et n'y lance
-  ni Docker ni VM (`D-90`).
+- Aucun code du candidat ne tourne sur l'hôte sans confinement. Un test qui ne trouve pas de bac à sable qui
+  fonctionne reste une obligation non réglée.
+- Aucun emboîtement de Seatbelt n'est recherché ; Seatbelt dans une VM macOS n'est pas un emboîtement.
+- La VM macOS ne confine un contrôle que si la configuration du contrôleur le demande ; rien ne la propose à une cible.
+- Apple `container` crée sous macOS la VM Linux qui sert à produire pi-495 ; il ne fait pas de VM macOS, et ce n'est
+  pas un choix pour les projets cibles. La conteneurisation n'y est pas abordée : 495 y génère du code applicatif,
+  Dockerfile compris, et n'y lance ni Docker ni VM Linux (`D-90`).
 - La lecture reste permise hors de la liste des secrets, et un contrôle n'écrit toujours pas les caches des outils
   (`D-76`).
 - `BUG-2026-10-11T013000` est corrigé par e40s01 et e40s06 ; `BUG-2026-10-11T105300` par e40s09.
