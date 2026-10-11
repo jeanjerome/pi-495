@@ -1,7 +1,7 @@
 {
   "name": "pi-495",
   "version": "0.4.1-dev",
-  "description": "Evidence-gated harness for coding agents, inside Pi. The checks are frozen before the change exists; it is accepted on evidence, never on the agent's word.",
+  "description": "Evidence-gated development process for coding agents, inside Pi. A request becomes a specification; the checks that judge it (tests, coverage, mutation, architecture) are frozen before any code exists; agents work in a sandbox, and the change is accepted on executed evidence, required reviews and your decisions — never on the agent's word.",
   "type": "module",
   "license": "Apache-2.0",
   "author": "Jean-Jerome Levy",
