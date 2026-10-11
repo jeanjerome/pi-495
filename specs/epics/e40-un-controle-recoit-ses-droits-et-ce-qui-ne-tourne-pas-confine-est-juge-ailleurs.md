@@ -77,8 +77,9 @@ Essais du 11 octobre sur cette machine (macOS 27, Apple Silicon), décrits dans 
 - Aucun code du candidat ne tourne sur l'hôte sans confinement. Ce qui ne peut pas tourner confiné tourne dans une VM
   que le noyau lance, ou reste une obligation non réglée.
 - Aucun emboîtement de Seatbelt n'est recherché ; un bac à sable dans une VM n'est pas un emboîtement.
-- Docker n'est pas traité, puisque aucune cible n'en a besoin aujourd'hui. La voie retenue, `container` d'Apple, est
-  consignée dans `D-90`.
+- Apple `container` crée sous macOS la VM Linux qui sert à produire pi-495 ; ce n'est pas un choix pour les projets
+  cibles. La conteneurisation n'y est pas abordée : 495 y génère du code applicatif, Dockerfile compris, et n'y lance
+  ni Docker ni VM (`D-90`).
 - La lecture reste permise hors de la liste des secrets, et un contrôle n'écrit toujours pas les caches des outils
   (`D-76`).
 - `BUG-2026-10-11T013000` est corrigé par e40s01 et e40s06 ; `BUG-2026-10-11T105300` par e40s09.

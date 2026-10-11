@@ -40,9 +40,9 @@ désaccords le 11 octobre.
    - Aucun code du candidat ne tourne sur l'hôte sans confinement.
 5. **L'environnement séparé est une VM, lancée par le noyau sur une copie de la révision figée, avec des montages
    qu'il fixe.**
-   - Pour les tests qui démarrent bubblewrap : la VM Linux d'Apple `container`, que `scripts/linux/` emploie déjà.
-   - Pour Docker, quand une cible en aura besoin : la même VM, avec son propre démon, jamais celui de l'hôte. Aucune
-     cible n'en a besoin aujourd'hui, et e40 ne le réalise pas.
+   - Pour les tests qui démarrent bubblewrap : une VM Linux créée sous macOS par Apple `container`, que
+     `scripts/linux/` emploie déjà. C'est un outil de développement de pi-495, choisi pour produire pi-495 : ce n'est
+     pas un choix fait pour les projets cibles.
    - Pour les tests qui démarrent Seatbelt : une VM macOS, sans Seatbelt autour. L'outil de virtualisation est lu et
      essayé avant d'être retenu.
 
@@ -61,6 +61,9 @@ Une VM macOS coûte une image de plusieurs dizaines de Go, et macOS limite à de
 (sources secondaires). Aucun projet lu ne le fait : la story qui la réalise commence par un essai, et son bilan revient
 au propriétaire si l'outil ne tient pas.
 
-Un démarrage bloqué de `container` est signalé sous macOS 27 (ticket #2275 du projet) : la story qui fait lancer la VM
-Linux par le noyau commence par cet essai. Docker dans cette VM demandera un réglage de l'image, que l'epic qui le
-réalisera essaiera.
+Un démarrage bloqué de `container` est signalé sous macOS 27 (ticket #2275 du projet) : la story de la VM Linux
+commence par cet essai.
+
+La conteneurisation n'est pas abordée dans les projets cibles : 495 n'y lance ni Docker ni VM, et un test qui aurait
+besoin de Docker n'y est pas pris en charge. 495 génère du code applicatif ; un Dockerfile s'y écrit comme tout autre
+fichier. Le propriétaire l'a précisé le 11 octobre.

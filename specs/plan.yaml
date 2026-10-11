@@ -557,8 +557,8 @@ epics:
       Après e38, dont il reprend le dogfooding. La partie 1 (s01 à s05) mène pi-495 à l'intégration avec sa suite
       bornée ; la partie 2 (s06 à s09) rend toute la suite au jugement. Chaque story touche les contrôles ou
       l'exécuteur, et sa recette joue donc les deux campagnes de référence (`D-89`). s08 et s09 commencent par un
-      essai, dont le bilan revient au propriétaire si l'outil ne tient pas. Docker n'y est pas : aucune cible n'en
-      a besoin aujourd'hui.
+      essai, dont le bilan revient au propriétaire si l'outil ne tient pas. Apple `container` sert à produire
+      pi-495, pas aux projets cibles, où la conteneurisation n'est pas abordée.
     stories:
       - { id: e40s01, status: "à faire", title: "git, dans un contrôle, ne lit ni la configuration globale ni la configuration système de l'hôte" }
       - { id: e40s02, status: "à faire", title: "Le propriétaire donne à un contrôle un dossier inscriptible de la copie, créé par le contrôleur, et un lien ou un fichier du candidat fait refuser au lieu d'élargir" }

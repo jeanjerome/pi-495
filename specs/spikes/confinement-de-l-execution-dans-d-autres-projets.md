@@ -318,5 +318,7 @@ de Claude, ci-dessus, reste telle qu'elle a été signée. Les révisions qu'ell
    recommandation de l'autre IA. L'outil de virtualisation reste à lire et à essayer avant d'être retenu.
 2. **Sous Linux, 495 propose un droit d'après la sortie du test**, présenté au propriétaire comme une indication du
    candidat, non vérifiée. C'est la position de l'autre IA. Sous macOS, la source reste le journal du noyau.
-3. **Docker tourne dans `container` d'Apple**, déjà employé par `scripts/linux/`. Le réglage de l'image pour Docker et
-   le démarrage bloqué signalé sous macOS 27 sont à essayer en premier.
+3. **`container` d'Apple**, déjà employé par `scripts/linux/`. Le propriétaire l'a précisé ensuite : `container` crée
+   sous macOS une VM Linux pour produire pi-495, ce n'est pas un choix pour les projets cibles. La conteneurisation
+   n'est pas abordée dans les cibles : 495 y génère du code applicatif, et pourquoi pas des Dockerfiles. Le démarrage
+   bloqué signalé sous macOS 27 est à essayer en premier.
