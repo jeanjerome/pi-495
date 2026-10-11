@@ -1,6 +1,6 @@
 # Le confinement de l'exécution dans d'autres projets
 
-Statut : ouverte — les fiches et la conclusion de Claude sont écrites ; celles de l'autre IA sont attendues.
+Statut : ouverte — les deux relevés sont écrits et confrontés ; trois questions attendent le propriétaire.
 Ouverte le 11 octobre 2026, à `main` après le versement de `e38s13`.
 Menée par deux IA, Claude et une autre, chacune signant ce qu'elle a lu ; le propriétaire arbitre.
 Débouché : l'epic `e40`, qui ne s'écrit qu'après cette étude.
@@ -113,19 +113,19 @@ Une fiche par projet, selon les sept questions, sous le dossier de l'IA qui l'a 
 
 | Projet | Claude | Autre IA |
 | --- | --- | --- |
-| Unsloth Studio | [`claude/unsloth-studio.md`](confinement-de-l-execution-dans-d-autres-projets/claude/unsloth-studio.md) | attendue |
-| Codex | [`claude/codex.md`](confinement-de-l-execution-dans-d-autres-projets/claude/codex.md) | attendue |
-| Claude Code et `sandbox-runtime` | [`claude/claude-code.md`](confinement-de-l-execution-dans-d-autres-projets/claude/claude-code.md) | attendue |
-| Gemini CLI | [`claude/gemini-cli.md`](confinement-de-l-execution-dans-d-autres-projets/claude/gemini-cli.md) | attendue |
-| Cursor | [`claude/cursor.md`](confinement-de-l-execution-dans-d-autres-projets/claude/cursor.md) | attendue |
-| GitHub Copilot | [`claude/github-copilot.md`](confinement-de-l-execution-dans-d-autres-projets/claude/github-copilot.md) | attendue |
-| OpenHands | [`claude/openhands.md`](confinement-de-l-execution-dans-d-autres-projets/claude/openhands.md) | attendue |
-| SWE-agent et SWE-ReX | [`claude/swe-agent.md`](confinement-de-l-execution-dans-d-autres-projets/claude/swe-agent.md) | attendue |
-| Aider | [`claude/aider.md`](confinement-de-l-execution-dans-d-autres-projets/claude/aider.md) | attendue |
-| OpenCode | [`claude/opencode.md`](confinement-de-l-execution-dans-d-autres-projets/claude/opencode.md) | attendue |
-| Docker Sandboxes | [`claude/docker-sandboxes.md`](confinement-de-l-execution-dans-d-autres-projets/claude/docker-sandboxes.md) | attendue |
-| NVIDIA OpenShell | [`claude/nvidia-openshell.md`](confinement-de-l-execution-dans-d-autres-projets/claude/nvidia-openshell.md) | attendue |
-| Pi et Gondolin | [`claude/pi.md`](confinement-de-l-execution-dans-d-autres-projets/claude/pi.md) | attendue |
+| Unsloth Studio | [`claude/unsloth-studio.md`](confinement-de-l-execution-dans-d-autres-projets/claude/unsloth-studio.md) | [`autre-ia/unsloth-studio.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/unsloth-studio.md) |
+| Codex | [`claude/codex.md`](confinement-de-l-execution-dans-d-autres-projets/claude/codex.md) | [`autre-ia/codex.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/codex.md) |
+| Claude Code et `sandbox-runtime` | [`claude/claude-code.md`](confinement-de-l-execution-dans-d-autres-projets/claude/claude-code.md) | [`autre-ia/claude-code.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/claude-code.md), [`autre-ia/sandbox-runtime.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/sandbox-runtime.md) |
+| Gemini CLI | [`claude/gemini-cli.md`](confinement-de-l-execution-dans-d-autres-projets/claude/gemini-cli.md) | [`autre-ia/gemini-cli.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/gemini-cli.md) |
+| Cursor | [`claude/cursor.md`](confinement-de-l-execution-dans-d-autres-projets/claude/cursor.md) | [`autre-ia/cursor-local.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/cursor-local.md), [`autre-ia/cursor-cloud.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/cursor-cloud.md) |
+| GitHub Copilot | [`claude/github-copilot.md`](confinement-de-l-execution-dans-d-autres-projets/claude/github-copilot.md) | [`autre-ia/github-copilot-local.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/github-copilot-local.md), [`autre-ia/github-copilot-cloud.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/github-copilot-cloud.md) |
+| OpenHands | [`claude/openhands.md`](confinement-de-l-execution-dans-d-autres-projets/claude/openhands.md) | [`autre-ia/openhands.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/openhands.md) |
+| SWE-agent et SWE-ReX | [`claude/swe-agent.md`](confinement-de-l-execution-dans-d-autres-projets/claude/swe-agent.md) | [`autre-ia/swe-agent.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/swe-agent.md) |
+| Aider | [`claude/aider.md`](confinement-de-l-execution-dans-d-autres-projets/claude/aider.md) | [`autre-ia/aider.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/aider.md) |
+| OpenCode | [`claude/opencode.md`](confinement-de-l-execution-dans-d-autres-projets/claude/opencode.md) | [`autre-ia/opencode.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/opencode.md) |
+| Docker Sandboxes | [`claude/docker-sandboxes.md`](confinement-de-l-execution-dans-d-autres-projets/claude/docker-sandboxes.md) | [`autre-ia/docker-sandboxes.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/docker-sandboxes.md) |
+| NVIDIA OpenShell | [`claude/nvidia-openshell.md`](confinement-de-l-execution-dans-d-autres-projets/claude/nvidia-openshell.md) | [`autre-ia/nvidia-openshell.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/nvidia-openshell.md) |
+| Pi et Gondolin | [`claude/pi.md`](confinement-de-l-execution-dans-d-autres-projets/claude/pi.md) | [`autre-ia/pi.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/pi.md), [`autre-ia/gondolin.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/gondolin.md) |
 | Bazel | [`claude/bazel.md`](confinement-de-l-execution-dans-d-autres-projets/claude/bazel.md) | — |
 | Nix | [`claude/nix.md`](confinement-de-l-execution-dans-d-autres-projets/claude/nix.md) | — |
 | MXC | [`claude/mxc.md`](confinement-de-l-execution-dans-d-autres-projets/claude/mxc.md) | — |
@@ -138,6 +138,13 @@ isolement de git (`tests/functional/common/vars.sh:67-69`), celui de Gemini CLI 
 le refus d'un lien dans une racine inscriptible chez Codex (`sandboxing/src/seatbelt.rs:414-456`), la règle des liens
 de `sandbox-runtime` (`src/sandbox/sandbox-utils.ts:290-305`), et la sentinelle lue à travers un lien chez Unsloth
 (`sandbox_probe.py:380-390`).
+
+Les fiches de l'autre IA sont signées « Codex (OpenAI, modèle GPT) » et ont été remises par le propriétaire le 11
+octobre. Elle a lu les mêmes révisions que Claude, sans voir son travail, et n'a rien exécuté. Ses fiches sont
+reprises mot pour mot, une par projet ; seuls les titres ont changé de niveau. Elle traite à part `sandbox-runtime`, les
+agents cloud de Cursor et de Copilot, et Gondolin. Sa méthode et ses limites sont dans
+[`autre-ia/methode.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/methode.md), sa conclusion dans
+[`autre-ia/conclusion.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/conclusion.md).
 
 ## Ce que 495 reprend, adapte ou écarte
 
@@ -225,3 +232,82 @@ contrôleur sur cette exécution, à la même révision. Pour Docker, trois voie
   Le choix de la voie pour Docker revient au propriétaire.
 - L'expérience d'une VM macOS qui qualifierait Seatbelt sans Seatbelt autour ne s'appuie sur aucun projet lu : aucun ne
   le fait. Elle reste une expérience, et peut attendre.
+
+## Les deux relevés confrontés
+
+Écrit par Claude (Opus 5.5) le 11 octobre 2026, après la lecture du relevé de l'autre IA. La conclusion de l'autre IA
+est dans [`autre-ia/conclusion.md`](confinement-de-l-execution-dans-d-autres-projets/autre-ia/conclusion.md) ; celle
+de Claude, ci-dessus, reste telle qu'elle a été signée. Les révisions qu'elle appelle sont écrites ici.
+
+### Ce sur quoi les deux conclusions s'accordent
+
+- Les droits sont déclarés hors de la copie du candidat ; ce que le candidat écrit n'est au mieux qu'une demande.
+- Un lien ne fait jamais accorder un droit sur sa cible : `test-output -> .` fait refuser, et le contrôleur prépare
+  lui-même les dossiers qu'il ouvre en écriture.
+- Git ne lit plus la configuration de l'hôte, et chaque contrôle a un dossier personnel qui lui est propre.
+- Un backend absent, ou une règle qui n'a pas pu être appliquée, fait refuser ; personne ne relance sur l'hôte.
+- Un refus vu ne devient jamais un droit sans le propriétaire.
+- Un test sauté parce qu'il tourne sous confinement n'est pas exécuté, jamais validé : l'obligation reste ouverte.
+- Docker se juge dans une VM qui a son propre démon, jamais avec celui de l'hôte.
+
+### Désaccords de fait, tranchés dans le code
+
+| Point | Claude | Autre IA | Ce que dit le code lu (mêmes révisions) |
+| --- | --- | --- | --- |
+| Liens sous Linux chez Codex | Codex lie la cible résolue d'une racine inscriptible | Codex refuse un sous-chemin protégé qui traverse un lien inscriptible | Les deux : `linux-sandbox/src/bwrap.rs:651-668` lie la cible, `:731-743` refuse le sous-chemin. Pas de désaccord de fond |
+| Git chez Gemini CLI | Toute commande reçoit `GIT_CONFIG_GLOBAL=/dev/null`, `GIT_CONFIG_SYSTEM=/dev/null`, `GIT_CONFIG_NOSYSTEM=1` | Les suggestions ouvrent `~/.gitconfig` ; Git n'est pas hermétique | `packages/core/src/services/shellExecutionService.ts:596-629` pose les trois variables : l'autre IA n'a pas lu ce fichier. Elle a raison sur un point : la numérotation reprend le `GIT_CONFIG_COUNT` de l'hôte (`:596`), dont les paires restent donc actives |
+
+### Ce que l'autre relevé ajoute, et que 495 reprend
+
+- **Git :** ne pas hériter de `GIT_CONFIG_COUNT` ni des paires `GIT_CONFIG_KEY_<n>`/`GIT_CONFIG_VALUE_<n>` (doc
+  `git-config`, section ENVIRONMENT). La liste blanche de 495 (`BASE_ENV`, `src/application/stacks/stack.ts:56`) ne les
+  transmet pas aujourd'hui ; la story le rend explicite. Le fichier global peut être écrit par 495, signature coupée,
+  plutôt que `/dev/null`, pour qu'un test qui commite sans fixer son identité ne dépende pas de l'hôte. Les tests de
+  pi-495 la fixent eux-mêmes (`test/helpers/fixtures.ts:69-70`).
+- **Sockets :** avec le réseau `allowed`, le profil Seatbelt de 495 écrit `(allow network*)`
+  (`src/adapters/sandbox/backends.ts:147-148`), qui couvre aussi les sockets Unix locaux, dont celui de l'agent SSH et
+  celui de Docker. `SSH_AUTH_SOCK` n'est pas transmis, mais le chemin d'un socket se devine. Fermer ces sockets sous
+  `allowed` est à essayer dans la story.
+- **Temporaires :** un dossier temporaire propre à chaque exécution, et non le temporaire commun (Unsloth).
+- **Qualification :** les témoins de la sonde d'Unsloth. L'opération témoin réussit d'abord hors confinement, puis
+  échoue dedans, et l'effet est relu de l'extérieur. Les cas à couvrir : un lien vers `.`, un lien vers un parent, un
+  lien cassé, un lien remplacé après la vérification, Git global, agent SSH.
+- **Même révision :** l'exécuteur extérieur reçoit le commit et l'empreinte de l'arbre réellement jugé. Son résultat porte la
+  révision, le contrôle, l'empreinte de la politique, l'image et les tests sautés. Le contrôleur vérifie cette
+  correspondance avant de compter la preuve.
+- **Proposition :** montrer à part ce que le propriétaire a déclaré, ce que le backend ajoute de lui-même et ce qui est
+  plafonné (prévisualisation de Copilot).
+
+### Ce que Claude révise dans sa propre conclusion
+
+- **Caches.** La ligne « un cache est un droit déclaré » est fausse pour 495. Un contrôle lit déjà le cache en place sans
+  l'écrire : Maven tourne hors ligne (`-o`) et l'écriture n'est ouverte qu'à l'étape d'installation, sur le chemin que
+  l'outil annonce (`specs/adr/D-76`). La crainte de l'autre IA, qu'un candidat empoisonne un cache partagé, ne vise
+  donc pas les contrôles. Pour l'installation, `D-76` l'a tranchée.
+- **Dossier personnel vide.** Essayé le 11 octobre sur cette machine. Sous `HOME` vidé, Java 25.0.4.1 garde
+  pour `user.home` le vrai dossier de l'utilisateur : Maven ne voit pas la différence. `os.homedir()` de Node suit `HOME`. Et
+  `npm config get cache` (npm 11.19.0) sort en erreur, « The cache option is protected », alors qu'il rend `~/.npm` sous
+  le vrai `HOME`. Le `HOME` propre vaut donc pour les contrôles. L'étape d'installation garde le vrai, puisque 495 y
+  demande son chemin à l'outil.
+- **Tests qui démarrent Seatbelt.** La VM Linux de `scripts/linux/test.sh` fait tourner les tests qui démarrent
+  bubblewrap. Elle ne fait pas tourner ceux qui démarrent Seatbelt : ils y sont écartés par la plateforme. L'autre IA
+  le relève et propose un exécuteur macOS sans Seatbelt autour, VM ou machine dédiée. Aucun projet lu ne le fait, et
+  l'autre IA dit n'en avoir essayé aucun.
+- **Découverte sous Linux.** « Le chemin que le contrôleur a refusé de monter » ne désigne rien. Sous bubblewrap, une
+  écriture hors des racines échoue en `EROFS` ou `ENOENT`, sans trace hors du bac. La documentation de
+  `sandbox-runtime` propose `strace`, non essayé.
+
+### Questions au propriétaire
+
+1. **Où prouver les tests qui démarrent Seatbelt** — ceux de pi-495 quand 495 se juge lui-même. Une VM macOS les
+   ferait tourner sans Seatbelt autour, sur la même révision. Elle coûte une image de plusieurs dizaines de Go, et
+   macOS en limite le nombre à deux à la fois par machine (limite du cadre de virtualisation, rapportée par des sources
+   secondaires, non lue dans l'étude). Aucun projet lu ne le fait. Sinon, ces tests restent une obligation ouverte au
+   dossier, que le propriétaire règle lui-même. Claude penche pour la seconde voie dans e40, la VM macOS restant une
+   expérience à part. L'autre IA recommande la première.
+2. **Sous Linux, proposer un droit d'après ce que le test affiche.** Rien d'autre n'indique le chemin refusé. L'autre
+   IA l'admet, à condition de le montrer comme une indication non vérifiée. Claude l'écarte : la sortie est écrite par
+   le candidat, qui peut demander ce qu'il veut. Le propriétaire écrit alors le droit lui-même après l'échec. Sous
+   macOS, les deux IA s'accordent sur le journal du noyau.
+3. **Où faire tourner Docker** : `container` d'Apple, Docker Sandboxes ou Gondolin (tableau « Où juger ailleurs »).
+   L'autre IA reprend l'architecture de Docker Sandboxes sans choisir d'outil.
