@@ -1,0 +1,55 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le propriétaire donne un dossier de la copie à un contrôle détecté ou déclaré, et la définition figée le porte",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/project-controls.ts",
+    "ligne": 37,
+    "constat": "Aucun test ne vérifie que la configuration laisse inchangé un contrôle qu'elle ne nomme pas. Le test du noyau vérifie avec `includes` que `unit` et `lint-own` portent leur dossier, et seulement qu'une clé `e2e` sans contrôle n'ajoute pas `e2e-output/`. Un mutant qui ajoute un chemin inscriptible parasite à tous les contrôles non nommés survit à ce test, au test v0 et à toute la suite v0. La promesse elle-même est tenue et testée : on ne lui ajoute ici qu'un garde-fou.",
+    "mutation": "`: []` → `: [\"Stryker was here\"]` (branche sans clé du propriétaire) : test/v2-kernel/preparation.test.ts (le cas de la story), test/v0-pure/owner-writable-paths.test.ts et npm run test:v0 restent verts"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un lien posé sur un chemin inscriptible ou au-dessus fait refuser le contrôle sans rien accorder",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/runner.ts",
+    "ligne": 325,
+    "constat": "Le refus rend `failures: []`. Si on y glisse un échec, le contrôle refusé reçoit un constat bloquant fictif, et aucun test ne le voit. Les tests ne vérifient que le verdict INDETERMINATE et la note. La story ne promet rien sur les constats d'un contrôle refusé.",
+    "mutation": "`failures: []` → `failures: [\"Stryker was here\"]` : test/v1-adapters/control-writable-directory.test.ts reste vert (3/3)"
+   }
+  ],
+  "resume": "Les quatre promesses sont tenues par le code, et un test fait échouer chacune quand on la mute.\n- Scénario 1 : retirer `withOwnerWritable` de `withOwnerPaths` ou de `projectControlsOf`, ou neutraliser `Object.hasOwn`, fait échouer le test du noyau dans preparation.test.ts.\n- Scénario 2 : forcer `dirname` dans `createWritableDirectories` fait échouer le test PASS.\n- Scénario 3 : neutraliser la détection de lien, ne contrôler que la dernière étape (le cas `out -> .` tombe) ou neutraliser le retour du refus fait échouer le test des cinq cas.\n- Scénario 4 : neutraliser le test `!isDirectory` fait échouer le test du fichier, et la dispense des fichiers du profil est tenue par le test Seatbelt de report.txt.\n\nMutants que l'outil a vus survivre :\n- runner.ts:156 et :309 sont équivalents, puisque `profileFor` remplit toujours `write_files`.\n- project-controls.ts:37 sur `?? []` est équivalent, gardé par `hasOwn` et le schéma. La branche `: []` ne l'est pas : c'est A1-1, à peser.\n- runner.ts:325 sur `failures` survit : c'est A1-2, à peser.\n\nAttaque de la section Sécurité, aucun contournement trouvé :\n- Une sonde jetable, retirée ensuite, refuse avant tout processus un lien dont seule la casse diffère, une FIFO, un fichier sur un dossier intermédiaire (ENOTDIR, erreur du lanceur), un rapport-fichier lien vers src et un chemin `./test-output/./` sur un lien.\n- Les dossiers du propriétaire viennent du config.json du dossier de données, hors de la copie. À l'exécution, on lit `protocol.controls` figés. `withOwnerPaths` ne sert qu'avant le gel (prepare et verification-design).\n- La vérification se refait avant chaque contrôle. Un contrôle précédent qui changerait son dossier en lien fait donc refuser le suivant.\n\nJe n'ai pas relancé toute la suite v1/v2 sous le mutant A1-1."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le propriétaire donne un dossier de la copie à un contrôle détecté ou déclaré, et la définition figée le porte",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 365,
+    "constat": "A target that adopts no complement freezes the detection from line 365, and no test reaches that path with an owner's writable directory. The only test of the promise (preparation.test.ts) adopts a complement, so it freezes the detection rebuilt at line 418. If line 365 drops the owner's directories, the frozen `unit` loses `test-output/` on every target without a complement, and no test fails.",
+    "mutation": "verification-design.ts:365 `withOwnerPaths(ctx.stacks.recognise(handle.path, refs), ctx.policy)` → `withOwnerPaths(ctx.stacks.recognise(handle.path, refs), { ...ctx.policy, writable_paths: {} })`: the v0-pure, v2-kernel and v3-pi suites stay green (978/978). Removing the whole call also survives the story's test, while the same mutation at line 418 is killed."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Le propriétaire donne un dossier de la copie à un contrôle détecté ou déclaré, et la definition figée le porte",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/project-controls.ts",
+    "ligne": 37,
+    "constat": "The freeze test checks with `includes` that `unit` and `lint-own` carry their directories, and that no control carries the unnamed key's directory. It never checks that a control the owner names nothing for keeps exactly its own writable paths. A mutant that gives an extra path to every unnamed control therefore survives. This is the surviving mutant the tool reported on line 37. Nothing in the Then states that case, and the candidate cannot reach it, since only the controller's policy feeds it.",
+    "mutation": "project-controls.ts:37 `: []` → `: [\".x\"]`: the freeze test stays green."
+   }
+  ],
+  "fermes": [],
+  "resume": "The code keeps all four promises. Directories the owner gives join the writable paths of detected and declared controls. They come from the controller's config.json and are frozen with the protocol; at G5, controls run from the frozen protocol, not from the live policy. The runner refuses a control with INDETERMINATE before any process or creation when a writable path is a link or a non-directory, or a directory of the copy on the way to it is a link. Otherwise the runner creates the directory.\n\nTests: mutating the link check, the file check, the depth bounds, the directory creation and the call to the refusal kills the mutant every time. The only survivor (`return null` → `continue` on an absent step) changes nothing, because every deeper step is absent too. The tool's survivors on runner.ts:156/309 (`write_files ?? []`, never undefined) are equivalent. Line 325 (`failures`) touches no Then.\n\nOne gap to fix: the freeze without a complement goes through verification-design.ts:365, and no test holds the promise on that path (B1-1).\n\nSecurity, attacked with throwaway tests that I did not commit:\n- A link whose name differs only in case (`TEST-OUTPUT -> .` against `test-output/`) is refused.\n- A link a control lays during its own run in place of its directory (`test-output -> src`) gets nothing under Seatbelt: the write to `src` is denied.\n- An absolute writable path naming the copy by another spelling (/var vs /private/var) escapes the check. No public input produces one: the copy's path is unknown when the protocol is frozen, and technologies give relative paths.\n\nNo bypass found."
+ }
+]

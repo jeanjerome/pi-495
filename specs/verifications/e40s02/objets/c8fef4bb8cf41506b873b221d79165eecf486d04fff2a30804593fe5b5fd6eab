@@ -1,0 +1,227 @@
+TAP version 13
+# Subtest: the directory a control is given to write in its copy
+    # Subtest: un contrôle qui écrit un fichier directement dans test-output/, absent de la copie, le trouve créé par le contrôleur et son évidence est PASS
+    ok 1 - un contrôle qui écrit un fichier directement dans test-output/, absent de la copie, le trouve créé par le contrôleur et son évidence est PASS
+      ---
+      duration_ms: 33.564334
+      type: 'test'
+      ...
+    # Subtest: un lien posé sur le chemin inscriptible ou sur un dossier qui y mène, vers la copie, vers src, hors de la copie ou vers un chemin absent, fait refuser le contrôle : aucune commande ne tourne, ran n'existe pas, rien n'est créé hors de la copie, et l'évidence est INDETERMINATE avec une note qui nomme le chemin et le lien
+    not ok 2 - un lien posé sur le chemin inscriptible ou sur un dossier qui y mène, vers la copie, vers src, hors de la copie ou vers un chemin absent, fait refuser le contrôle : aucune commande ne tourne, ran n'existe pas, rien n'est créé hors de la copie, et l'évidence est INDETERMINATE avec une note qui nomme le chemin et le lien
+      ---
+      duration_ms: 117.953583
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HXbsAS/test/v1-adapters/control-writable-directory.test.ts:44:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        ... Skipped lines
+        
+          [
+            {
+              absent: false,
+              case: 'test-output -> .',
+        +     created: [
+        +       'ran'
+        +     ],
+        +     named: false,
+        -     created: [],
+        -     named: true,
+              outside: [],
+        +     process: true,
+        +     ran: true,
+        +     verdict: 'PASS'
+        -     process: false,
+        -     ran: false,
+        -     verdict: 'INDETERMINATE'
+            },
+            {
+              absent: false,
+              case: 'test-output -> src',
+        +     created: [
+        +       'ran'
+        +     ],
+        +     named: false,
+        -     created: [],
+        -     named: true,
+              outside: [],
+        +     process: true,
+        +     ran: true,
+        +     verdict: 'PASS'
+        -     process: false,
+        -     ran: false,
+        -     verdict: 'INDETERMINATE'
+            },
+            {
+              absent: false,
+              case: 'test-output -> outside',
+        +     created: [
+        +       'ran'
+        +     ],
+        +     named: false,
+        -     created: [],
+        -     named: true,
+              outside: [],
+        +     process: true,
+        +     ran: true,
+        +     verdict: 'PASS'
+        -     process: false,
+        -     ran: false,
+        -     verdict: 'INDETERMINATE'
+            },
+            {
+              absent: false,
+              case: 'test-output -> absent',
+              created: [],
+        +     named: false,
+        -     named: true,
+              outside: [],
+              process: false,
+              ran: false,
+              verdict: 'INDETERMINATE'
+            },
+        ...
+              case: 'out -> . under out/test-output/',
+        +     created: [
+        +       'ran',
+        +       'test-output'
+        +     ],
+        +     named: false,
+        -     created: [],
+        -     named: true,
+              outside: [],
+        +     process: true,
+        +     ran: true,
+        +     verdict: 'PASS'
+        -     process: false,
+        -     ran: false,
+        -     verdict: 'INDETERMINATE'
+            }
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          case: 'test-output -> .'
+          process: false
+          ran: false
+          created:
+          outside:
+          absent: false
+          verdict: 'INDETERMINATE'
+          named: true
+        1:
+          case: 'test-output -> src'
+          process: false
+          ran: false
+          created:
+          outside:
+          absent: false
+          verdict: 'INDETERMINATE'
+          named: true
+        2:
+          case: 'test-output -> outside'
+          process: false
+          ran: false
+          created:
+          outside:
+          absent: false
+          verdict: 'INDETERMINATE'
+          named: true
+        3:
+          case: 'test-output -> absent'
+          process: false
+          ran: false
+          created:
+          outside:
+          absent: false
+          verdict: 'INDETERMINATE'
+          named: true
+        4:
+          case: 'out -> . under out/test-output/'
+          process: false
+          ran: false
+          created:
+          outside:
+          absent: false
+          verdict: 'INDETERMINATE'
+          named: true
+      actual:
+        0:
+          case: 'test-output -> .'
+          process: true
+          ran: true
+          created:
+            0: 'ran'
+          outside:
+          absent: false
+          verdict: 'PASS'
+          named: false
+        1:
+          case: 'test-output -> src'
+          process: true
+          ran: true
+          created:
+            0: 'ran'
+          outside:
+          absent: false
+          verdict: 'PASS'
+          named: false
+        2:
+          case: 'test-output -> outside'
+          process: true
+          ran: true
+          created:
+            0: 'ran'
+          outside:
+          absent: false
+          verdict: 'PASS'
+          named: false
+        3:
+          case: 'test-output -> absent'
+          process: false
+          ran: false
+          created:
+          outside:
+          absent: false
+          verdict: 'INDETERMINATE'
+          named: false
+        4:
+          case: 'out -> . under out/test-output/'
+          process: true
+          ran: true
+          created:
+            0: 'ran'
+            1: 'test-output'
+          outside:
+          absent: false
+          verdict: 'PASS'
+          named: false
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HXbsAS/test/v1-adapters/control-writable-directory.test.ts:78:10)
+        process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - the directory a control is given to write in its copy
+  ---
+  duration_ms: 152.217875
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-HXbsAS/test/v1-adapters/control-writable-directory.test.ts:25:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 414.083875

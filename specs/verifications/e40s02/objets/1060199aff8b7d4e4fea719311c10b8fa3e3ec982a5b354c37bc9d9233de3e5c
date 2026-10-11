@@ -1,0 +1,70 @@
+TAP version 13
+# Subtest: the directory a control is given to write in its copy
+    # Subtest: un contrôle qui écrit un fichier directement dans test-output/, absent de la copie, le trouve créé par le contrôleur et son évidence est PASS
+    ok 1 - un contrôle qui écrit un fichier directement dans test-output/, absent de la copie, le trouve créé par le contrôleur et son évidence est PASS
+      ---
+      duration_ms: 32.46275
+      type: 'test'
+      ...
+    # Subtest: un lien posé sur le chemin inscriptible ou sur un dossier qui y mène, vers la copie, vers src, hors de la copie ou vers un chemin absent, fait refuser le contrôle : aucune commande ne tourne, ran n'existe pas, rien n'est créé hors de la copie, et l'évidence est INDETERMINATE avec une note qui nomme le chemin et le lien
+    ok 2 - un lien posé sur le chemin inscriptible ou sur un dossier qui y mène, vers la copie, vers src, hors de la copie ou vers un chemin absent, fait refuser le contrôle : aucune commande ne tourne, ran n'existe pas, rien n'est créé hors de la copie, et l'évidence est INDETERMINATE avec une note qui nomme le chemin et le lien
+      ---
+      duration_ms: 4.4345
+      type: 'test'
+      ...
+    # Subtest: un fichier ordinaire posé à la place de test-output/ fait refuser le contrôle : aucune commande ne tourne, ran n'existe pas, et l'évidence est INDETERMINATE avec une note qui nomme le chemin et le fichier
+    not ok 3 - un fichier ordinaire posé à la place de test-output/ fait refuser le contrôle : aucune commande ne tourne, ran n'existe pas, et l'évidence est INDETERMINATE avec une note qui nomme le chemin et le fichier
+      ---
+      duration_ms: 1.747125
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mkPGzY/test/v1-adapters/control-writable-directory.test.ts:93:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        ["runner error: EEXIST: file already exists, mkdir '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mkPGzY/test-output/writable-directory-0CThfM/copy/test-output'"]
+        + actual - expected
+        
+          {
+        +   named: false,
+        -   named: true,
+            process: false,
+            ran: false,
+            verdict: 'INDETERMINATE'
+          }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        process: false
+        ran: false
+        verdict: 'INDETERMINATE'
+        named: true
+      actual:
+        process: false
+        ran: false
+        verdict: 'INDETERMINATE'
+        named: false
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mkPGzY/test/v1-adapters/control-writable-directory.test.ts:104:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 1 - the directory a control is given to write in its copy
+  ---
+  duration_ms: 39.341708
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mkPGzY/test/v1-adapters/control-writable-directory.test.ts:25:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 2
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 303.654541

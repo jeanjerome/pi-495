@@ -1,0 +1,172 @@
+TAP version 13
+# Subtest: preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-28, REC-29)
+    # Subtest: opens preparing, adopts a discriminant prepared suite, protects it, then accepts the implementation
+    ok 1 - opens preparing, adopts a discriminant prepared suite, protects it, then accepts the implementation
+      ---
+      duration_ms: 712.4635
+      type: 'test'
+      ...
+    # Subtest: the reasons a control is not qualified name what its witnesses answered, not the prepared suite judged beside it
+    ok 2 - the reasons a control is not qualified name what its witnesses answered, not the prepared suite judged beside it
+      ---
+      duration_ms: 460.824583
+      type: 'test'
+      ...
+    # Subtest: a preparation that writes a work log outside its roots beside valid tests is adopted on its first try, and the dossier names the ignored path
+    ok 3 - a preparation that writes a work log outside its roots beside valid tests is adopted on its first try, and the dossier names the ignored path
+      ---
+      duration_ms: 682.236208
+      type: 'test'
+      ...
+    # Subtest: what a preparation writes outside its roots is never adopted, even when it is the feature: the test is judged on the bare reference and the implementation gets a tree without it
+    ok 4 - what a preparation writes outside its roots is never adopted, even when it is the feature: the test is judged on the bare reference and the implementation gets a tree without it
+      ---
+      duration_ms: 678.116792
+      type: 'test'
+      ...
+    # Subtest: a preparation that retains no test stays refused, the owner is asked after two, and the producer is told the paths written outside the mandate
+    ok 5 - a preparation that retains no test stays refused, the owner is asked after two, and the producer is told the paths written outside the mandate
+      ---
+      duration_ms: 224.494334
+      type: 'test'
+      ...
+    # Subtest: the preparation objective says only files under its roots are retained and anything written elsewhere is ignored
+    ok 6 - the preparation objective says only files under its roots are retained and anything written elsewhere is ignored
+      ---
+      duration_ms: 0.148791
+      type: 'test'
+      ...
+    # Subtest: the preparation objective asks to update an existing test that asserts the behaviour the requirements change, not only to add tests
+    ok 7 - the preparation objective asks to update an existing test that asserts the behaviour the requirements change, not only to add tests
+      ---
+      duration_ms: 0.115
+      type: 'test'
+      ...
+    # Subtest: on a Maven reactor with JaCoCo, the producer is asked to run mvn -B -q -o test and told coverage and structure are read, never to run node -e
+    ok 8 - on a Maven reactor with JaCoCo, the producer is asked to run mvn -B -q -o test and told coverage and structure are read, never to run node -e
+      ---
+      duration_ms: 6.383292
+      type: 'test'
+      ...
+    # Subtest: a role that only reads is told no verification instruction even when the detected controls are handed to it
+    ok 9 - a role that only reads is told no verification instruction even when the detected controls are handed to it
+      ---
+      duration_ms: 5.071584
+      type: 'test'
+      ...
+    # Subtest: the context the harness hands the producer names the frozen protocol's coverage and structure with what they read
+    ok 10 - the context the harness hands the producer names the frozen protocol's coverage and structure with what they read
+      ---
+      duration_ms: 450.797833
+      type: 'test'
+      ...
+    # Subtest: on a target without tests, the preparation producer is told the detected control commands before any protocol is frozen, and the specification producer is told none
+    ok 11 - on a target without tests, the preparation producer is told the detected control commands before any protocol is frozen, and the specification producer is told none
+      ---
+      duration_ms: 271.115292
+      type: 'test'
+      ...
+    # Subtest: on a Maven reactor with JaCoCo and no test, the preparation producer is asked to run mvn -B -q -o test before it answers and told what coverage and structure read, before any protocol is frozen
+    ok 12 - on a Maven reactor with JaCoCo and no test, the preparation producer is asked to run mvn -B -q -o test before it answers and told what coverage and structure read, before any protocol is frozen
+      ---
+      duration_ms: 199.079334
+      type: 'test'
+      ...
+    # Subtest: on a Node target, a writing intervention's profile passes LC_ALL as the controls do and neither JAVA_HOME nor MAVEN_OPTS, and a reading one passes none of them
+    ok 13 - on a Node target, a writing intervention's profile passes LC_ALL as the controls do and neither JAVA_HOME nor MAVEN_OPTS, and a reading one passes none of them
+      ---
+      duration_ms: 664.394583
+      type: 'test'
+      ...
+    # Subtest: derives explicit test roots from a Maven reactor, leaves a production write out of the retained files and refuses a deletion under a root
+    ok 14 - derives explicit test roots from a Maven reactor, leaves a production write out of the retained files and refuses a deletion under a root
+      ---
+      duration_ms: 79.802375
+      type: 'test'
+      ...
+    # Subtest: closes a persisted single-module mandate before resuming on a Maven reactor
+    ok 15 - closes a persisted single-module mandate before resuming on a Maven reactor
+      ---
+      duration_ms: 171.007583
+      type: 'test'
+      ...
+    # Subtest: distinguishes a test file, a discovered case, an executed case and a control that detects the targeted defect (PRE-01)
+    ok 16 - distinguishes a test file, a discovered case, an executed case and a control that detects the targeted defect (PRE-01)
+      ---
+      duration_ms: 0.225292
+      type: 'test'
+      ...
+    # Subtest: opens a preparation on a target that already has tests when the request adds behaviour
+    ok 17 - opens a preparation on a target that already has tests when the request adds behaviour
+      ---
+      duration_ms: 861.0655
+      type: 'test'
+      ...
+    # Subtest: a preparation that rewrites an existing test is adopted, and its record names the test it modified, while one that only adds a test names none
+    ok 18 - a preparation that rewrites an existing test is adopted, and its record names the test it modified, while one that only adds a test names none
+      ---
+      duration_ms: 1684.635334
+      type: 'test'
+      ...
+    # Subtest: a prepared suite that already passes on the reference is not adopted as discriminant
+    ok 19 - a prepared suite that already passes on the reference is not adopted as discriminant
+      ---
+      duration_ms: 407.761583
+      type: 'test'
+      ...
+    1..19
+ok 1 - preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-28, REC-29)
+  ---
+  duration_ms: 7560.840166
+  type: 'suite'
+  ...
+# Subtest: the workspaces of a preparation, once a complement is adopted
+    # Subtest: given an adopted complement, then the producer's workspace and the bare workspace judging the prepared suite both carry it
+    ok 1 - given an adopted complement, then the producer's workspace and the bare workspace judging the prepared suite both carry it
+      ---
+      duration_ms: 1394.720958
+      type: 'test'
+      ...
+    # Subtest: given an adopted complement and a profile that names the test files of the suite, then the unit control frozen with the protocol runs those files alone
+    ok 2 - given an adopted complement and a profile that names the test files of the suite, then the unit control frozen with the protocol runs those files alone
+      ---
+      duration_ms: 1369.156334
+      type: 'test'
+      ...
+    # Subtest: les contrôles figés portent les dossiers que la configuration du contrôleur leur donne : test-output/ pour unit, détecté, et .lint-cache/ pour lint-own, déclaré
+    not ok 3 - les contrôles figés portent les dossiers que la configuration du contrôleur leur donne : test-output/ pour unit, détecté, et .lint-cache/ pour lint-own, déclaré
+      ---
+      duration_ms: 1478.113959
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-MuBYPC/test/v2-kernel/preparation.test.ts:1108:2'
+      failureType: 'testCodeFailure'
+      error: 'the frozen unit control, detected, carries test-output/: ["495-lcov.info"]'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-MuBYPC/test/v2-kernel/preparation.test.ts:1149:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..3
+not ok 2 - the workspaces of a preparation, once a complement is adopted
+  ---
+  duration_ms: 4242.4435
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-MuBYPC/test/v2-kernel/preparation.test.ts:983:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..2
+# tests 22
+# suites 2
+# pass 21
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 12070.95475

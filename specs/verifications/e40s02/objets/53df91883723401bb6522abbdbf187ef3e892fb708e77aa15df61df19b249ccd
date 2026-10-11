@@ -1,0 +1,45 @@
+TAP version 13
+# Subtest: the directory a control is given to write in its copy
+    # Subtest: un contrôle qui écrit un fichier directement dans test-output/, absent de la copie, le trouve créé par le contrôleur et son évidence est PASS
+    not ok 1 - un contrôle qui écrit un fichier directement dans test-output/, absent de la copie, le trouve créé par le contrôleur et son évidence est PASS
+      ---
+      duration_ms: 41.701375
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JusIVu/test/v1-adapters/control-writable-directory.test.ts:26:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the file is written in test-output/, which the controller created
+        
+        null !== 'written'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'written'
+      actual: ~
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JusIVu/test/v1-adapters/control-writable-directory.test.ts:36:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the directory a control is given to write in its copy
+  ---
+  duration_ms: 42.297334
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-JusIVu/test/v1-adapters/control-writable-directory.test.ts:25:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 307.487541
