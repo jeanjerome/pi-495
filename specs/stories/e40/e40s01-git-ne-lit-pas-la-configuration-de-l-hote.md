@@ -2,7 +2,7 @@
 
 Story : e40s01
 Epic : e40
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 
@@ -31,13 +31,22 @@ Scenario: Une variable du contrôle ne rend pas à git la configuration de l'hô
   When le contrôle liste la configuration git qu'il voit, avec sa portée
   Then aucun réglage n'a la portée globale ni la portée système
 
+Scenario: Une variable de configuration git du contrôle ne fait pas relire à git la configuration de l'hôte
+  Given un contrôle dont l'environnement déclaré ou la liste blanche pose `GIT_CONFIG` sur la configuration globale de l'hôte, ou un `include.path` vers elle par `GIT_CONFIG_PARAMETERS` ou `GIT_CONFIG_COUNT`
+  When le contrôle liste la configuration git qu'il voit, avec son origine
+  Then aucun réglage ne vient du fichier de configuration globale de l'hôte
+
 ## 3. Sécurité
 
 Le confinement ne change pas : la clé de `~/.ssh` reste illisible, et c'est git qui ne la demande plus. Ce qu'un
 contrôle reçoit de l'hôte se réduit : plus aucun réglage git global ni système, donc ni signature, ni identité, ni
 `credential.helper`, ni `core.hooksPath`, ni `core.sshCommand` venus du poste. Aucune variable du contrôle, déclarée
 par la technologie ou le propriétaire, ou laissée passer par sa liste blanche, ne rétablit cette lecture : l'isolement
-s'applique après elles. Le réglage local du dépôt de la copie reste lu, comme aujourd'hui.
+s'applique après elles, et les variables par lesquelles git prend de la configuration (`GIT_CONFIG`,
+`GIT_CONFIG_PARAMETERS`, `GIT_CONFIG_COUNT` et ses `GIT_CONFIG_KEY_n` et `GIT_CONFIG_VALUE_n`) ne parviennent plus à un
+contrôle, puisqu'un `include.path` y désigne n'importe quel fichier ; `GIT_TEMPLATE_DIR` non plus, puisque `git init`
+copie le fichier `config` du dossier qu'il désigne dans le dépôt créé. Le réglage local du dépôt de la copie reste lu,
+comme aujourd'hui.
 
 ## 4. Tâches
 
@@ -63,6 +72,20 @@ posées après celles du contrôle.
 - Tient : `test/v1-adapters/control-git-scopes.test.ts`, « la configuration git qu'un contrôle voit n'a aucune entrée de portée globale ni système, même quand son environnement déclaré ou sa liste blanche pose GIT_CONFIG_GLOBAL »
 - Rouge : la sortie porte les entrées `global` du `.gitconfig` transmis, et les entrées `system` de la configuration système de git sur cette machine.
 
+### Tâche 3 — Aucune variable de configuration git ne fait relire la configuration de l'hôte
+
+`profileFor` retire de l'environnement déclaré et de la liste blanche du contrôle toute variable dont le nom commence par
+`GIT_CONFIG`, et `GIT_TEMPLATE_DIR`, avant de poser l'isolement. Le test fait lister au contrôle `git config --list --show-origin` sous un
+contrôle qui déclare `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_0=include.path` et `GIT_CONFIG_VALUE_0` sur le `.gitconfig` de
+l'hôte, sous un autre qui déclare `GIT_CONFIG_PARAMETERS` avec le même `include.path`, sous un autre qui déclare
+`GIT_CONFIG` sur ce fichier, et sous un contrôle dont la liste blanche laisse passer ces variables posées par l'hôte ;
+puis il fait initialiser au contrôle un dépôt sous un `GIT_TEMPLATE_DIR` déclaré, et sous un autre laissé passer, qui
+désigne le dossier du `.config/git/config` de l'hôte.
+
+- Vérifie : `node --test test/v1-adapters/control-git-scopes.test.ts`
+- Tient : `test/v1-adapters/control-git-scopes.test.ts`, « aucune variable de configuration git que le contrôle déclare ou laisse passer ne lui fait relire la configuration globale de l'hôte, pas même par include.path »
+- Rouge : `profileFor` transmet `control.env` et `control.env_allowlist` tels quels ; git suit l'`include.path` de la portée de commande et liste `user.name=host` et `user.email`, d'origine `file:` le `.gitconfig` de l'hôte.
+
 ## 5. Hors périmètre
 
 - **L'identité git.** Un test de cible qui commite en comptant sur l'identité de l'hôte échouera, avec le message de
@@ -72,7 +95,7 @@ posées après celles du contrôle.
   identifiants (`D-76`).
 - **Les commandes de l'agent**, hors contrôle, ne changent pas.
 - **Le dossier personnel et le temporaire** restent ceux d'aujourd'hui (`D-90`).
-- **Les réglages passés par `GIT_CONFIG_COUNT`** ne viennent pas des fichiers de l'hôte : la liste blanche de base ne
-  les transmet pas, et un contrôle qui les déclare le fait par la configuration du propriétaire.
+- **Un réglage git passé par la commande du contrôle** (`git -c …`) reste lu : il est écrit dans la définition figée du
+  contrôle, non pris dans l'environnement.
 - **Les dossiers inscriptibles d'un contrôle** relèvent de e40s02, la partie Seatbelt de `BUG-2026-10-11T013000` reste
   au registre.

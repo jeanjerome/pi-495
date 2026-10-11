@@ -70,6 +70,29 @@
         { "moyen": "modele-d-etats", "retenu": false, "raison": "aucun état" },
         { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
       ]
+    },
+    {
+      "id": "P4",
+      "scenario": "Une variable de configuration git du contrôle ne fait pas relire à git la configuration de l'hôte",
+      "categorie": "nouveau-comportement",
+      "observation": "la liste des réglages git avec leur origine, vue depuis un contrôle qui déclare ou laisse passer GIT_CONFIG, GIT_CONFIG_PARAMETERS ou GIT_CONFIG_COUNT",
+      "oracles": [
+        {
+          "tache": 3,
+          "cas": "test/v1-adapters/control-git-scopes.test.ts",
+          "assertion": "aucune variable de configuration git que le contrôle déclare ou laisse passer ne lui fait relire la configuration globale de l'hôte, pas même par include.path"
+        }
+      ],
+      "dependances": ["P3"],
+      "interactions": [
+        { "genre": "effet-externe", "description": "un include.path fait lire à git n'importe quel fichier de l'hôte" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "une variable par voie d'entrée de la configuration, déclarée et laissée passer par la liste blanche" },
+        { "moyen": "proprietes", "retenu": false, "raison": "trois variables et deux sources, écrites en cas" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "aucun état" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
     }
   ]
 }

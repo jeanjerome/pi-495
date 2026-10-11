@@ -31,6 +31,25 @@ import type { WorkspaceCapability } from "../../application/stacks/plugin.ts";
 import { realPathOf } from "../sandbox/backends.ts";
 import { workspaceFiles } from "./workspace-files.ts";
 
+/**
+ * What git is told in every control: no global and no system configuration, so that the host's signing, identity,
+ * credential helper or hooks never decide a verdict. The configuration of a repository of the copy is still read.
+ */
+const GIT_WITHOUT_HOST_CONFIGURATION: Readonly<Record<string, string>> = {
+	GIT_CONFIG_GLOBAL: "/dev/null",
+	GIT_CONFIG_SYSTEM: "/dev/null",
+	GIT_CONFIG_NOSYSTEM: "1",
+};
+
+/**
+ * A variable through which git takes configuration: GIT_CONFIG names the file `git config` reads, the command-line
+ * ones (GIT_CONFIG_PARAMETERS, GIT_CONFIG_COUNT, GIT_CONFIG_KEY_n, GIT_CONFIG_VALUE_n) can `include.path` any file,
+ * the host's global configuration among them, and GIT_TEMPLATE_DIR names a directory whose `config` file `git init`
+ * and `git clone` copy into the new repository, such as the one holding the host's `.config/git/config`. A control
+ * neither declares one nor lets one through.
+ */
+const isGitConfiguration = (name: string) => name.startsWith("GIT_CONFIG") || name === "GIT_TEMPLATE_DIR";
+
 export interface RunnerOptions {
 	max_output_bytes: number;
 	/**
@@ -88,8 +107,11 @@ export class GenericControlRunner implements ControlExecutionPort {
 			write_paths: writable,
 			write_files: writable.filter((p) => files.has(p)),
 			network: control.network,
-			env_allowlist: control.env_allowlist,
-			env: control.env,
+			env_allowlist: control.env_allowlist.filter((name) => !isGitConfiguration(name)),
+			env: {
+				...Object.fromEntries(Object.entries(control.env).filter(([name]) => !isGitConfiguration(name))),
+				...GIT_WITHOUT_HOST_CONFIGURATION,
+			},
 		};
 	}
 
