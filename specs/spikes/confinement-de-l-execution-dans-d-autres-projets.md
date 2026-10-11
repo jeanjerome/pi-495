@@ -315,7 +315,10 @@ de Claude, ci-dessus, reste telle qu'elle a été signée. Les révisions qu'ell
 ### Réponses du propriétaire, le 11 octobre 2026
 
 1. **Une VM macOS** prouve les tests qui démarrent Seatbelt, sans Seatbelt autour, sur la même révision. C'est la
-   recommandation de l'autre IA. L'outil de virtualisation reste à lire et à essayer avant d'être retenu.
+   recommandation de l'autre IA. L'outil de virtualisation reste à lire et à essayer avant d'être retenu. Remplacée le
+   même jour par le propriétaire : pour le dogfooding de pi-495, ces tests tournent dans un contrôle qu'il déclare hors
+   confinement, adopte et que le verdict nomme. La Preflight les lance déjà ainsi, et une VM aurait fait entrer dans le
+   produit une machinerie au service d'une seule cible (`D-90`).
 2. **Sous Linux, 495 propose un droit d'après la sortie du test**, présenté au propriétaire comme une indication du
    candidat, non vérifiée. C'est la position de l'autre IA. Sous macOS, la source reste le journal du noyau.
 3. **`container` d'Apple**, déjà employé par `scripts/linux/`. Le propriétaire l'a précisé ensuite : `container` crée

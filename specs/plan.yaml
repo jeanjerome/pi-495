@@ -538,16 +538,14 @@ epics:
       - { id: e38s13, status: "versée", title: "Un pilote mesure le nouveau processus et qualifie un premier développement de pi-495 par pi-495" }
 
   - id: e40
-    title: "Un contrôle reçoit les droits dont il a besoin, et les tests de bac à sable de pi-495 tournent dans un bac à sable qui fonctionne"
+    title: "Un contrôle reçoit les droits dont il a besoin, et le propriétaire peut en déclarer un hors confinement"
     status: à faire
-    source: specs/epics/e40-un-controle-recoit-ses-droits-et-ce-qui-ne-tourne-pas-confine-est-juge-ailleurs.md
+    source: specs/epics/e40-un-controle-recoit-ses-droits-et-peut-etre-declare-hors-confinement.md
     objet: >
       Un contrôle écrit là où le propriétaire l'a permis dans la configuration du contrôleur ; un droit manquant
       lui est proposé à la première exécution et ne s'élargit jamais par un lien ou un fichier du candidat ; git
-      n'y lit pas la configuration de l'hôte. Les tests de pi-495 qui démarrent un bac à sable tournent dans un
-      bac à sable qui fonctionne et 495 les juge : bubblewrap sous le confinement bubblewrap de 495 sous Linux,
-      une VM macOS qui confine le contrôle à la place de Seatbelt sous macOS ; à défaut, ils se sautent et restent
-      une obligation (`D-90`).
+      n'y lit pas la configuration de l'hôte. Le propriétaire peut déclarer un contrôle hors confinement, qu'il
+      adopte et que le verdict nomme : les tests de pi-495 qui démarrent un bac à sable y tournent (`D-90`).
     motif: >
       Le dogfooding de pi-495 du 11 octobre n'atteint pas G2 : 551 de ses 1734 tests échouent confinés, parce
       que Seatbelt refuse un second profil et que git y lit une configuration globale qui signe avec une clé de
@@ -556,20 +554,17 @@ epics:
       propriétaire, fixe ce que 495 reprend de dix-sept projets.
     position: >
       Après e38, dont il reprend le dogfooding. La partie 1 (s01 à s05) mène pi-495 à l'intégration avec sa suite
-      bornée ; la partie 2 (s06 à s09) rend toute la suite au jugement de 495. Chaque story touche les contrôles ou
-      l'exécuteur, et sa recette joue donc les deux campagnes de référence (`D-89`). s08 et s09 commencent par un
-      essai, dont le bilan revient au propriétaire s'il ne tient pas. Apple `container` sert à produire pi-495,
-      pas aux projets cibles, où la conteneurisation n'est pas abordée.
+      bornée ; la partie 2 (s06, s07) rend toute la suite au jugement de 495. Chaque story touche les contrôles ou
+      l'exécuteur, et sa recette joue donc les deux campagnes de référence (`D-89`). 495 ne lance ni VM ni
+      conteneur ; Apple `container` sert à produire pi-495, pas aux projets cibles.
     stories:
       - { id: e40s01, status: "à faire", title: "git, dans un contrôle, ne lit ni la configuration globale ni la configuration système de l'hôte" }
       - { id: e40s02, status: "à faire", title: "Le propriétaire donne à un contrôle un dossier inscriptible de la copie, créé par le contrôleur, et un lien ou un fichier du candidat fait refuser au lieu d'élargir" }
       - { id: e40s03, status: "à faire", title: "Sous macOS, une écriture refusée est lue dans les refus que le noyau publie en direct et proposée au propriétaire, qui seul l'accorde" }
       - { id: e40s04, status: "à faire", title: "Sous Linux, une écriture refusée est proposée d'après la sortie du contrôle, présentée comme une indication du candidat non vérifiée" }
       - { id: e40s05, status: "à faire", title: "Le dogfooding de pi-495 atteint G2, construit le candidat et l'intègre sous le contrôleur identifié au départ" }
-      - { id: e40s06, status: "à faire", title: "La qualification de Seatbelt applique un vrai profil, 495 refuse sous un autre Seatbelt, et un test qui démarre un bac à sable s'y saute avec son motif" }
-      - { id: e40s07, status: "à faire", title: "Un test sauté faute de pouvoir tourner confiné reste une obligation tant qu'une exécution sur la même révision ne l'a pas réglée" }
-      - { id: e40s08, status: "à faire", title: "Sous Linux, les tests de pi-495 qui démarrent bubblewrap tournent sous le confinement bubblewrap de 495" }
-      - { id: e40s09, status: "à faire", title: "Sous macOS, une VM macOS confine à la place de Seatbelt le contrôle qui fait tourner les tests Seatbelt de pi-495, et le dogfooding atteint l'intégration avec toute sa suite" }
+      - { id: e40s06, status: "à faire", title: "Le propriétaire déclare et adopte un contrôle hors confinement, que le candidat ne peut ni créer ni étendre et que le verdict nomme" }
+      - { id: e40s07, status: "à faire", title: "Les tests de bac à sable de pi-495 tournent dans un contrôle hors confinement, et le dogfooding atteint l'intégration avec toute sa suite" }
 
   # Raccordement prévu : e38s06 réalise la tranche de caractérisation d’une exigence déclarée déjà satisfaite ; le reste de cet epic demeure ouvert.
   - id: e13
