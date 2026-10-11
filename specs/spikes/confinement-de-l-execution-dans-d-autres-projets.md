@@ -1,6 +1,6 @@
 # Le confinement de l'exécution dans d'autres projets
 
-Statut : ouverte — les deux relevés sont écrits et confrontés ; trois questions attendent le propriétaire.
+Statut : close — les deux relevés sont confrontés et le propriétaire a tranché ; e40 peut s'écrire.
 Ouverte le 11 octobre 2026, à `main` après le versement de `e38s13`.
 Menée par deux IA, Claude et une autre, chacune signant ce qu'elle a lu ; le propriétaire arbitre.
 Débouché : l'epic `e40`, qui ne s'écrit qu'après cette étude.
@@ -311,3 +311,12 @@ de Claude, ci-dessus, reste telle qu'elle a été signée. Les révisions qu'ell
    macOS, les deux IA s'accordent sur le journal du noyau.
 3. **Où faire tourner Docker** : `container` d'Apple, Docker Sandboxes ou Gondolin (tableau « Où juger ailleurs »).
    L'autre IA reprend l'architecture de Docker Sandboxes sans choisir d'outil.
+
+### Réponses du propriétaire, le 11 octobre 2026
+
+1. **Une VM macOS** prouve les tests qui démarrent Seatbelt, sans Seatbelt autour, sur la même révision. C'est la
+   recommandation de l'autre IA. L'outil de virtualisation reste à lire et à essayer avant d'être retenu.
+2. **Sous Linux, 495 propose un droit d'après la sortie du test**, présenté au propriétaire comme une indication du
+   candidat, non vérifiée. C'est la position de l'autre IA. Sous macOS, la source reste le journal du noyau.
+3. **Docker tourne dans `container` d'Apple**, déjà employé par `scripts/linux/`. Le réglage de l'image pour Docker et
+   le démarrage bloqué signalé sous macOS 27 sont à essayer en premier.
