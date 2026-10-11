@@ -65,6 +65,8 @@ export interface ActivePolicy {
 	project_controls: ProjectControlDeclaration[];
 	/** The test files the suite the technology detects runs, appended to its command; empty runs it as detected. */
 	suite_paths: string[];
+	/** The directories of the copy the owner gives a control, by its identifier, beside its own writable paths. */
+	writable_paths: Record<string, string[]>;
 }
 
 export const DEFAULT_POLICY: ActivePolicy = {
@@ -104,4 +106,5 @@ export const DEFAULT_POLICY: ActivePolicy = {
 	formal_control: null,
 	project_controls: [],
 	suite_paths: [],
+	writable_paths: {},
 };

@@ -53,14 +53,14 @@ describe("a control's command under Seatbelt", darwinOnly, () => {
 		);
 	});
 
-	it("a control that writes report.txt, an ordinary file of the copy, writes it and gives PASS", async () => {
+	it("a control that writes report.txt, an ordinary file of the copy its command names, writes it and gives PASS", async () => {
 		const copy = join(root, "copy");
 		mkdirSync(copy);
 		writeFileSync(join(copy, "report.txt"), "");
 		const { evidence } = await runner().runControl({
 			...invocationBase(),
 			control: controlOf({
-				command: [process.execPath, "-e", "require('fs').writeFileSync('report.txt', 'written')"],
+				command: [process.execPath, "-e", "require('fs').writeFileSync(process.argv[1], 'written')", "report.txt"],
 				writable_paths: ["report.txt"],
 			}),
 			workspace_path: copy,

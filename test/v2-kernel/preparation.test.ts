@@ -978,6 +978,54 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		assert.equal(record.qualified, false);
 		assert.ok(record.notes.some((n) => n.includes("does not detect")));
 	});
+
+	it("on a target that adopts no complement, the frozen controls carry the directories the controller configuration gives them", async () => {
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: {
+				prepare: {
+					steps: [
+						{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+						{ kind: "complete", output: report(["test/shout.test.js"]) },
+					],
+				},
+			},
+			policy: {
+				project_controls: [
+					{
+						control_id: "lint-own",
+						title: "own lint",
+						command: ["node", "-e", ""],
+						timeout_ms: 60_000,
+						protected_paths: [],
+					},
+				],
+				writable_paths: { unit: ["test-output/"], "lint-own": [".lint-cache/"] },
+			},
+		});
+		const { change } = await t.harness.start({
+			project_path: trackedProject(fixtureTsWithoutTests),
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.deepEqual(state.human_decisions, [], "the owner adopts no complement");
+		assert.ok(
+			state.adopted.protocol,
+			`the protocol is frozen: ${JSON.stringify({ phase: state.phase, status: state.status, stop: state.stop_detail })}`,
+		);
+		const protocol = await t.harness.artifacts.read<Protocol>(state.adopted.protocol.ref);
+		const writableOf = (id: string) => protocol.controls.find((c) => c.control_id === id)?.writable_paths;
+		assert.ok(
+			writableOf("unit")?.includes("test-output/"),
+			`the frozen unit control, detected, carries test-output/: ${JSON.stringify(writableOf("unit"))}`,
+		);
+		assert.ok(
+			writableOf("lint-own")?.includes(".lint-cache/"),
+			`the frozen lint-own control, declared, carries .lint-cache/: ${JSON.stringify(writableOf("lint-own"))}`,
+		);
+	});
 });
 
 describe("the workspaces of a preparation, once a complement is adopted", () => {
@@ -1102,6 +1150,62 @@ describe("the workspaces of a preparation, once a complement is adopted", () => 
 			unit?.command.slice(-2),
 			["test/*.test.js", "test/*.test.mjs"],
 			`the frozen unit control runs the files the profile names: ${JSON.stringify(unit?.command)}`,
+		);
+	});
+
+	it("les contrôles figés portent les dossiers que la configuration du contrôleur leur donne : test-output/ pour unit, détecté, et .lint-cache/ pour lint-own, déclaré", async () => {
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: { prepare: { steps: [{ kind: "complete", output: report([]) }] } },
+			policy: {
+				project_controls: [
+					{
+						control_id: "lint-own",
+						title: "own lint",
+						command: ["node", "-e", ""],
+						timeout_ms: 60_000,
+						protected_paths: [],
+					},
+				],
+				writable_paths: { unit: ["test-output/"], "lint-own": [".lint-cache/"], e2e: ["e2e-output/"] },
+			},
+		});
+		const { change } = await t.harness.start({
+			project_path: trackedProject(fixtureTsWithoutTests),
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+		const changeId = change.change_id;
+		await t.harness.advance(changeId, { max_steps: 40 });
+		answerPending(t, changeId, "adopt_complement");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		t.agent.scripts.set("prepare", {
+			steps: [
+				{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+				{ kind: "complete", output: report(["test/shout.test.js"]) },
+			],
+		});
+		answerPending(t, changeId, "prepare");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		const state = t.ledger.loadChange(changeId)!.state;
+		assert.ok(
+			state.adopted.protocol,
+			`the protocol is frozen: ${JSON.stringify({ phase: state.phase, status: state.status, stop: state.stop_detail, pending: state.pending_decisions })}`,
+		);
+		const protocol = await t.harness.artifacts.read<Protocol>(state.adopted.protocol.ref);
+		const writableOf = (id: string) => protocol.controls.find((c) => c.control_id === id)?.writable_paths;
+		assert.ok(
+			writableOf("unit")?.includes("test-output/"),
+			`the frozen unit control, detected, carries test-output/: ${JSON.stringify(writableOf("unit"))}`,
+		);
+		assert.ok(
+			writableOf("lint-own")?.includes(".lint-cache/"),
+			`the frozen lint-own control, declared, carries .lint-cache/: ${JSON.stringify(writableOf("lint-own"))}`,
+		);
+		assert.deepEqual(
+			protocol.controls.filter((c) => c.writable_paths.includes("e2e-output/")).map((c) => c.control_id),
+			[],
+			"a key that names no control of the target adds nothing",
 		);
 	});
 });

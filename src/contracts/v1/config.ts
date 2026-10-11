@@ -103,6 +103,11 @@ const Policy = Type.Object(
 		 * Empty runs the suite as its technology runs it, as the default policy does.
 		 */
 		suite_paths: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+		/**
+		 * The directories of the copy the owner gives a control, detected or declared, by its identifier: they join its
+		 * writable paths. A key that names no control of the target adds nothing.
+		 */
+		writable_paths: Type.Optional(Type.Record(Type.String(), Type.Array(Type.String({ minLength: 1 })))),
 	},
 	{ additionalProperties: false },
 );

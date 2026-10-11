@@ -120,12 +120,16 @@ describe("the derived controls under the verification sandbox", darwinOnly, () =
 						introduced_lines: { [CALC]: [10, 11, 13] },
 					})
 				).evidence;
+			// The stand-in names the file it writes, as the real command names its destination, so that the
+			// runner creates the directory that holds it and not a directory in its place.
 			const standIn = (writeTo: string): ControlDefinition => ({
 				...unit,
 				command: [
 					NODE,
 					"-e",
 					`const fs = require("node:fs"); const path = require("node:path"); ${target.standIn(unit)} const report = ${JSON.stringify(writeTo)}; fs.mkdirSync(path.dirname(report), { recursive: true }); fs.writeFileSync(report, ${JSON.stringify(recordedLcov(target.recorded))});`,
+					"--",
+					`--test-reporter-destination=${writeTo}`,
 				],
 			});
 			const declared = workspaceWith(root, `${target.name}-declared`, {});

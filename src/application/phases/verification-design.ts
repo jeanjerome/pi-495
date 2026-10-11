@@ -24,7 +24,7 @@ import { bringInstalls, filesOf, installableRecommendations, type FailedInstall 
 import { preparationMandateObjective } from "../context.ts";
 import { diagnoseControlCapability, referenceTestFiles } from "../preparation.ts";
 import type { PreparationRecord, ReferenceSuiteObservation } from "../preparation.ts";
-import { withSuitePaths } from "../project-controls.ts";
+import { withOwnerPaths } from "../project-controls.ts";
 import type { DetectedTechnology } from "../stacks/stack.ts";
 import { failedInstalls, recordFailedInstall, recordResolution } from "./install-records.ts";
 import { settleArchitectureMap } from "./architecture-map.ts";
@@ -362,7 +362,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 	const refuted = await refutedCharacterizations(ctx, unit);
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
-		let detection = withSuitePaths(ctx.stacks.recognise(handle.path, refs), ctx.policy);
+		let detection = withOwnerPaths(ctx.stacks.recognise(handle.path, refs), ctx.policy);
 		const { isTestFile } = ctx.stacks.testLayoutOf(handle.path);
 		// A survey puts the quality referential its target proposes to the owner before anything runs: the
 		// analyser it adopts is a control the protocol freezes like the others.
@@ -415,7 +415,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 		const installed = [...(quality?.packages ?? []), ...(adoption?.packages ?? [])];
 		if (complements.length > 0) {
 			await ctx.artifacts.ensureBytes(handle.path, complements);
-			detection = withSuitePaths(
+			detection = withOwnerPaths(
 				ctx.stacks.recognise(handle.path, refs, process.execPath, quality?.packages, architecture?.map?.map),
 				ctx.policy,
 			);

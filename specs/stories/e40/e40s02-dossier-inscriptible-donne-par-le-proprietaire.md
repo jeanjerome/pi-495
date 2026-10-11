@@ -2,7 +2,7 @@
 
 Story : e40s02
 Epic : e40
-Statut : à faire
+Statut : en cours
 
 ## 1. Ce que le lecteur gagne
 

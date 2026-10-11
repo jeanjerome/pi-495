@@ -2,9 +2,9 @@
  * Generic control runner (CMP-VER): runs a frozen control definition under its sandbox profile and
  * normalizes what it observed into the canonical evidence candidate. It judges nothing.
  */
-import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, isAbsolute, join, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { EvidenceCandidate, Finding } from "../../contracts/v1/evidence.ts";
 import {
 	CANDIDATE_PLACEHOLDER,
@@ -150,7 +150,12 @@ export class GenericControlRunner implements ControlExecutionPort {
 				},
 				this.options.workspace_of(invocation.workspace_path),
 			);
-			const prepared: ReaderPreparation = (await reader?.prepare?.(control, introduced, files)) ?? { arguments: [] };
+			const prepared: ReaderPreparation = (await refusedWritableOf(
+				control,
+				invocation.workspace_path,
+				new Set(profile.write_files ?? []),
+			)) ??
+				(await reader?.prepare?.(control, introduced, files)) ?? { arguments: [] };
 			if (reader === undefined) {
 				report = unknownReader(control);
 			} else if ("decided" in prepared) {
@@ -161,10 +166,7 @@ export class GenericControlRunner implements ControlExecutionPort {
 				command = [...control.command, ...prepared.arguments].map((arg) =>
 					arg.split(CANDIDATE_PLACEHOLDER).join(invocation.subject.digest),
 				);
-				// The sandbox lets a command create what sits under a writable path and nothing above it: the
-				// directory that holds `reports/mutation` is made here, by the runner, so that the tool can
-				// create the path it was granted without being granted its parent.
-				for (const writable of profile.write_paths) await mkdir(dirname(writable), { recursive: true });
+				await createWritableDirectories(profile);
 				const ruleset = await rulesetOf(control, reader);
 				try {
 					observation = await this.sandbox.run(
@@ -296,6 +298,63 @@ export class GenericControlRunner implements ControlExecutionPort {
 /** What a control concludes when no loaded technology brings the reader it names: nothing, and it is not run. */
 function unknownReader(control: ControlDefinition): ParsedReport {
 	return { verdict: "INDETERMINATE", facts: {}, notes: [`parser ${control.parser} is not qualified`], failures: [] };
+}
+
+/**
+ * The sandbox lets a command create what sits under a writable path and nothing above it: a writable directory, such as
+ * `reports/mutation` or `test-output/`, and the directory that holds a writable file are made here, by the runner, so
+ * that the tool writes where it was granted without being granted the parent.
+ */
+async function createWritableDirectories(profile: SandboxProfile): Promise<void> {
+	const files = new Set(profile.write_files ?? []);
+	for (const writable of profile.write_paths)
+		await mkdir(files.has(writable) ? dirname(writable) : writable, { recursive: true });
+}
+
+/**
+ * What a control concludes when a writable path that leads into the copy is not what the policy grants: nothing, and
+ * it is not run. Null when every writable path may be created by the runner.
+ */
+async function refusedWritableOf(
+	control: ControlDefinition,
+	workspacePath: string,
+	files: ReadonlySet<string>,
+): Promise<ReaderPreparation | null> {
+	for (const writable of control.writable_paths) {
+		const note = await writableRefusalOf(workspacePath, writable, files);
+		if (note !== null) return { decided: { verdict: "INDETERMINATE", facts: {}, notes: [note], failures: [] } };
+	}
+	return null;
+}
+
+/**
+ * Why one writable path that leads into the copy is refused, or null when every step is a directory or is absent. A
+ * link on the path, or on a directory of the copy on the way to it, would grant by its target, into the copy, out of
+ * it or nowhere, what the path does not name (D-90); a file standing where the control is given a directory, one that
+ * is not among the files of its profile, is no directory to write in.
+ */
+async function writableRefusalOf(
+	workspacePath: string,
+	writable: string,
+	files: ReadonlySet<string>,
+): Promise<string | null> {
+	const absolute = resolve(workspacePath, writable);
+	const path = relative(workspacePath, absolute);
+	if (path === "" || path === ".." || path.startsWith(`..${sep}`) || isAbsolute(path)) return null;
+	const steps = path.split(sep);
+	for (let depth = 1; depth <= steps.length; depth++) {
+		const step = steps.slice(0, depth).join(sep);
+		const entry = await lstat(join(workspacePath, step)).catch((error: NodeJS.ErrnoException) => {
+			if (error.code === "ENOENT") return null;
+			throw error;
+		});
+		if (entry === null) return null;
+		if (entry.isSymbolicLink())
+			return `writable path ${path} is refused: ${step} is a link in the copy, and a writable path is granted as written, never through a link; make ${step} a directory of the copy`;
+		if (depth === steps.length && !entry.isDirectory() && !files.has(absolute))
+			return `writable path ${path} is refused: ${path} is a file of the copy where the control is given a directory; remove it from the copy`;
+	}
+	return null;
 }
 
 /**

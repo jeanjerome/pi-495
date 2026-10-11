@@ -14,7 +14,7 @@ import {
 	samePreparationPaths,
 } from "../preparation.ts";
 import type { PreparationRecord } from "../preparation.ts";
-import { withSuitePaths } from "../project-controls.ts";
+import { withOwnerPaths } from "../project-controls.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
 
 /** Preparation intervention, then kernel qualification of the proposed tests (SA-008, SA-009, PRE-03). */
@@ -41,7 +41,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 	const handle = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
 	try {
 		await ctx.artifacts.materializePrepared({ files: complements }, handle.path);
-		const detected = withSuitePaths(
+		const detected = withOwnerPaths(
 			ctx.stacks.recognise(
 				handle.path,
 				mandate.requirement_ids.map((id) => ({ requirement_id: id, revision: 1 })),
