@@ -15,6 +15,11 @@ Pour chaque constat :
 - **antérieur** : inscris-le au registre s'il n'y est pas, sans le corriger ici.
 - Un constat que tu contestes : dis pourquoi, avec ce que tu as lu ou sondé ; ne le corrige pas.
 
+Une correction qui ajoute un scénario à la story donne aussi à cette promesse son entrée dans le
+compagnon de vérification (même radical, `.verification.json`), avec l'oracle de la tâche qui la
+tient : sans elle, la préparation de la story ne tient plus et le rouge-vert suivant est refusé.
+Commite le compagnon avec la story.
+
 {{mode}}
 
 Ne lance pas `npm run check` : l'outil lance Preflight après toi, et te renvoie ce qu'elle trouve rouge. Lance ce que ton changement touche : les tests concernés (`node --test <fichier>`), `npm run typecheck` et `npm run lint:code`, après `npm run build` quand `dist/` est en cause. Ne pousse rien. Ta sortie
