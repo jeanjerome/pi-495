@@ -503,7 +503,7 @@ epics:
 
   - id: e38
     title: "Les règles sont éprouvées avant le code et chaque acceptation repose sur leurs preuves"
-    status: à faire
+    status: versé
     source: specs/epics/e38-processus-de-developpement-verifie.md
     objet: >
       Le processus de développement vérifie les promesses et leurs interactions avant l’implémentation,
@@ -519,6 +519,9 @@ epics:
       s01 à s05 renforcent d’abord cycle/ ; s06 à s10 transfèrent le parcours dans le produit ; s11
       expérimente Lean sur une règle stable, sans être un prérequis technique de s12 et s13 ; s12 et s13
       mesurent réutilisation et dogfooding. Aucun prete: oui n’est ajouté par cette proposition.
+      Versé le 2026-10-11 : le dogfooding de pi-495 juge sa suite préparée mais n’atteint pas G2 sur pi-495
+      réel ; le reste — droits d’un contrôle, tests qui ne tournent pas confinés — revient à l’epic e40, qui ne
+      s’écrit qu’après l’étude `specs/spikes/confinement-de-l-execution-dans-d-autres-projets.md`.
     stories:
       - { id: e38s01, status: "versée", title: "Chaque promesse de la story nomme sa vérification et les interactions à examiner" }
       - { id: e38s02, status: "versée", title: "Une exploration TLA+ produit un résultat traçable sans confondre interruption et succès" }
