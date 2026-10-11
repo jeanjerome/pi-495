@@ -84,3 +84,22 @@ Les témoins de la campagne — un test lié à aucune exigence, une preuve pér
 une faute de couches — se jouent avec un agent scripté, sur une cible façonnée comme pi-495 et le
 contrôle de couches de ce dépôt : `test/v4-platform/dogfood-process.test.ts`. Un vrai modèle ne commet
 pas une faute sur commande.
+
+## Où en est le dogfooding, le 11 octobre 2026
+
+Les campagnes de la recette de `e38s13` (`~/.495/campagnes/dogfood-20261011T*`, hors du dépôt), un vrai modèle et un
+changement réel de pi-495 — couper au dernier mot le titre d'une demande de plus de 80 caractères —, montrent la suite
+préparée jugée sur la référence dans son délai, sous la borne `suite_paths`. Aucune n'atteint G2 :
+
+- les tests préparés qui démarrent un changement par les aides de pi-495 créent leur dossier sous `test-output/`, que
+  le contrôle `unit` n'ouvre pas en écriture ; ils échouent sans assertion (`EPERM … mkdir '<copie>/test-output'`) et
+  leurs exigences ne prouvent rien. Un droit d'écriture sur `test-output/`, essayé puis retiré, s'élargissait à toute
+  la copie quand le candidat commitait `test-output` comme lien vers `.` : un droit s'accorde par le chemin réel ;
+- l'agent range ses tests du noyau sous `test/v2-kernel/`, que `suite_paths` ne lance pas ; une préparation qui ne
+  porte que ceux-là n'est pas qualifiée ;
+- les générations `v1` à `v4` restent hors du contrôle confiné : une partie de leurs échecs tient à l'emboîtement des
+  bacs à sable, une autre à la configuration git de l'hôte, qui signe les commits avec une clé de `~/.ssh`
+  (`BUG-2026-10-11T013000`).
+
+La suite revient à l'epic `e40`, qui ne s'écrit qu'après l'étude
+`specs/spikes/confinement-de-l-execution-dans-d-autres-projets.md`.
