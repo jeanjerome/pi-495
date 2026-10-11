@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "story": "e40s01",
+  "promesses": [
+    {
+      "id": "P1",
+      "scenario": "Un commit fait par un contrôle ne dépend pas de la signature que l'hôte configure",
+      "categorie": "nouveau-comportement",
+      "observation": "l'évidence PASS d'un contrôle qui commite sous un hôte qui signe avec une clé absente",
+      "oracles": [
+        {
+          "tache": 1,
+          "cas": "test/v1-adapters/control-git-signature.test.ts",
+          "assertion": "sous un hôte qui signe ses commits avec une clé absente, un contrôle commite dans un dépôt de sa copie et son évidence est PASS"
+        }
+      ],
+      "dependances": [],
+      "interactions": [
+        { "genre": "effet-externe", "description": "git lit des fichiers de l'hôte désignés par HOME et par son installation" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "un hôte qui signe avec une clé absente reproduit l'échec du 11 octobre" },
+        { "moyen": "proprietes", "retenu": false, "raison": "aucune entrée à faire varier au-delà du fichier de l'hôte" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "un seul lancement, sans état" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P2",
+      "scenario": "Un contrôle ne voit aucun réglage git global ni système",
+      "categorie": "nouveau-comportement",
+      "observation": "la liste des réglages git avec leur portée, vue depuis le contrôle",
+      "oracles": [
+        {
+          "tache": 2,
+          "cas": "test/v1-adapters/control-git-scopes.test.ts",
+          "assertion": "la configuration git qu'un contrôle voit n'a aucune entrée de portée globale ni système, même quand son environnement déclaré ou sa liste blanche pose GIT_CONFIG_GLOBAL"
+        }
+      ],
+      "dependances": [],
+      "interactions": [
+        { "genre": "effet-externe", "description": "la configuration système dépend de l'installation de git sur la machine" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "un HOME qui porte un .gitconfig et la configuration système de la machine" },
+        { "moyen": "proprietes", "retenu": false, "raison": "deux portées, écrites en cas" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "aucun état" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P3",
+      "scenario": "Une variable du contrôle ne rend pas à git la configuration de l'hôte",
+      "categorie": "nouveau-comportement",
+      "observation": "la liste des réglages git avec leur portée, vue depuis un contrôle qui pose GIT_CONFIG_GLOBAL",
+      "oracles": [
+        {
+          "tache": 2,
+          "cas": "test/v1-adapters/control-git-scopes.test.ts",
+          "assertion": "la configuration git qu'un contrôle voit n'a aucune entrée de portée globale ni système, même quand son environnement déclaré ou sa liste blanche pose GIT_CONFIG_GLOBAL"
+        }
+      ],
+      "dependances": ["P2"],
+      "interactions": [
+        { "genre": "ordre-des-evenements", "description": "les variables de l'isolement sont posées après celles du contrôle" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "une variable déclarée et une variable de la liste blanche" },
+        { "moyen": "proprietes", "retenu": false, "raison": "deux sources de variables, écrites en cas" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "aucun état" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    }
+  ]
+}
