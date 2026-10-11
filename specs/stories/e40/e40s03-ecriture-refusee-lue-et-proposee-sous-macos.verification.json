@@ -1,0 +1,271 @@
+{
+  "version": 1,
+  "story": "e40s03",
+  "promesses": [
+    {
+      "id": "P1",
+      "scenario": "Sous Seatbelt, l'observation d'un lancement porte les écritures que le noyau lui a refusées, et seulement les siennes",
+      "categorie": "nouveau-comportement",
+      "observation": "les écritures refusées de l'observation de chacun de deux lancements concurrents",
+      "oracles": [
+        {
+          "tache": 1,
+          "cas": "test/v1-adapters/seatbelt-refused-writes.test.ts",
+          "assertion": "deux lancements concurrents sous Seatbelt portent chacun dans leur observation l'écriture que le noyau leur a refusée, avec le processus et l'opération, et pas celle de l'autre"
+        }
+      ],
+      "dependances": [],
+      "interactions": [
+        {
+          "genre": "effet-externe",
+          "description": "le journal du noyau macOS, lu en direct par log stream, partagé par tous les processus de la machine"
+        },
+        {
+          "genre": "ordre-des-evenements",
+          "description": "l'écoute est prête avant la commande, et un refus témoin posé après elle clôt la lecture"
+        }
+      ],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "deux lancements concurrents montrent l'attribution par le repère"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "le comportement dépend du noyau, pas d'une entrée qu'on ferait varier"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "une écoute par lancement, ouverte puis close, sans état partagé entre lancements"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    },
+    {
+      "id": "P2",
+      "scenario": "L'évidence d'un contrôle nomme les écritures refusées",
+      "categorie": "nouveau-comportement",
+      "observation": "les faits refused_writes de l'évidence du contrôle",
+      "oracles": [
+        {
+          "tache": 2,
+          "cas": "test/v1-adapters/control-refused-writes.test.ts",
+          "assertion": "l'évidence d'un contrôle refusé en écriture sous Seatbelt porte test-output relatif à la copie et le fichier voisin par son chemin absolu, avec le processus et l'opération"
+        }
+      ],
+      "dependances": [
+        "P1"
+      ],
+      "interactions": [
+        {
+          "genre": "effet-externe",
+          "description": "le noyau donne le chemin réel, que la copie atteint parfois par un lien au-dessus d'elle"
+        }
+      ],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "un chemin de la copie et un chemin hors d'elle"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "deux classes de chemins, écrites en cas"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "un seul lancement"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    },
+    {
+      "id": "P3",
+      "scenario": "Une suite préparée refusée en écriture dans la copie fait proposer le dossier au propriétaire",
+      "categorie": "nouveau-comportement",
+      "observation": "les issues et les faits de la question IH-04",
+      "oracles": [
+        {
+          "tache": 3,
+          "cas": "test/v2-kernel/writable-proposal.test.ts",
+          "assertion": "après des préparations dont la suite a été refusée en écriture sur test-output/run/a et hors de la copie, la question IH-04 offre grant_writable pour test-output/ au contrôle unit et rien pour le chemin hors de la copie ; sans écriture refusée, elle ne l'offre pas"
+        }
+      ],
+      "dependances": [
+        "P2"
+      ],
+      "interactions": [
+        {
+          "genre": "ordre-des-evenements",
+          "description": "la question vient après les préparations refusées, dont les relevés portent les écritures refusées"
+        }
+      ],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "une écriture dans la copie et une hors d'elle, sur le parcours réel du noyau"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "la dérivation du premier niveau est un cas simple, écrit en exemples"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "la question s'ajoute au parcours existant sans état nouveau"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    },
+    {
+      "id": "P4",
+      "scenario": "Sans écriture refusée lue, rien n'est proposé",
+      "categorie": "comportement-conserve",
+      "observation": "les issues de la question IH-04",
+      "oracles": [
+        {
+          "tache": 3,
+          "cas": "test/v2-kernel/writable-proposal.test.ts",
+          "assertion": "après des préparations dont la suite a été refusée en écriture sur test-output/run/a et hors de la copie, la question IH-04 offre grant_writable pour test-output/ au contrôle unit et rien pour le chemin hors de la copie ; sans écriture refusée, elle ne l'offre pas"
+        }
+      ],
+      "dependances": [
+        "P3"
+      ],
+      "interactions": [],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "le même parcours sans écriture refusée"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "un seul cas : la liste vide"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "aucun état nouveau"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    },
+    {
+      "id": "P5",
+      "scenario": "Le dossier accordé est écrit dans la configuration du contrôleur et porté par le protocole figé",
+      "categorie": "nouveau-comportement",
+      "observation": "le contenu de config.json après la réponse, et les chemins inscriptibles du contrôle unit dans le protocole figé",
+      "oracles": [
+        {
+          "tache": 4,
+          "cas": "test/v2-kernel/writable-proposal.test.ts",
+          "assertion": "la réponse grant_writable écrit test-output/ sous policy.writable_paths.unit dans config.json en gardant suite_paths et le nom de la politique, accorde une préparation de plus, et le contrôle unit figé porte test-output/ ; la réponse préparer laisse config.json inchangé et aucun contrôle figé ne porte test-output/"
+        }
+      ],
+      "dependances": [
+        "P3"
+      ],
+      "interactions": [
+        {
+          "genre": "effet-externe",
+          "description": "config.json, fichier du propriétaire hors de la copie, est réécrit"
+        },
+        {
+          "genre": "revision",
+          "description": "une révision des exigences retire la réponse IH-04, pas le dossier inscrit dans la configuration"
+        }
+      ],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "une configuration qui porte d'autres réglages, menée jusqu'au gel"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "l'ajout sans doublon se montre sur un cas"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "une réponse, un effet, puis le parcours existant"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    },
+    {
+      "id": "P6",
+      "scenario": "Sans l'accord du propriétaire, rien n'est accordé",
+      "categorie": "comportement-conserve",
+      "observation": "config.json inchangé et les chemins inscriptibles du protocole figé",
+      "oracles": [
+        {
+          "tache": 4,
+          "cas": "test/v2-kernel/writable-proposal.test.ts",
+          "assertion": "la réponse grant_writable écrit test-output/ sous policy.writable_paths.unit dans config.json en gardant suite_paths et le nom de la politique, accorde une préparation de plus, et le contrôle unit figé porte test-output/ ; la réponse préparer laisse config.json inchangé et aucun contrôle figé ne porte test-output/"
+        }
+      ],
+      "dependances": [
+        "P5"
+      ],
+      "interactions": [
+        {
+          "genre": "effet-externe",
+          "description": "config.json n'est réécrit que sur la réponse grant_writable"
+        }
+      ],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "une autre issue de la même question, menée jusqu'au gel"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "les autres issues n'écrivent rien, une suffit à le montrer"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "aucun état nouveau"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    }
+  ]
+}
