@@ -15,6 +15,9 @@ Ce que la relecture ne cherchera pas, et que tu es donc seul à tenir :
 - **Tests.** Chaque fonction nouvelle a un test ; chaque correction a son test de non-régression ;
   les tests passent par l'interface publique ; F.I.R.S.T. Un test dont le titre promet plus que son
   assertion est renommé ou complété.
+- **Processus.** Un processus que le diff démarre s'arrête avec ce qui l'a démarré, y compris quand ce
+  lanceur est tué ou lève une erreur ; après les tests concernés, aucun processus qu'ils ont démarré ne
+  reste en marche (`ps -Ao pid,ppid,lstart,command`).
 - **Une responsabilité.** Aucune fonction ni aucun module ne fait deux choses sans rapport ; une
   dépendance est injectée, pas importée globalement ; pas de chaîne d'appels à travers des objets
   sans rapport.

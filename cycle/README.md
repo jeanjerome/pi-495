@@ -161,6 +161,11 @@ what it fixes. A bypass the last round sends back to step 2 holds, in the same w
 round that follows the reopening. A review step relaunched after a block resumes at the round that
 follows the last one answered, with the bypasses that answer left open or claimed fixed.
 
+A bypass that sends the story back to step 2 is closed where the code decides the guarantee, for every
+input that reaches that point, and the test holds the guarantee there (`D-91`). Closing only the path
+found leaves the next round another path to the same point: on `e38s11`, `e38s13` and `e40s03`, each
+return closed one variant and the following round found the next.
+
 A finding is located before it is handled. A defect the branch introduces or makes reachable belongs
 to it, even when the faulty line predates it; a defect it neither introduces nor makes reachable goes
 to the registry and does not hold the review back.
@@ -193,9 +198,17 @@ revision and time rather than run it again. Only a run under Node 24 counts.
 In a run of the tool, only the tool runs Preflight: a session runs what its change touches — the tests
 concerned, the typecheck, the lint — and hands its output back. After the red-green, the self-review
 and an answer to a review round, a red Preflight goes to a correction session with the failures the tool
-read, then runs again, at most twice before the step blocks. The base of a story and the squashed
+read, then runs again, at most twice before the step blocks. A test that runs past its time budget is not fixed
+by raising the budget before what loads the machine is known: the session lists the running processes,
+looks for those the branch left behind, and runs the same suite on `main`. A load the branch causes is
+a defect of the branch; a budget is raised only with its cause named (`D-91`). The base of a story and the squashed
 landing have no session behind them: a red Preflight there blocks at once, and so does one after a
 refactoring.
+
+A process the branch starts ends with what started it, even when that is killed. A session that leaves
+running a process it or its tests started names it in its output and stops it by its pid (`D-91`). The
+tool does not check it: on macOS, an orphan of the cycle and an application the owner opens both hang
+from `launchd`, and nothing reliable tells them apart.
 
 A reproducible failure met along the way is a defect found, never background noise. It is fixed at
 once, in its own commit, with its regression test, when the fix adds no behaviour; otherwise it gets

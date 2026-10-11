@@ -30,6 +30,15 @@ Pour chaque tâche :
    `feat|fix|refactor: <le comportement obtenu, en anglais>`.
 5. Une tâche `Vérifie à la main :` se fait à la main, et ta sortie dit ce qui a été fait et observé.
 
+Quand ce passage rouvre la story sur un contournement de la section sécurité, ferme la garantie là où le
+code la décide, pour toute entrée qui y parvient, et écris le test qui la tient à cet endroit ; tu peux
+aussi fermer le chemin trouvé, mais lui seul ne suffit pas, car le tour suivant en trouve un autre vers
+le même point (`specs/adr/D-91`).
+
+Un processus que ton code démarre s'arrête avec ce qui l'a démarré, même tué. Avant de rendre ta
+sortie, vérifie qu'aucun processus démarré par toi ou par tes tests ne reste en marche
+(`ps -Ao pid,ppid,lstart,command`) ; arrête par son pid ce qui reste, et nomme-le dans ta sortie.
+
 À la fin, ne lance pas `npm run check` : l'outil lance Preflight après toi, et te renvoie ce qu'elle trouve rouge. Lance ce que ton changement touche : les tests concernés (`node --test <fichier>`), `npm run typecheck` et `npm run lint:code`, après `npm run build` quand `dist/` est en cause. Un échec
 reproductible rencontré en chemin se corrige dans son propre commit (cycle/README.md § Preflight and
 defects found along the way). Ne pousse rien.
