@@ -13,35 +13,36 @@ aujourd'hui de la configuration git de l'hôte, qui signe les commits avec une c
 le chemin réel d'un lien s'élargit à toute la copie quand le candidat commite `test-output -> .`.
 
 Le second porte sur ce qui ne peut pas tourner confiné. Seatbelt refuse d'appliquer un second profil sous un premier :
-551 des 1734 tests de pi-495 échouent sous le confinement d'un contrôle. Et un test qui a besoin de Docker ne trouve
-pas de démon.
+551 des 1734 tests de pi-495 échouent sous le confinement d'un contrôle.
 
 L'étude citée a lu dix-sept projets. Deux IA l'ont menée séparément, et le propriétaire a tranché leurs trois
 désaccords le 11 octobre.
 
 ## Décision
 
-1. **Les droits d'un contrôle se lisent dans la configuration du contrôleur, hors de la copie du candidat.**
+1. **Les droits d'un contrôle se lisent dans la configuration du contrôleur, hors de la copie du candidat**, comme
+   aujourd'hui.
    - Ce que le candidat écrit n'élargit jamais un droit.
    - Un droit ne s'accorde jamais par la cible d'un lien.
-   - Les dossiers inscriptibles de la copie sont préparés par le contrôleur : ce que le candidat y a mis fait refuser.
-   - La liste des secrets ne s'ouvre par aucune déclaration.
-2. **Un contrôle ne dépend pas de la configuration de l'hôte.**
-   - Chaque contrôle a son propre dossier personnel et son propre dossier temporaire.
-   - Git n'y lit ni configuration globale, ni configuration système, ni réglage passé par l'environnement.
-   - L'étape d'installation garde le vrai dossier personnel : l'outil y annonce son cache (`D-76`).
+   - Les dossiers inscriptibles de la copie sont créés par le contrôleur : ce que le candidat y a mis fait refuser.
+2. **git, dans un contrôle, ne lit ni la configuration globale ni la configuration système de l'hôte.** C'est la seule
+   configuration de l'hôte qu'un constat a mise en cause ; le dossier personnel et le temporaire restent ceux
+   d'aujourd'hui.
 3. **Un droit manquant est proposé au propriétaire, jamais accordé sans lui.**
    - Sous macOS, la proposition vient des refus que le noyau publie en direct (`log stream`).
    - Sous Linux, aucune source sûre n'existe : la proposition vient de la sortie du contrôle, et le propriétaire la
      voit comme une indication du candidat, non vérifiée.
 4. **Un test qui ne peut pas tourner confiné se saute avec son motif et reste une obligation.**
+   - La qualification de Seatbelt applique un vrai profil : sous un autre Seatbelt, 495 refuse par
+     `capability_missing` au lieu de se croire qualifié.
    - L'obligation reste non réglée tant qu'une exécution sur la même révision, dans un environnement séparé et
      qualifié, ne l'a pas réglée.
    - Aucun code du candidat ne tourne sur l'hôte sans confinement.
 5. **L'environnement séparé est une VM, lancée par le noyau sur une copie de la révision figée, avec des montages
    qu'il fixe.**
-   - Pour bubblewrap et Docker : la VM Linux d'Apple `container`, que `scripts/linux/` emploie déjà ; Docker y a son
-     propre démon.
+   - Pour les tests qui démarrent bubblewrap : la VM Linux d'Apple `container`, que `scripts/linux/` emploie déjà.
+   - Pour Docker, quand une cible en aura besoin : la même VM, avec son propre démon, jamais celui de l'hôte. Aucune
+     cible n'en a besoin aujourd'hui, et e40 ne le réalise pas.
    - Pour les tests qui démarrent Seatbelt : une VM macOS, sans Seatbelt autour. L'outil de virtualisation est lu et
      essayé avant d'être retenu.
 
@@ -60,5 +61,6 @@ Une VM macOS coûte une image de plusieurs dizaines de Go, et macOS limite à de
 (sources secondaires). Aucun projet lu ne le fait : la story qui la réalise commence par un essai, et son bilan revient
 au propriétaire si l'outil ne tient pas.
 
-Docker dans `container` d'Apple demande un réglage de l'image, et un démarrage bloqué est signalé sous macOS 27 (ticket
-#2275 du projet). La story qui l'ouvre commence par ces deux essais.
+Un démarrage bloqué de `container` est signalé sous macOS 27 (ticket #2275 du projet) : la story qui fait lancer la VM
+Linux par le noyau commence par cet essai. Docker dans cette VM demandera un réglage de l'image, que l'epic qui le
+réalisera essaiera.

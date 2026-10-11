@@ -542,11 +542,11 @@ epics:
     status: à faire
     source: specs/epics/e40-un-controle-recoit-ses-droits-et-ce-qui-ne-tourne-pas-confine-est-juge-ailleurs.md
     objet: >
-      Les droits d'un contrôle se lisent dans la configuration du contrôleur, se proposent au propriétaire à la
-      première exécution et ne s'élargissent jamais par ce que le candidat écrit ; un contrôle ne dépend pas de la
-      configuration de l'hôte. Un test qui ne peut pas tourner confiné se saute avec son motif et reste une
-      obligation, réglée par une exécution sur la même révision dans une VM que le noyau lance : Linux par Apple
-      `container`, Docker compris, et macOS pour les tests qui démarrent Seatbelt (`D-90`).
+      Un contrôle écrit là où le propriétaire l'a permis dans la configuration du contrôleur ; un droit manquant
+      lui est proposé à la première exécution et ne s'élargit jamais par un lien ou un fichier du candidat ; git
+      n'y lit pas la configuration de l'hôte. Un test qui démarre un bac à sable se saute sous le confinement et
+      reste une obligation, réglée par une exécution sur la même révision dans une VM que le noyau lance : Linux
+      par Apple `container`, macOS pour les tests qui démarrent Seatbelt (`D-90`).
     motif: >
       Le dogfooding de pi-495 du 11 octobre n'atteint pas G2 : 551 de ses 1734 tests échouent confinés, parce
       que Seatbelt refuse un second profil et que git y lit une configuration globale qui signe avec une clé de
@@ -555,20 +555,20 @@ epics:
       propriétaire, fixe ce que 495 reprend de dix-sept projets.
     position: >
       Après e38, dont il reprend le dogfooding. La partie 1 (s01 à s05) mène pi-495 à l'intégration avec sa suite
-      bornée ; la partie 2 (s06 à s10) rend toute la suite au jugement. Chaque story touche les contrôles ou
-      l'exécuteur, et sa recette joue donc les deux campagnes de référence (`D-89`). s09 et s10 commencent par un
-      essai, dont le bilan revient au propriétaire si l'outil ne tient pas.
+      bornée ; la partie 2 (s06 à s09) rend toute la suite au jugement. Chaque story touche les contrôles ou
+      l'exécuteur, et sa recette joue donc les deux campagnes de référence (`D-89`). s08 et s09 commencent par un
+      essai, dont le bilan revient au propriétaire si l'outil ne tient pas. Docker n'y est pas : aucune cible n'en
+      a besoin aujourd'hui.
     stories:
-      - { id: e40s01, status: "à faire", title: "Un contrôle a son propre dossier personnel et son propre temporaire, git n'y lit aucune configuration de l'hôte, et l'agent SSH et le démon Docker de l'hôte restent hors d'atteinte" }
-      - { id: e40s02, status: "à faire", title: "Les chemins d'un contrôle se déclarent dans la configuration du contrôleur, ses dossiers inscriptibles sont créés par lui, et un lien ou un fichier du candidat fait refuser au lieu d'élargir" }
-      - { id: e40s03, status: "à faire", title: "Sous macOS, un droit manquant est lu dans les refus que le noyau publie en direct et proposé au propriétaire, qui seul l'accorde" }
-      - { id: e40s04, status: "à faire", title: "Sous Linux, un droit manquant est proposé d'après la sortie du contrôle, présenté comme une indication du candidat non vérifiée" }
+      - { id: e40s01, status: "à faire", title: "git, dans un contrôle, ne lit ni la configuration globale ni la configuration système de l'hôte" }
+      - { id: e40s02, status: "à faire", title: "Le propriétaire donne à un contrôle un dossier inscriptible de la copie, créé par le contrôleur, et un lien ou un fichier du candidat fait refuser au lieu d'élargir" }
+      - { id: e40s03, status: "à faire", title: "Sous macOS, une écriture refusée est lue dans les refus que le noyau publie en direct et proposée au propriétaire, qui seul l'accorde" }
+      - { id: e40s04, status: "à faire", title: "Sous Linux, une écriture refusée est proposée d'après la sortie du contrôle, présentée comme une indication du candidat non vérifiée" }
       - { id: e40s05, status: "à faire", title: "Le dogfooding de pi-495 atteint G2, construit le candidat et l'intègre sous le contrôleur identifié au départ" }
-      - { id: e40s06, status: "à faire", title: "Une sonde dit d'avance si un bac à sable intérieur s'appliquera, et un test qui en démarre un se saute avec son motif sous le confinement" }
+      - { id: e40s06, status: "à faire", title: "La qualification de Seatbelt applique un vrai profil, 495 refuse sous un autre Seatbelt, et un test qui démarre un bac à sable s'y saute avec son motif" }
       - { id: e40s07, status: "à faire", title: "Un test sauté faute de pouvoir tourner confiné reste une obligation tant qu'une exécution sur la même révision ne l'a pas réglée" }
-      - { id: e40s08, status: "à faire", title: "Le noyau lance un contrôle qui exige une capacité dans une VM Linux sur la révision figée, et en reçoit les observations rattachées à cette révision" }
-      - { id: e40s09, status: "à faire", title: "Un contrôle qui a besoin de Docker tourne dans une VM qui a son propre démon, sans aucun socket de l'hôte" }
-      - { id: e40s10, status: "à faire", title: "Les tests qui démarrent Seatbelt sont jugés dans une VM macOS, et le dogfooding de pi-495 atteint l'intégration avec toute sa suite" }
+      - { id: e40s08, status: "à faire", title: "Le noyau lance un contrôle dans la VM Linux sur la révision figée, et en reçoit les observations rattachées à cette révision" }
+      - { id: e40s09, status: "à faire", title: "Les tests qui démarrent Seatbelt sont jugés dans une VM macOS, et le dogfooding de pi-495 atteint l'intégration avec toute sa suite" }
 
   # Raccordement prévu : e38s06 réalise la tranche de caractérisation d’une exigence déclarée déjà satisfaite ; le reste de cet epic demeure ouvert.
   - id: e13
