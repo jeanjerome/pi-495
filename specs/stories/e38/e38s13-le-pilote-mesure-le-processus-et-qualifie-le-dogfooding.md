@@ -2,7 +2,7 @@
 
 Story : e38s13
 Epic : e38
-Statut : en cours
+Statut : versée
 
 Surface : Expérimentation mesurée et promotion du contrôleur
 Dépendances : e38s06 à e38s10, e38s12 ; bilan Lean d’e38s11 séparé

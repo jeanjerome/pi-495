@@ -1,0 +1,56 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le contrôleur ne se remplace pas en cours de campagne / Sécurité : un candidat n'écrit pas les preuves normatives de son contrôleur",
+    "categorie": "bloquant",
+    "placement": "rendu_atteignable",
+    "fichier": "cycle/src/dogfood.ts",
+    "ligne": 62,
+    "constat": "Le `npm ci --ignore-scripts` que le lanceur exécute sur la copie du candidat (l. 62, appelé l. 103) bloque les scripts postinstall mais pas le binaire git configuré par `.npmrc`. Un candidat qui commite un `.npmrc` avec `git=./gitw.sh` et une dépendance git fait exécuter `gitw.sh` par npm pendant la résolution, hors confinement, avant que `dogfood-controleur.ts` ne construise le contrôleur et ne lise `config.json` (l. 54). `gitw.sh` réécrit `../controleur/specs/experiments/e38/dogfood/config.json` puis `exec`e le vrai git, si bien que `npm ci` sort en 0. Rejoué de bout en bout par `node cycle/src/dogfood.ts --controleur main --candidat cand` : la campagne sort 0, `releve.controles_declares=[\"test\"]` et `dossier/config.json` ne déclarent plus que `test`, `inchange:true`, aucun défaut, `revision` = sha du contrôleur, alors que `git show main:…/config.json` déclare `[\"lint-layers\",\"test\"]`. Le candidat a donc retiré un contrôle d'autorité du contrôleur avant qu'il ne s'identifie ; le même chemin réécrirait `controleur/cycle/src/dogfood-controleur.ts`. L'ordonnancement fautif (npm ci du candidat avant identification) précède la branche, mais `--ignore-scripts` est précisément le correctif que la branche ajoute à la l. 62 pour tenir cette garantie, et il la laisse contournable.",
+    "mutation": "Sonde jetable (non commitée) : dépôt où main déclare lint-layers,test, branche cand ajoutant .npmrc (git=./gitw.sh), une dépendance git+file résolvable et gitw.sh réécrivant ../controleur/…/config.json puis exec du vrai git ; lanceur lancé depuis main (le garde lanceurDuControleur passe). Résultat : exit 0, lint-layers tombé du relevé et du config.json du dossier.",
+    "contournement": "Un candidat n'écrit pas les preuves normatives de son contrôleur ; et : le contrôleur et ses contrôles d'autorité restent ceux identifiés au départ."
+   }
+  ],
+  "fermes": [
+   "A2-1",
+   "B2-1",
+   "B2-2"
+  ],
+  "resume": "Verdict fail : contournement A1-1 trouvé et sondé de bout en bout par l'entrée publique `node cycle/src/dogfood.ts`. La branche ferme la réécriture du contrôleur par un postinstall grâce à `npm ci --ignore-scripts` (l. 62), mais un candidat qui commite un `.npmrc` avec `git=./gitw.sh` et une dépendance git fait exécuter du code hors confinement pendant la résolution — `--ignore-scripts` n'arrête pas le binaire git configuré — avant que le contrôleur ne lise sa déclaration. La campagne sort 0 en ayant retiré un contrôle d'autorité du contrôleur (releve et dossier config = [\\\"test\\\"] contre [\\\"lint-layers\\\",\\\"test\\\"] à la révision du contrôleur), sans défaut : cela contourne « un candidat n'écrit pas les preuves normatives de son contrôleur » et « le contrôleur et ses contrôles d'autorité restent ceux identifiés au départ ». Les trois contournements du tour précédent sont fermés : la l. 62 `--ignore-scripts` neutralise le postinstall de A2-1/B2-1, et le garde lanceurDuControleur (l. 87) renvoie 2 pour B2-2 ; les deux mutations correspondantes sont tuées par test/cycle/dogfood.test.ts (que l'outil de mutation n'a pas lancé, d'où les mutants listés comme survivants). Les scénarios 2 et 3 (bilan) et les changements pilote-pi.ts (commentaire) et mesures.ts (renommage de paramètre) n'introduisent aucun écart de comportement."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le contrôleur ne se remplace pas en cours de campagne",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/dogfood.ts",
+    "ligne": 62,
+    "constat": "`--ignore-scripts` ne coupe que les scripts de cycle de vie. `npm ci` dans la copie du candidat lit toujours le `.npmrc` du candidat : avec `git=./evil.sh` et une dépendance git optionnelle, le programme `git` du candidat tourne sans confinement, cwd = `cible`. Il tourne après l'extraction du contrôleur et avant que `dogfood-controleur.ts` construise le contrôleur et lise sa déclaration, et il réécrit `../controleur/specs/experiments/e38/dogfood/config.json`. Sonde jetable sur le dépôt de `test/cycle/dogfood.test.ts`, avec le vrai npm 11.19.0 et le `pi` factice. `cand` ne touche ni au lanceur, ni à la campagne, ni à la déclaration : il ajoute `.npmrc`, `evil.sh`, `mkrepo.sh` et une dépendance optionnelle `git+https://example.invalid/x.git#<sha>` dont le faux git simule `ls-remote`/`clone`. Lancée depuis l'arbre de `main` avec `--controleur main --candidat cand`, la campagne sort en 0 : `npm ci` réussit (`added 1 package`), `dossier/config.json` = `['test']`, et le relevé donne `controles_declares: ['test']`, `revision` = sha de `main`, `inchange: true` et `defauts: []`. Or `git show main:…/config.json` déclare `lint-layers` et `test`. Le même script peut réécrire `controleur/cycle/src/dogfood-controleur.ts`, donc le relevé.",
+    "mutation": "Sonde de contournement, sans mutation. Les mutants des lignes 42-48, 62 et 86-94 que l'outil disait non exécutés le sont par `test/cycle/dogfood.test.ts` et y échouent : retrait de `--ignore-scripts`, `return true`, `&&`→`||`, comparaison des octets retirée.",
+    "contournement": "Un candidat n’écrit pas les preuves normatives de son contrôleur (et la promesse « le contrôleur et ses contrôles d’autorité restent ceux identifiés au départ »)."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Le contrôleur ne se remplace pas en cours de campagne",
+    "categorie": "bloquant",
+    "placement": "rendu_atteignable",
+    "fichier": "package.json",
+    "ligne": 76,
+    "constat": "Le lanceur se lance par `npm run dogfood`, l'usage même qu'il documente, depuis l'arbre du candidat (`--candidat HEAD` par défaut). Lancé ainsi, il exécute la ligne `dogfood` du `package.json` du candidat. La vérification octet pour octet du lanceur ne voit pas ce qui se charge avant lui. Sonde jetable : `cand` laisse `cycle/src/dogfood.ts` intact et change seulement `\"dogfood\": \"node --import ./evil.mjs cycle/src/dogfood.ts\"`. `evil.mjs` remplace `child_process.spawnSync` (`syncBuiltinESMExports`) et retire `lint-layers` de la déclaration du contrôleur extrait juste avant le passage de main à `dogfood-controleur.ts`. Avec `cand` extrait, `npm run dogfood -- --objectif probe --controleur main --candidat cand` sort en 0 : `controles_declares: ['test']`, révision de `main`, `inchange: true`, aucun défaut. Le README nomme cette ligne comme une limite, mais le chemin de B2-2 (lancer depuis le candidat, sortie en 0 sous la révision du contrôleur sans `lint-layers`) passe encore en changeant une ligne au lieu du lanceur.",
+    "contournement": "Un candidat n’écrit pas les preuves normatives de son contrôleur."
+   }
+  ],
+  "fermes": [
+   "A2-1",
+   "B2-1",
+   "B2-2"
+  ],
+  "resume": "Échec : deux contournements restent ouverts sur la garantie « un candidat n'écrit pas les preuves normatives de son contrôleur ».\n\n**B1-1.** Le `npm ci --ignore-scripts` de la copie du candidat lit encore son `.npmrc`. Un `git=./evil.sh` accompagné d'une dépendance git optionnelle fait tourner le code du candidat sans confinement, avant que le contrôleur ne s'identifie. Lancée depuis l'arbre du contrôleur, la campagne sort en 0. Le relevé donne alors `controles_declares: ['test']` sous la révision de `main`, avec `inchange: true`.\n\n**B1-2.** Lancé par `npm run dogfood` depuis l'arbre du candidat, le lanceur exécute d'abord la ligne `dogfood` du `package.json` du candidat. Changée en `node --import ./evil.mjs …`, cette ligne retire un contrôle de la déclaration du contrôleur, et la campagne sort en 0 alors que le lanceur, inchangé, passe sa vérification.\n\n**Chemins du tour précédent, rejoués sur la tête.**\n- Le postinstall de A2-1 et B2-1 ne passe plus.\n- Le lanceur réécrit de B2-2 est refusé.\n- `test/cycle/dogfood.test.ts` tient ces deux fermetures : il échoue sur chacun des mutants des lignes 42-48, 62 et 86-94, que l'outil disait non exécutés.\n\n**Scénarios du bilan.** Ils sont tenus par le code, et par `test/cycle/process-measurements.test.ts` : onze mutants de `mesures.ts` y échouent. Ils portaient sur la durée par pas, les interventions, les tours, les écarts de recette, les incidents, les révisions de tests, les reprises de code, les trois recommandations et les obligations maintenues ou retirées.\n\nLes sondes jetables et leurs fichiers ont été supprimés ; l'arbre est propre."
+ }
+]

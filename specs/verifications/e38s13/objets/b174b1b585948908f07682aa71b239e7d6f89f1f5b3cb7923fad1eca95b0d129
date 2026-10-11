@@ -1,0 +1,64 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le contrôleur stable mène une modification réelle de pi-495 au-delà de la qualification",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 418,
+    "constat": "Aucun test n'exécute la seconde détection, celle qui suit l'écriture des compléments (état du projet relevé, carte d'architecture ou complément adopté). Si l'on y retire `withSuitePaths`, le contrôle `unit` figé lance de nouveau tout l'arbre, et les quatre tests nommés restent verts. Le changement réel du scénario ne passe pas par ce chemin : le répondeur de la campagne ne choisit pas `adopt_complement`, aucun relevé d'état n'a lieu, et pi-495 installe déjà Stryker.",
+    "mutation": "`withSuitePaths(ctx.stacks.recognise(..., architecture?.map?.map), ctx.policy)` remplacé par `ctx.stacks.recognise(...)` seul : mutant listé par l'outil comme non exécuté par les tests de la tâche."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Le contrôleur stable mène une modification réelle de pi-495 au-delà de la qualification",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "specs/experiments/e38/dogfood/config.json",
+    "ligne": 4,
+    "constat": "`dogfood-preparation.test.ts` passe ses propres motifs (`test/*.test.js`, `test/v0-pure/**/*.test.js`). Aucun test ne lit `suite_paths` dans la configuration du contrôleur stable : retirer ces motifs du `config.json` laisse la campagne réelle retomber dans le délai dépassé sans qu'aucun test ne bouge. De même, aucun test automatisé ne vérifie la clause « le contrôle `build` tourne sur un candidat produit » : la cible du banc ne déclare que `lint-layers`. Seule la recette réelle peut établir ces deux points. Mesure prise hors bac : les motifs du contrôleur (racine de `test/`, `v0-pure`, `cycle`) tournent en 19 s ; je ne les ai pas lancés confinés.",
+    "mutation": "Recherche de `suite_paths` dans `test/` : seule la valeur locale de `dogfood-preparation.test.ts` est lue, et aucun test ne charge celle du `config.json`."
+   }
+  ],
+  "fermes": [],
+  "resume": "Scénario 4 : le code tient. `withSuitePaths` ajoute à la commande de la suite détectée les motifs de la politique, lue dans le répertoire de données du contrôleur (le `config.json` de l'arbre du contrôleur dans `dogfood-controleur.ts`), jamais dans la cible. Le contrôle sonde de `prepare` est `detected.controls[0]`, le même. Chacune de ces trois mutations fait échouer `dogfood-preparation.test.ts` : (1) `withSuitePaths` sans effet, échec sur la note de délai dépassé ; (2) `withSuitePaths` retiré de `prepare.ts`, même échec ; (3) retiré de la première détection de `verification-design.ts`, échec sur G2 (témoins INDETERMINATE à 20 s). La clause `controleur.inchange` est tenue par `test/cycle/dogfood.test.ts` (la mutation `inchange: true` fait échouer le test). Scénario 5 : tous les mutants listés sur `verifierProfil` et `PROFIL_A_ETATS` sont tués quand on les rejoue à la main. Ils n'apparaissaient pas couverts parce que le test lance `main.ts` dans un sous-processus. Les mutations essayées : appel retiré, condition forcée vraie ou fausse, `>=`, `&&`, `===`, message vidé, nom du moyen retiré du message, profil vide. Scénarios 1 à 3 : la branche ne fait qu'ajouter un compagnon aux stories mesurées sous `tla`, sans retirer d'assertion. Sécurité, attaquée sans contournement trouvé : les motifs et le délai viennent de la configuration du contrôleur et de la constante de la technologie, jamais d'un fichier du candidat. `test/` et `package.json` sont protégés pour `unit`. Node 24.21 ne lit par défaut ni `node.config.json` ni `.env` (sondé). Aucun test de `test/cycle` ni de `v0-pure` ne lance de bac à sable emboîté. Il reste deux points à peser : la seconde détection, après compléments, n'est couverte par aucun test (A1-1) ; les motifs réels du contrôleur et la clause `build` sur candidat ne sont établis que par la recette (A1-2). Arbre remis propre."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le contrôleur stable mène une modification réelle de pi-495 au-delà de la qualification",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/verification-design.ts",
+    "ligne": 418,
+    "constat": "The second detection, run after complements are installed, also goes through withSuitePaths, but no test reaches it: suite_paths is used only by test/v4-platform/dogfood-preparation.test.ts, and that bench installs no complement. If this wrapper were removed, a change that adopts a complement would freeze a unit control running the whole tree and every test would stay green. The real campaign does not take this path: its pilot answers only adopt, accept and integrate, so adopt_referential, adopt_map and adopt_complement stay pending. The surviving OptionalChaining mutants on line 419 are equivalent and do not touch this point.",
+    "mutation": "Not run: the tool reports that no named test executes lines 418-421, and suite_paths appears in no other test."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Le contrôleur stable mène une modification réelle de pi-495 au-delà de la qualification",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v4-platform/dogfood-preparation.test.ts",
+    "ligne": 43,
+    "constat": "The bench declares only lint-layers, so no test runs the declared build control on a produced candidate. The general mechanism is held: dogfood-process makes G5 depend on lint-layers evidence on the candidate, and dogfood-controls checks that every script of npm run check is declared. The build part of the promise is left to the acceptance run. controleur.inchange is held by test/cycle/dogfood.test.ts:195-200."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Le profil à états se lit dans le compagnon de la story, pas dans une étiquette",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/mesures.ts",
+    "ligne": 210,
+    "constat": "The companion is checked only when the label is exactly \"tla\". A story that keeps only exemples, given as formel=<story> (the label of the recipe that found the gap) or as TLA=<story>, is still measured, and the bilan still writes a recommendation for that profile. The promise holds for the profile it names, tla, as specs/experiments/e38/README.md fixes it."
+   }
+  ],
+  "resume": "I find no blocking issue, nothing to fix and no bypass: verdict pass, with three findings to weigh.\n\n**State-profile check in `cycle mesures` (`cycle/src/mesures.ts:205-223`).** The tool listed these mutants as not executed, because the test reaches this code through a child process. I applied them by hand and ran `test/cycle/process-measurements.test.ts`. Each one fails the new test:\n- the `verifierProfil` call removed;\n- the condition forced to always return, or always throw;\n- `> 0` changed to `>= 0`, and `||` changed to `&&`;\n- the error message emptied;\n- the `PROFIL_A_ETATS` constant emptied (line 71).\n\n**Prepared suite of pi-495 (`withSuitePaths`).** On this machine the bench passes in about one second under the platform sandbox. It fails each time the wiring is removed:\n- made a no-op in `project-controls.ts`: the note \"timeout after 20009 ms\" appears;\n- removed in `prepare.ts`: the prepared suite times out;\n- removed at `verification-design.ts:365`: both witnesses are INDETERMINATE and G2 does not freeze the protocol.\n\nThe detection after complements (lines 418-421) is wrapped too, but no test reaches it (B1-1).\n\n**Rest of the promises.**\n- `controleur.inchange` is held by `test/cycle/dogfood.test.ts`.\n- The controls declared to the controller are held by `dogfood-controls`.\n- No test runs the `build` control on a produced candidate; that part is left to the acceptance run (B1-2).\n- The `cycle mesures` check applies only to the exact label `tla`; a story given as `formel=` is still measured and recommended (B1-3).\n\n**Security, attacked.**\n- `policy.suite_paths` and the delay are read from the controller's `config.json` and frozen in the protocol at G2.\n- No caller outside the stacks layer detects controls again on the candidate.\n- Every pattern is under `test/`, which the unit control protects, as it protects `package.json` and `node_modules/`.\n- Node 24 reads no config file by default.\n- A pattern that matches no file still exits 0 (probed).\n- None of the tests under `test/v0-pure` or `test/cycle` launches a sandbox of its own.\n- The branch opens no path that runs a control unconfined.\n\nI found no way for a candidate to narrow the suite or lengthen its delay. The tree was restored after each mutation.",
+  "fermes": []
+ }
+]

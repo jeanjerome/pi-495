@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: the dogfooding campaign of pi-495 under its stable controller
+    # Subtest: les quatre témoins bloquent au point attendu et le candidat conforme est intégré sous le contrôleur initial
+    ok 1 - les quatre témoins bloquent au point attendu et le candidat conforme est intégré sous le contrôleur initial
+      ---
+      duration_ms: 3642.285667
+      type: 'test'
+      ...
+    1..1
+ok 1 - the dogfooding campaign of pi-495 under its stable controller
+  ---
+  duration_ms: 3642.823
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3921.524625

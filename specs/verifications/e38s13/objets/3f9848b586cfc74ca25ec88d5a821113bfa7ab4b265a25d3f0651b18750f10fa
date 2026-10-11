@@ -1,0 +1,89 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Le contrôleur ne se remplace pas en cours de campagne",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/dogfood.ts",
+    "ligne": 77,
+    "constat": "Le lanceur exécute `npm ci` sur la copie du candidat (dogfood.ts:43, appelé l. 77), donc les scripts `postinstall`/`prepare` du `package.json` du candidat. Ces scripts tournent sans confinement, après l'extraction du contrôleur et avant que `dogfood-controleur.ts` construise ce contrôleur, prenne son empreinte (l. 51) et lise sa déclaration. Sonde jetable, sur le dépôt de `test/cycle/dogfood.test.ts` avec le vrai `npm` et un `pi` factice : `main` déclare `lint-layers,test`, et `cand` ne change que son `package.json`, où il ajoute `postinstall: node -e \"writeFileSync('../controleur/specs/experiments/e38/dogfood/config.json', …test seul…)\"`. Résultat : `dossier/config.json` ne contient plus que `test`, `releve.json` donne `controles_declares: [\"test\"]` et `inchange: true`, et la campagne sort en 0. Le même script peut réécrire `controleur/cycle/src/dogfood-controleur.ts` et donc le relevé. Ce chemin vient du tour 1. Avant, l'empreinte de la construction était prise avant le `npm ci` du candidat ; depuis 2405d72f, le contrôleur se construit et se lit après lui.",
+    "contournement": "Un candidat n'écrit pas les preuves normatives de son contrôleur ; et, par la même entrée, le contrôleur et ses contrôles d'autorité ne restent pas ceux identifiés au départ (la révision du contrôleur identifiée par `releve.json` n'est plus ce qui juge)."
+   },
+   {
+    "id": "A2-2",
+    "scenario": "Le contrôleur ne se remplace pas en cours de campagne",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "specs/experiments/e38/dogfood/README.md",
+    "ligne": 1,
+    "constat": "Le lanceur `cycle/src/dogfood.ts` reste le code de l'arbre d'où l'on lance `npm run dogfood`, l'arbre du candidat avec le `--candidat HEAD` par défaut. C'est lui qui choisit quel script de campagne exécuter et dans quel arbre. Le README dit pourtant la campagne intacte « lancée depuis l'arbre d'un candidat » : c'est vrai d'un candidat qui réécrit `dogfood-controleur.ts` ou `config.json`, pas d'un candidat qui réécrit le lanceur. Le chemin B1-1 tel que décrit est fermé ; l'écart restant tient au choix, par l'opérateur, du code qu'il lance."
+   },
+   {
+    "id": "A2-3",
+    "scenario": "Le dossier distingue vitesse et qualité",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/mesures.ts",
+    "ligne": 146,
+    "constat": "Tenue vérifiée. Les interventions excluent les attentes que l'automate tranche, et les incidents et les écarts de recette sont comptés à part. Chaque mutation fait échouer `process-measurements.test.ts`.",
+    "mutation": "retirer `!trancheeParLAutomate(evenements, i)` ; retirer `de(\"bloque\").length +` des incidents → le test échoue chaque fois"
+   },
+   {
+    "id": "A2-4",
+    "scenario": "L’absence de gain ne conduit pas à affaiblir les obligations",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/mesures.ts",
+    "ligne": 237,
+    "constat": "Tenue vérifiée. Les obligations maintenues d'une story et celles d'un refactoring sont assertées, ainsi que le surcoût en dollars seuls. Les mutations font échouer le test.",
+    "mutation": "`obligations_maintenues` toujours `OBLIGATIONS.reprise` ; retrait de la comparaison des coûts → le test échoue chaque fois"
+   },
+   {
+    "id": "A2-5",
+    "scenario": "Le contrôleur ne se remplace pas en cours de campagne",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/dogfood-controleur.ts",
+    "ligne": 99,
+    "constat": "Hors du chemin A2-1, la promesse est tenue par des tests. `dogfood.test.ts` échoue si le contrôle d'empreinte est neutralisé ou si le lanceur exécute la campagne de la copie du candidat. `dogfood-controls.test.ts` échoue quand les `protected_paths` de la déclaration sont vidés.",
+    "mutation": "`if (avant !== apres)` → `if (false)` ; lancement de `cible/cycle/src/dogfood-controleur.ts` ; `protected_paths: []` dans config.json → test rouge chaque fois"
+   }
+  ],
+  "fermes": [
+   "B1-1"
+  ],
+  "resume": "Rejoué sur la tête, le chemin de B1-1 ne passe plus : un candidat qui retire un contrôle de `config.json` ou réécrit la campagne est jugé par la déclaration et le code du contrôleur. `test/cycle/dogfood.test.ts` tient ce point sous mutation. Les promesses du bilan (mesures séparées, obligations maintenues) sont tenues par le code et par des tests que les mutations font échouer. Le fix ouvre en revanche un nouveau contournement (A2-1). Le lanceur fait `npm ci` sur la copie du candidat, ce qui exécute ses scripts d'installation sans confinement, avant que le contrôleur se construise, prenne son empreinte et lise sa déclaration. Une sonde où le candidat ne change que son `package.json` retire `lint-layers` des contrôles du contrôleur, et le relevé reste propre (`inchange: true`, sortie 0). Verdict : fail."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Le contrôleur ne se remplace pas en cours de campagne",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/dogfood.ts",
+    "ligne": 77,
+    "constat": "Le lanceur exécute `npm ci` dans la copie du candidat (dogfood.ts:43), donc avec les scripts de cycle de vie de son package.json. Il le fait avant de passer la main à `dogfood-controleur.ts`, alors que ce script ne construit le contrôleur, ne prend l'empreinte `avant` et ne lit `config.json` (dogfood-controleur.ts:49-54) qu'ensuite. Un `postinstall` du candidat peut donc réécrire `../controleur/` avant que le contrôleur ne s'identifie. Sonde jetable : dépôt où `main` déclare `lint-layers,test`, et où la branche `cand` ajoute le postinstall `node -e \"writeFileSync('../controleur/specs/experiments/e38/dogfood/config.json', …['test'])\"`. Avec le vrai `npm ci` et un `pi` factice, `dogfood.ts --controleur main --candidat cand` sort 0. Le `dossier/config.json` ne garde que `['test']`, et le relevé donne `controles_declares: ['test']`, `inchange: true` et `revision` = sha de `main`, alors que `git show main:…/config.json` déclare `lint-layers`. Le même chemin réécrit `controleur/cycle/src/dogfood-controleur.ts`, et donc le relevé lui-même.",
+    "contournement": "Un candidat n’écrit pas les preuves normatives de son contrôleur ; le contrôleur et ses contrôles d’autorité restent ceux identifiés au départ"
+   },
+   {
+    "id": "B2-2",
+    "scenario": "Le contrôleur ne se remplace pas en cours de campagne",
+    "categorie": "bloquant",
+    "placement": "anterieur",
+    "fichier": "cycle/src/dogfood.ts",
+    "ligne": 63,
+    "constat": "Le lanceur reste le code de l'arbre d'où `npm run dogfood` est lancé, c'est-à-dire celui du candidat avec `--candidat HEAD` par défaut. Un candidat qui réécrit `cycle/src/dogfood.ts` modifie donc l'arbre extrait du contrôleur avant de le lancer. Le README affirme pourtant que la campagne « lancée depuis l’arbre d’un candidat qui … réécrit la campagne reste celle du contrôleur ». Sonde jetable : la branche `cand` ajoute à son `dogfood.ts`, juste après le calcul de `script`, l'écriture de `controleur/specs/experiments/e38/dogfood/config.json` sans `lint-layers`. Lancée depuis `cand`, la campagne sort 0 avec `controles_declares: ['test']`, `inchange: true` et la révision de `main` au relevé.",
+    "contournement": "Un candidat n’écrit pas les preuves normatives de son contrôleur ; le contrôleur et ses contrôles d’autorité restent ceux identifiés au départ"
+   }
+  ],
+  "fermes": [
+   "B1-1"
+  ],
+  "resume": "Rejoué sur la tête de la branche, le chemin exact de B1-1 ne passe plus : un candidat qui retire un contrôle de son propre `config.json` est jugé par la déclaration du contrôleur. B1-1 est donc fermé. Deux contournements demeurent sur la même garantie. B2-1, introduit : le `postinstall` du candidat, lancé par le `npm ci` de son extraction, s'exécute avant que le contrôleur ne se construise et ne lise sa déclaration ; il peut réécrire `controleur/`, et le relevé attribue alors à la révision de `main` des contrôles amputés. B2-2, antérieur : le lanceur lui-même reste le code du candidat quand la campagne est lancée depuis son arbre. Les deux sont sondés par des tests jetables et supprimés ensuite. Les scénarios « vitesse et qualité » et « obligations » sont tenus par le code et par les tests : sept mutations de mesures.ts (attentes tranchées par l'automate, incidents, écarts de recette, obligations maintenues, coût seul) font toutes échouer process-measurements.test.ts. Le contrôle d'empreinte et le chargement de `controleur/dist` sont tenus par test/cycle/dogfood.test.ts (mutations tuées). Le gel de `project_control_ids` en G5 est tenu par dogfood-process.test.ts (mutation tuée)."
+ }
+]

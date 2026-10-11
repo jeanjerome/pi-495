@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the prepared suite of pi-495 under its stable controller
+    # Subtest: sur une cible façonnée comme pi-495, dont des tests lancent eux-mêmes un bac à sable et dont la suite entière dépasse le délai du contrôle, la suite préparée est jugée PASS ou FAIL sur la référence, jamais INDETERMINATE par un dépassement de délai, et G2 fige le protocole
+    not ok 1 - sur une cible façonnée comme pi-495, dont des tests lancent eux-mêmes un bac à sable et dont la suite entière dépasse le délai du contrôle, la suite préparée est jugée PASS ou FAIL sur la référence, jamais INDETERMINATE par un dépassement de délai, et G2 fige le protocole
+      ---
+      duration_ms: 40394.242375
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NZBtlz/test/v4-platform/dogfood-preparation.test.ts:41:2'
+      failureType: 'testCodeFailure'
+      error: 'the prepared suite is judged within the delay of its control'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: 'prepared suite is not loadable or produced no test: timeout after 20012 ms'
+      operator: 'doesNotMatch'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NZBtlz/test/v4-platform/dogfood-preparation.test.ts:61:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the prepared suite of pi-495 under its stable controller
+  ---
+  duration_ms: 40395.018458
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NZBtlz/test/v4-platform/dogfood-preparation.test.ts:38:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 40658.657916

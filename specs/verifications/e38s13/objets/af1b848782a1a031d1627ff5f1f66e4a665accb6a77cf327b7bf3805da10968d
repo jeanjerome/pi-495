@@ -1,0 +1,55 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité — un candidat n'élargit pas les chemins en écriture du contrôle qui juge ses exigences",
+    "categorie": "bloquant",
+    "placement": "rendu_atteignable",
+    "fichier": "src/application/project-controls.ts",
+    "ligne": 50,
+    "constat": "The branch grants `test-output/` to the `unit` control that judges the requirements. `profileFor` (src/adapters/execution/runner.ts:72-77) keeps a writable path whenever its real path stays inside the copy, `real === copy` included, and Seatbelt writes the grant under that real path (backends.ts:142). So a candidate that lays `test-output` as a link to `.` (or to `test/`) widens the writes of the requirements' control to the whole copy, frozen prepared tests included. The producer can lay that link with its `bash` tool (reports.ts:309). G4 does not refuse it: the mandate scope is empty and `test-output` is protected by no control. Verification then runs `unit` in the producer's own workspace (verify.ts:50), and `candidateMoved` leaves the `test-output` entry out of the comparison. A probe I did not commit shows the effect: the `unit` control as `withSuitePaths` widens it, under the real `SeatbeltSandbox` (temp grant limited to /private/tmp) and a copy holding `test-output -> .`, runs `writeFileSync('test/prepared.test.ts', …)`; the write succeeds and the file is rewritten. Without the link the same command fails with EPERM and the file stays as it was.",
+    "contournement": "« Un candidat … n'en élargit pas les chemins en écriture : rien de cela ne se lit dans un fichier qu'il modifie » — here the real write path of the `unit` control is read from the `test-output` link, an entry the candidate writes. The story's own README excludes the outcome: « ni dist/, ni test/, ni la racine de la copie »."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Le contrôle qui juge les exigences de pi-495 écrit là où ses tests écrivent",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v4-platform/dogfood-preparation.test.ts",
+    "ligne": 120,
+    "constat": "The test's assertions of no EPERM and no incident requirement do not catch the mutant that drops the profile's grant, when the tree sits under $TMPDIR as this review copy does. The harness puts its copies under `<cwd>/test-output`, and Seatbelt already lets every command write the temp directory. Only the structural assertion at line 130 (protocol `unit.writable_paths` deepEqual `[\"test-output/\"]`) kills the mutant. The promise is therefore held through the frozen protocol, and the sandbox side is checked only when the repository lies outside the temp directory.",
+    "mutation": "project-controls.ts:50 `writable_paths: suite.writable_paths` (grant dropped): the test fails only on « the suite writes under test-output/ and nowhere else », not on EPERM nor incident"
+   }
+  ],
+  "resume": "Verdict: fail, because of one bypass. Granting `test-output/` to the `unit` control reaches an in-copy link resolution that predates the branch. A candidate that commits `test-output -> .` makes the whole copy writable to the control that judges its requirements, frozen prepared tests included. I confirmed this with a probe under the real Seatbelt (not committed). The probe has the `unit` control as `withSuitePaths` widens it rewrite `test/prepared.test.ts` when the link is present, and fail with EPERM without it. G4 does not refuse the link: the mandate scope is empty and no control protects `test-output`. Verification runs in the producer's workspace, and `candidateMoved` leaves `test-output` out of the comparison. Scenario 5 is kept by the code. Its test catches the mutant that drops the grant only through the frozen-protocol assertion: its EPERM and incident assertions are vacuous when the tree sits under $TMPDIR. That is noted as à peser. The `cycle mesures` scenario is held: mutating the companion check to `>= 0` makes `test/cycle/process-measurements.test.ts` fail. I restored every mutation and deleted the probe; the tree is clean."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — Le contrôle qui juge les exigences de pi-495 écrit là où ses tests écrivent",
+    "categorie": "bloquant",
+    "placement": "rendu_atteignable",
+    "fichier": "src/application/project-controls.ts",
+    "ligne": 50,
+    "constat": "withSuitePaths gives the `unit` control the profile's `test-output/`, and profileFor (src/adapters/execution/runner.ts:69-76) grants a writable path by its real path whenever that path stays inside the copy. A candidate that commits `test-output` as a link to `.` or to `src` widens the writes of the control that judges its requirements to the whole copy (including `package.json`, `test/` and `src/`) or to `src/`. That widening is read from a file the candidate modifies. Throwaway test under the real Seatbelt sandbox: with `test-output -> .`, the unit control from `withSuitePaths(…, {suite_writable_paths:[\"test-output/\"]})` rewrote `src/a.js` and `package.json`. With `test-output -> src`, it rewrote `src/a.js`. Without the branch's grant, the same command is refused and `src/a.js` stays `original`. `test-output` is in no control's protected_paths, and the candidate's workspace recreates its links (git-workspace.ts:131).",
+    "contournement": "Un candidat … n'en élargit pas les chemins en écriture : rien de cela ne se lit dans un fichier qu'il modifie (and the dogfood README: test-output/ « et rien d'autre : ni dist/, ni test/, ni la racine de la copie »)"
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Le contrôle qui juge les exigences de pi-495 écrit là où ses tests écrivent",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "test/v4-platform/dogfood-preparation.test.ts",
+    "ligne": 121,
+    "constat": "The no-EPERM and no-incident assertions hold the promise only when the repository is outside TMPDIR. Seatbelt grants the whole TMPDIR as a temporary path, so in a tree under TMPDIR (such as the cycle's review trees) the copy is writable with or without the grant. Here only the deepEqual on the frozen protocol's writable_paths fails. With TMPDIR moved elsewhere, the incident assertion fails as it should.",
+    "mutation": "suite_writable_paths set to [\"test-output/x/\"] in the dogfood config: the test fails only on 'the suite writes under test-output/ and nowhere else'. Set to [] with TMPDIR=/private/tmp/…: it fails on 'no requirement stays incident' (R1, R2 fail without an assertion)."
+   }
+  ],
+  "resume": "The new promise holds. The `unit` control gets `test-output/` only from the controller's configuration, and the new test catches a missing grant: G2 fails, an incident requirement appears, and the frozen writable_paths differ. Two other promises were spot-checked and hold. `controleur.inchange` is held by test/cycle/dogfood.test.ts. A mutation of the companion check in `cycle mesures` makes process-measurements fail. The Security section has a bypass. A candidate that commits `test-output` as a link to `.` or to `src/` widens the writes of the control that judges its requirements to the whole copy or to `src/`. The runner grants a writable path by the place it leads to inside the copy, and Seatbelt applies that real path. A throwaway test confirmed the rewrites of `src/a.js` and `package.json`, which are refused without the grant. This is blocking. A minor point to weigh: the new test holds its EPERM and incident assertions only outside TMPDIR.",
+  "fermes": []
+ }
+]

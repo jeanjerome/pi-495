@@ -1,0 +1,132 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le dossier distingue vitesse et qualité",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/mesures.ts",
+    "ligne": 136,
+    "constat": "`interventions` compte chaque événement `proprietaire` du journal. Or, dans une story conduite sans le propriétaire, l'outil écrit cet événement avant de rouvrir lui-même une relecture ou de faire arbitrer la recette par l'automate. Exécuté sur les vrais dossiers, `cycle mesures simple=e38s10 tla=e38s12` donne `interventions: 2` pour e38s12, alors que le propriétaire n'a jamais été attendu. L'un des deux est le tour de relecture rouvert par l'outil, déjà compté dans `tours_de_relecture`. L'autre est l'arbitrage de l'automate, déjà compté dans `arbitrages_automate`. Le bilan ne sépare donc pas les interventions des revues ni des arbitrages, contrairement à la définition fixée dans specs/experiments/e38/README.md (« les fois où la story a attendu le propriétaire »)."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Le dossier distingue vitesse et qualité",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/mesures.ts",
+    "ligne": 136,
+    "constat": "Aucun test ne vérifie les interventions ni les incidents. Aucun test ne vérifie non plus que les défauts trouvés en recette sont comptés à part des réouvertures de relecture : le journal du test ne contient ni événement `proprietaire`, ni `bloque`, ni `session` en échec, ni `relecture/rouvert`. Ces trois mesures figurent pourtant dans le Then. process-measurements.test.ts reste vert sous chacune des trois mutations essayées.",
+    "mutation": "`interventions: de(\"proprietaire\").length` → `0`, puis `incidents: …` → `0`, puis `de(\"rouvert\", \"recette\")` → `de(\"rouvert\")` : les deux tests de process-measurements.test.ts passent sous chacune."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Le contrôleur ne se remplace pas en cours de campagne",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/application/project-controls.ts",
+    "ligne": 27,
+    "constat": "Le code garde bien les contrôles d'autorité. Une sonde jetable, où le producteur réécrit scripts/check-layers.ts en `process.exit(0)` à côté d'une faute de couches, est refusée en G4 (« protected path altered by the producer »). En revanche, aucun test ne vérifie cette protection : avec `protected_paths` vidé, G4 laisse passer le script de couches réécrit, et dogfood-controls.test.ts comme dogfood-process.test.ts restent verts.",
+    "mutation": "`protected_paths: declared.protected_paths` → `protected_paths: []` : 3 tests sur 3 passent ; la sonde passe alors de G4 FAIL à G4 PASS."
+   },
+   {
+    "id": "A1-4",
+    "scenario": "Le contrôleur ne se remplace pas en cours de campagne",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/dogfood.ts",
+    "ligne": 141,
+    "constat": "Aucun test n'exécute la partie de la campagne qui identifie la construction du contrôleur. C'est elle qui charge Pi avec `-e controleur/dist/extension/index.js` et compare l'empreinte de la construction avant et après. Seule la fonction `empreinte` a son test ; le choix de la construction chargée et la comparaison reposent sur la recette réelle. Lecture faite de Pi 1.0.4 (resource-loader.js:405), `-ne` ne charge que les extensions passées par `-e`. Le paquet déclaré dans ~/.pi/agent/settings.json ne vient donc pas se substituer au contrôleur.",
+    "mutation": "La comparaison `avant !== apres` remplacée par `false` : aucun test ne l'exécute (survivants de l'outil aux lignes 141 et 143)."
+   },
+   {
+    "id": "A1-5",
+    "scenario": "Le contrôleur ne se remplace pas en cours de campagne",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/dogfood.ts",
+    "ligne": 27,
+    "constat": "La campagne ne lit pas les contrôles d'autorité à la révision du contrôleur qu'elle extrait. Elle lit `config.json` dans l'arbre de travail qui la lance, c'est-à-dire du côté de `--candidat HEAD` par défaut. `releve.json` n'en garde que les identifiants, sans les commandes ni leur empreinte. Les contrôles restent fixes pendant la campagne, mais le relevé ne permet pas de vérifier après coup qu'ils sont ceux du contrôleur identifié."
+   },
+   {
+    "id": "A1-6",
+    "scenario": "L’absence de gain ne conduit pas à affaiblir les obligations",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/mesures.ts",
+    "ligne": 212,
+    "constat": "Le test vérifie bien que la recommandation « réserver » est proposée et que `obligations_retirees` est vide : une mutation de l'une ou de l'autre fait échouer le test. Plusieurs choses restent sans test : le rappel des obligations maintenues (`obligations_maintenues` vidé, ou celles d'une reprise échangées contre celles d'une story), et la comparaison par le seul coût (le profil tla du test coûte plus en durée et en dollars).",
+    "mutation": "`obligations_maintenues: … ? OBLIGATIONS.reprise : OBLIGATIONS.story` → `[]` : vert. `|| depasse(p.mediane_cout_usd, r.mediane_cout_usd)` retiré : vert."
+   }
+  ],
+  "resume": "J'ai lu le diff eb398265…140d3ee4, mesuré la couverture des promesses par mutation (process-measurements, dogfood-controls, dogfood-process), sondé la protection des scripts de contrôle par un test jetable et lancé `cycle mesures` sur les vrais dossiers e38s10 et e38s12. Verdict : fail.\n\n- Un constat bloquant (A1-1) : le bilan compte comme interventions du propriétaire les réouvertures de relecture et les arbitrages de l'automate. Pour e38s12, il en annonce 2 alors que le propriétaire n'a jamais été attendu. Il ne sépare donc pas les interventions des revues.\n- Deux constats à corriger : interventions, incidents et la séparation des défauts de recette d'avec ceux de relecture ne sont tenus par aucun test (A1-2). La protection des scripts des contrôles déclarés est tenue par le code, mais par aucun test (A1-3).\n- Trois constats à peser : A1-4, A1-5 et A1-6.\n\nCôté Sécurité, je n'ai trouvé aucun contournement. La campagne ne promeut jamais le candidat et ne pousse rien. Chaque contrôle déclaré règle son propre réseau, sans fermeture générale. Le répertoire de données du contrôleur est hors de la copie et des écritures confinées des contrôles. Sous Pi 1.0.4, `-ne` ne charge que l'extension du contrôleur passée par `-e`. Les survivants que l'outil a vus sur cycle/src/mesures.ts viennent de ce que le test lance main.ts dans un processus fils, que la couverture de Stryker ne suit pas ; je les ai rejoués à la main. Toutes mes mutations sont remises et la sonde est supprimée : l'arbre est propre.",
+  "fermes": []
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — Un candidat n'écrit pas les preuves normatives de son contrôleur (et scénario « Le contrôleur ne se remplace pas en cours de campagne »)",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "cycle/src/dogfood.ts",
+    "ligne": 27,
+    "constat": "`npm run dogfood` lit la déclaration des contrôles d'autorité (`DECLARATION = join(RACINE, \"specs/experiments/e38/dogfood/config.json\")`) dans l'arbre de travail d'où il est lancé, c'est-à-dire l'arbre du candidat (`--candidat HEAD` par défaut), et non dans la révision du contrôleur extraite sous `controleur/`. Une branche candidate qui retire un contrôle de ce fichier est donc jugée par le contrôleur sans ce contrôle. Pour la même raison, le pilote qui répond aux dialogues et le juge du relevé (`dogfood.ts`, `pilote-pi.ts`, `verdict-campagne.ts`) sont eux aussi le code du candidat. Sonde jetable : dépôt temporaire où `main` (le contrôleur) déclare `lint-layers` et où la branche `cand` le retire ; `npm` et `pi` remplacés par des factices ; `node cycle/src/dogfood.ts --objectif probe` lancé depuis `cand`. Le `dossier/config.json` remis au contrôleur liste `build,lint-code,typecheck,lint-architecture,lint-exports,lint-distribution,lint-story-format,test`, sans `lint-layers`, alors que `git show main:…/config.json` le déclare.",
+    "contournement": "Un candidat n'écrit pas les preuves normatives de son contrôleur : la déclaration des contrôles qui jugent le candidat, et le code qui produit le relevé de la campagne, viennent de l'arbre du candidat et non de la révision identifiée du contrôleur."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Le contrôleur ne se remplace pas en cours de campagne",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/dogfood.ts",
+    "ligne": 141,
+    "constat": "Aucun test n'exécute la campagne de dogfooding. Le contrôle qui relit à la fin l'empreinte de la construction du contrôleur (`avant !== apres` → défaut, `inchange`) et le chargement de l'extension depuis `controleur/dist` ne sont tenus par rien. `test/cycle/empreinte.test.ts` ne tient que la fonction d'empreinte. `dogfood-process.test.ts` ne tient que le gel des contrôles dans le protocole d'un noyau unique en processus, sans contrôleur ni candidat distincts.",
+    "mutation": "`if (avant !== apres)` → `if (false)` et `inchange: avant === apres` → `inchange: true` (survivants listés par l'outil, ligne jamais exécutée) ; de même, remplacer `join(controleur, \"dist\", \"extension\", \"index.js\")` par `join(cible, …)` ne fait échouer aucun test."
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Le dossier distingue vitesse et qualité",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/mesures.ts",
+    "ligne": 136,
+    "constat": "Le bilan sépare bien les sept grandeurs : sondé sur les journaux réels d'e38s12 et e38s10, il donne des valeurs cohérentes. Mais `test/cycle/process-measurements.test.ts` n'asserte ni `interventions` ni `incidents` : deux des grandeurs que le Then exige séparées ne sont tenues par aucun test.",
+    "mutation": "`interventions: de(\"proprietaire\").length` → `interventions: 0` : les 2 tests passent. `incidents: de(\"bloque\").length + …` → `incidents: 0` : les 2 tests passent. (Témoins : les mutations de `revisions_de_tests`, `reprises_de_code`, `duree_totale_ms`, `ecarts_de_recette` et `tours_de_relecture` font bien échouer le test.)"
+   },
+   {
+    "id": "B1-4",
+    "scenario": "L'absence de gain ne conduit pas à affaiblir les obligations",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "cycle/src/mesures.ts",
+    "ligne": 212,
+    "constat": "Le test ne tient le « ne supprime pas une obligation » que par `obligations_retirees`, une constante `[]`. Ce que le bilan dit maintenu pour le profil n'est asserté nulle part. Un bilan qui ne garde au profil formel d'une story que les obligations d'un refactoring, ou aucune, passe donc tous les tests.",
+    "mutation": "`obligations_maintenues: … ? OBLIGATIONS.reprise : OBLIGATIONS.story` → `OBLIGATIONS.reprise` (le profil tla perd les deux relecteurs, le rouge et la recette réelle) : les 2 tests passent. → `[]` : les 2 tests passent. (La recommandation « réserver … risque » est bien tenue : `<` → `<=` et `obligations_retirees` non vide font échouer le test.)"
+   },
+   {
+    "id": "B1-5",
+    "scenario": "Le contrôleur ne se remplace pas en cours de campagne",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/gates/g5.ts",
+    "ligne": 120,
+    "constat": "G5 lit bien la liste gelée `protocol.project_control_ids`. Aucun test ne distingue pourtant cette liste gelée des contrôles de la politique courante : dans tous les tests, la politique ne change pas entre le gel et G5. Le code tient la promesse ; seule la tenue par un test manque, sur un état que le scénario ne décrit pas.",
+    "mutation": "`...(protocol.project_control_ids ?? []).map` → `...policy.project_controls.map((c) => c.control_id).map` : dogfood-process, dogfood-controls, v0-pure et v2-kernel passent (849/849). (Témoins : retirer `project_control_ids` dans decide.ts:718, dans verification.ts:540 ou dans la boucle de G5 fait échouer dogfood-process et dogfood-controls.)"
+   },
+   {
+    "id": "B1-6",
+    "scenario": "Sécurité — La promotion du candidat exige sa qualification et le mandat applicable",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "cycle/src/dogfood.ts",
+    "ligne": 80,
+    "constat": "`--controleur` accepte n'importe quelle révision, `HEAD` compris, sans vérifier qu'elle est qualifiée (Preflight verte, campagnes de référence à sa révision), alors que le texte de PROMOTION en fait la condition pour devenir contrôleur. Ce n'est pas une auto-mise à jour : seul l'opérateur choisit, et le défaut `main` est une révision versée. Mais rien ne refuse un contrôleur non qualifié."
+   }
+  ],
+  "resume": "Verdict fail : une branche candidate peut retirer elle-même un contrôle à son contrôleur, et trois promesses ne sont tenues par aucun test.\n\n**Contournement bloquant (B1-1).** `npm run dogfood` lit `specs/experiments/e38/dogfood/config.json` dans l'arbre d'où il est lancé, qui est l'arbre du candidat, et non dans la révision du contrôleur. Une branche candidate choisit donc les contrôles d'autorité qui la jugent. Le pilote des dialogues et le juge du relevé (`dogfood.ts`, `pilote-pi.ts`, `verdict-campagne.ts`) sont eux aussi le code du candidat. Rejoué avec `npm` et `pi` factices : le contrôleur à `main` déclare `lint-layers`, la branche candidate l'a retiré, et le `config.json` remis au contrôleur ne le contient pas.\n\n**Ce que le code tient.** Le premier scénario est tenu dans le code. Pi 1.0.4 lancé avec `-ne -e <ext>` ne charge pas le paquet 495 déclaré globalement : sonde `get_commands`, seule l'extension explicite répond. La construction du candidat (`dist/`, ignoré par git) ne remplace pas le contrôleur. Le gel de `project_control_ids` est tenu : retirer le champ dans decide.ts, dans verification.ts ou dans la boucle de G5 fait échouer dogfood-process et dogfood-controls.\n\n**Promesses sans test (à corriger).**\n- **B1-2, scénario 1 :** rien n'exécute la campagne. La relecture de l'empreinte du contrôleur et le chargement depuis `controleur/dist` peuvent être mutés sans qu'aucun test n'échoue.\n- **B1-3, scénario 2 :** le bilan sépare bien les sept grandeurs (sondé sur les journaux réels d'e38s12 et e38s10), mais `interventions` et `incidents` ne sont pas assertés. Les forcer à 0 laisse les tests verts.\n- **B1-4, scénario 3 :** la recommandation « réserver … risque » est tenue, mais pas `obligations_maintenues`. Le vider, ou n'y mettre que les obligations d'un refactoring, laisse les tests verts. `obligations_retirees` n'est qu'une constante `[]`.\n\n**À peser.**\n- **B1-5 :** aucun test ne distingue la liste gelée des contrôles de la politique courante dans G5. Lire la politique courante à la place passe 849 tests sur 849.\n- **B1-6 :** `--controleur` accepte une révision non qualifiée, `HEAD` compris.\n\n**Rien de trouvé** sur le push, la CI ni la fermeture réseau : la seule intégration va dans le dépôt de la copie, qui n'a pas de remote, et la branche n'ajoute aucune CI.\n\nToutes les mutations ont été remises en place et la sonde supprimée ; seul `node_modules` reste non suivi."
+ }
+]

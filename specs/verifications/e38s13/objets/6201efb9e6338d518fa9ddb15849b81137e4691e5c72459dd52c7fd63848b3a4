@@ -1,0 +1,73 @@
+TAP version 13
+# Subtest: the measurements of the cycle
+    # Subtest: les valeurs manquantes restent manquantes et les révisions de test sont séparées des corrections de code
+    ok 1 - les valeurs manquantes restent manquantes et les révisions de test sont séparées des corrections de code
+      ---
+      duration_ms: 313.770292
+      type: 'test'
+      ...
+    # Subtest: une attente que l'automate tranche n'est pas une intervention, et incidents et écarts de recette sont comptés à part
+    ok 2 - une attente que l'automate tranche n'est pas une intervention, et incidents et écarts de recette sont comptés à part
+      ---
+      duration_ms: 168.24475
+      type: 'test'
+      ...
+    # Subtest: a formal profile that costs more without finding fewer defects late is reserved to the risks that justify it, and no obligation is removed
+    ok 3 - a formal profile that costs more without finding fewer defects late is reserved to the risks that justify it, and no obligation is removed
+      ---
+      duration_ms: 172.183125
+      type: 'test'
+      ...
+    # Subtest: sums the time of a step over each of its runs, a step left and resumed included
+    ok 4 - sums the time of a step over each of its runs, a step left and resumed included
+      ---
+      duration_ms: 169.891292
+      type: 'test'
+      ...
+    # Subtest: extends a profile that costs no more than the simple one, keeps a dearer one that finds fewer defects late, and adapts nothing without a simple profile
+    ok 5 - extends a profile that costs no more than the simple one, keeps a dearer one that finds fewer defects late, and adapts nothing without a simple profile
+      ---
+      duration_ms: 298.980583
+      type: 'test'
+      ...
+    # Subtest: une story dont le compagnon ne retient pas de modèle d'états, donnée sous le profil à états, est refusée en nommant la story et le moyen modele-d-etats, sans recommandation pour ce profil
+    not ok 6 - une story dont le compagnon ne retient pas de modèle d'états, donnée sous le profil à états, est refusée en nommant la story et le moyen modele-d-etats, sans recommandation pour ce profil
+      ---
+      duration_ms: 169.521583
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-aMPgWX/test/cycle/process-measurements.test.ts:297:2'
+      failureType: 'testCodeFailure'
+      error: 'a story whose companion keeps no state model is not measured as one'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 0
+      actual: 0
+      operator: 'notStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-aMPgWX/test/cycle/process-measurements.test.ts:306:10)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..6
+not ok 1 - the measurements of the cycle
+  ---
+  duration_ms: 1293.179916
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-aMPgWX/test/cycle/process-measurements.test.ts:110:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 5
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1416.695833

@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: the stable controller judges a change of pi-495 by the controls of npm run check
+    # Subtest: un échec du contrôle de couches bloque la story même si les tests unitaires passent
+    not ok 1 - un échec du contrôle de couches bloque la story même si les tests unitaires passent
+      ---
+      duration_ms: 850.001625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-LD5nwA/test/v4-platform/dogfood-controls.test.ts:32:2'
+      failureType: 'testCodeFailure'
+      error: 'a layer violation blocks the story even though the unit tests pass'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'accepted'
+      actual: 'accepted'
+      operator: 'notStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-LD5nwA/test/v4-platform/dogfood-controls.test.ts:40:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    # Subtest: the stable controller declares every control npm run check chains, the suite included
+    not ok 2 - the stable controller declares every control npm run check chains, the suite included
+      ---
+      duration_ms: 0.625583
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-LD5nwA/test/v4-platform/dogfood-controls.test.ts:46:2'
+      failureType: 'testCodeFailure'
+      error: 'npm run lint:code is declared to the stable controller'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-LD5nwA/test/v4-platform/dogfood-controls.test.ts:56:11)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1402:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+        Test.postRun (node:internal/test_runner/test:1542:19)
+        Test.run (node:internal/test_runner/test:1467:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..2
+not ok 1 - the stable controller judges a change of pi-495 by the controls of npm run check
+  ---
+  duration_ms: 851.1145
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-LD5nwA/test/v4-platform/dogfood-controls.test.ts:29:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1145.666125

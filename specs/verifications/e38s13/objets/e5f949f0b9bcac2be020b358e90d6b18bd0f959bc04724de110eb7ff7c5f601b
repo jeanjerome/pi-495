@@ -1,0 +1,53 @@
+TAP version 13
+# Subtest: the measurements of the cycle
+    # Subtest: les valeurs manquantes restent manquantes et les révisions de test sont séparées des corrections de code
+    ok 1 - les valeurs manquantes restent manquantes et les révisions de test sont séparées des corrections de code
+      ---
+      duration_ms: 316.551334
+      type: 'test'
+      ...
+    # Subtest: une attente que l'automate tranche n'est pas une intervention, et incidents et écarts de recette sont comptés à part
+    ok 2 - une attente que l'automate tranche n'est pas une intervention, et incidents et écarts de recette sont comptés à part
+      ---
+      duration_ms: 169.90225
+      type: 'test'
+      ...
+    # Subtest: a formal profile that costs more without finding fewer defects late is reserved to the risks that justify it, and no obligation is removed
+    ok 3 - a formal profile that costs more without finding fewer defects late is reserved to the risks that justify it, and no obligation is removed
+      ---
+      duration_ms: 170.498375
+      type: 'test'
+      ...
+    # Subtest: sums the time of a step over each of its runs, a step left and resumed included
+    ok 4 - sums the time of a step over each of its runs, a step left and resumed included
+      ---
+      duration_ms: 169.332375
+      type: 'test'
+      ...
+    # Subtest: extends a profile that costs no more than the simple one, keeps a dearer one that finds fewer defects late, and adapts nothing without a simple profile
+    ok 5 - extends a profile that costs no more than the simple one, keeps a dearer one that finds fewer defects late, and adapts nothing without a simple profile
+      ---
+      duration_ms: 299.618958
+      type: 'test'
+      ...
+    # Subtest: une story dont le compagnon ne retient pas de modèle d'états, donnée sous le profil à états, est refusée en nommant la story et le moyen modele-d-etats, sans recommandation pour ce profil
+    ok 6 - une story dont le compagnon ne retient pas de modèle d'états, donnée sous le profil à états, est refusée en nommant la story et le moyen modele-d-etats, sans recommandation pour ce profil
+      ---
+      duration_ms: 299.274208
+      type: 'test'
+      ...
+    1..6
+ok 1 - the measurements of the cycle
+  ---
+  duration_ms: 1425.758958
+  type: 'suite'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1549.612458

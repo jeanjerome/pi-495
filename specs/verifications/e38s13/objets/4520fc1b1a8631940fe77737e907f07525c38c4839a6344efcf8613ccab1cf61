@@ -1,0 +1,37 @@
+
+> pi-495@0.4.1-dev campagne
+> node cycle/src/campagne.ts npm
+
+
+> pi-495@0.4.1-dev build
+> tsc -p tsconfig.build.json
+
+
+added 209 packages, and audited 210 packages in 778ms
+
+51 packages are looking for funding
+  run `npm fund` for details
+
+2 moderate severity vulnerabilities
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+campaign /Users/jeanjerome/.495/campagnes/npm-20261011T020453
+> /495 start add lastFit(busy, minutes) beside firstFit: it returns the latest free slot of at least that many minutes in the day, or undefined when none fits
+dialog "Adopter le mandat de ce changement ?" -> adopt — Adopter ⚠
+> /495 resume
+dialog "Accepter ce candidat ?" -> accept — Accepter ⚠
+> /495 resume
+  status completed
+  G0 PASS
+  G1 PASS
+  G2 PASS
+  G3 PASS
+  G4 PASS
+  G5 PASS
+  unit PASS on the candidate
+  coverage PASS on the candidate
+  mutation PASS on the candidate
+reference campaign: no defect of the harness

@@ -1,0 +1,33 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "fermes": [
+   "A1-1",
+   "B1-1",
+   "B1-2"
+  ],
+  "resume": "Scénario 1 (le contrôleur ne se remplace pas) : à la tête 2a434588, `extraire` met de côté le `.npmrc` de l'arbre extrait avant `npm ci --ignore-scripts` (cycle/src/dogfood.ts:66-70). Le dépôt de test/cycle/dogfood.test.ts a un candidat `cand` dont le `.npmrc` contient `git=./gitw.sh`, avec une dépendance git et un postinstall qui recopient sa déclaration sur celle du contrôleur. Dans ce dépôt, la campagne garde `[\"lint-layers\",\"test\"]`, la révision du contrôleur, `inchange:true` et sort en 0 : les 3 cas passent. Chaque mutation fait échouer le test sur la déclaration ou sur le relevé : `if (false) renameSync(npmrc, aside)`, `configured = false`, retrait de `--ignore-scripts`. Les mutants des lignes 66-70 que l'outil a vus survivre ne sont donc tenus que par test/cycle/dogfood.test.ts, que les tâches ne nomment pas. Le mutant de la l. 86 est tué par l'assertion du message d'usage du 3e cas. A1-1 et B1-1, rejoués, ne passent plus. B1-2 ne passe plus non plus : aucun script de package.json ne lance le lanceur, le test l'affirme, la documentation dit `node cycle/src/dogfood.ts`, et Node 24 ne lit un fichier de configuration que derrière un drapeau (`--experimental-default-config-file`). Scénarios 2 et 3 (le bilan distingue vitesse et qualité ; aucune obligation retirée) : la branche ne change que l'aide de lecture de test/cycle/process-measurements.test.ts, les assertions restent les mêmes. Remplacer `obligations_retirees: []` par une obligation (cycle/src/mesures.ts:224) fait échouer un cas. Sécurité : aucun nouveau chemin n'est exposé ; aucun push, aucune CI, aucune promotion n'est ajoutée. Les sondes et mutations ont été annulées, l'arbre est propre."
+ },
+ {
+  "verdict": "pass",
+  "resume": "I replayed all three bypasses on the head of the branch and none passes any more. A1-1 and B1-1 (a candidate `.npmrc` that names a `git` program) are replayed by `test/cycle/dogfood.test.ts`, which now commits `.npmrc` + `gitw.sh` + a git+file dependency into the candidate; it passes at 2a434588. The mutant `const configured = false && existsSync(npmrc)` at dogfood.ts:67 makes it fail on the right assertion: the controls declared become ['test'] where ['lint-layers','test'] is expected. The surviving mutants listed at lines 66-70 survive only because the named tests do not run this file; dogfood.test.ts kills them. B1-2: the `dogfood` script is gone from package.json, the documented usage is `node cycle/src/dogfood.ts`, and the new test asserts that no package script launches the launcher and that the usage line starts with `usage: node cycle/src/dogfood.ts --objectif` (it holds the mutant at line 86). Node 24.21 reads a config file only behind `--experimental-default-config-file` / `--experimental-config-file`, and the launcher imports only builtins and erased types, so nothing from the candidate's tree loads before it. Promise 1 is held by the dogfood campaign test. Promises 2 and 3 are held by process-measurements.test.ts: three mutants of mesures.ts are each killed — an obligation added to `obligations_retirees`, an obligation removed from `obligations_maintenues`, and blocks no longer counted in `incidents`. One point to weigh, read in npm's source but not probed: setting aside only the candidate's top-level `.npmrc` does not cover the `.npmrc` of a git dependency that npm clones and installs. Side note: during a mutation I removed the `node_modules` link from my copy by mistake and restored it to the same target; the tree is back at 2a434588 and clean, apart from the link.",
+  "fermes": [
+   "A1-1",
+   "B1-1",
+   "B1-2"
+  ],
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le contrôleur ne se remplace pas en cours de campagne",
+    "categorie": "a_peser",
+    "placement": "rendu_atteignable",
+    "fichier": "cycle/src/dogfood.ts",
+    "ligne": 66,
+    "constat": "Reading pacote 21 in npm 11.19.0 (lib/git.js #prepareDir): a git dependency whose package.json has an install-type script (postinstall, build, prepare, …) or workspaces is installed by an inner `npm install --force` run in its clone. That inner npm takes `ignore-scripts` from the environment, so the dependency's scripts do not run. It does read the `.npmrc` of the clone as project configuration, though, and the launcher sets aside only the `.npmrc` at the root of the candidate's copy. A git dependency named by the candidate's lock, whose own `.npmrc` sets `git=` and which itself has a git dependency, would therefore have npm run a program it chose, unconfined, before the controller identifies itself. I did not write this path as an executable probe: this is a reading of npm's source, not a demonstration. A probe in which the dependency's program only writes a harmless marker file would turn it into a confirmed bypass or rule it out.",
+    "mutation": "None: source reading of npm (pacote/lib/git.js:160-198, pacote/lib/fetcher.js:99-121, @npmcli/config/lib/set-envs.js)."
+   }
+  ]
+ }
+]

@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the prepared suite of pi-495 under its stable controller
+    # Subtest: sur une cible façonnée comme pi-495, dont des tests lancent eux-mêmes un bac à sable et dont la suite entière dépasse le délai du contrôle, la suite préparée est jugée PASS ou FAIL sur la référence, jamais INDETERMINATE par un dépassement de délai, et G2 fige le protocole
+    ok 1 - sur une cible façonnée comme pi-495, dont des tests lancent eux-mêmes un bac à sable et dont la suite entière dépasse le délai du contrôle, la suite préparée est jugée PASS ou FAIL sur la référence, jamais INDETERMINATE par un dépassement de délai, et G2 fige le protocole
+      ---
+      duration_ms: 1091.073625
+      type: 'test'
+      ...
+    # Subtest: sur une cible façonnée comme pi-495, dont les tests préparés créent leur dossier sous test-output/ comme les aides de pi-495, la suite préparée est jugée sur la référence sans EPERM et sans exigence incident, G2 fige le protocole et le contrôle build tourne sur le candidat produit
+    ok 2 - sur une cible façonnée comme pi-495, dont les tests préparés créent leur dossier sous test-output/ comme les aides de pi-495, la suite préparée est jugée sur la référence sans EPERM et sans exigence incident, G2 fige le protocole et le contrôle build tourne sur le candidat produit
+      ---
+      duration_ms: 1191.143542
+      type: 'test'
+      ...
+    1..2
+ok 1 - the prepared suite of pi-495 under its stable controller
+  ---
+  duration_ms: 2282.73
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2541.71

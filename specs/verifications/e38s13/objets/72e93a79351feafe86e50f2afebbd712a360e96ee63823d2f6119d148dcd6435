@@ -1,0 +1,54 @@
+TAP version 13
+# Subtest: the prepared suite of pi-495 under its stable controller
+    # Subtest: sur une cible façonnée comme pi-495, dont des tests lancent eux-mêmes un bac à sable et dont la suite entière dépasse le délai du contrôle, la suite préparée est jugée PASS ou FAIL sur la référence, jamais INDETERMINATE par un dépassement de délai, et G2 fige le protocole
+    ok 1 - sur une cible façonnée comme pi-495, dont des tests lancent eux-mêmes un bac à sable et dont la suite entière dépasse le délai du contrôle, la suite préparée est jugée PASS ou FAIL sur la référence, jamais INDETERMINATE par un dépassement de délai, et G2 fige le protocole
+      ---
+      duration_ms: 1119.2375
+      type: 'test'
+      ...
+    # Subtest: sur une cible façonnée comme pi-495, dont les tests préparés créent leur dossier sous test-output/ comme les aides de pi-495, la suite préparée est jugée sur la référence sans EPERM et sans exigence incident, G2 fige le protocole et le contrôle build tourne sur le candidat produit
+    not ok 2 - sur une cible façonnée comme pi-495, dont les tests préparés créent leur dossier sous test-output/ comme les aides de pi-495, la suite préparée est jugée sur la référence sans EPERM et sans exigence incident, G2 fige le protocole et le contrôle build tourne sur le candidat produit
+      ---
+      duration_ms: 1182.348833
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mtWHoA/test/v4-platform/dogfood-preparation.test.ts:93:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        the suite writes under test-output/ and nowhere else
+        + actual - expected
+        
+        + []
+        - [
+        -   'test-output/'
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'test-output/'
+      actual:
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mtWHoA/test/v4-platform/dogfood-preparation.test.ts:128:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - the prepared suite of pi-495 under its stable controller
+  ---
+  duration_ms: 2302.322
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-mtWHoA/test/v4-platform/dogfood-preparation.test.ts:58:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2556.463041

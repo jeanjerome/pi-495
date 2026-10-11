@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: the measurements of the cycle
+    # Subtest: les valeurs manquantes restent manquantes et les révisions de test sont séparées des corrections de code
+    ok 1 - les valeurs manquantes restent manquantes et les révisions de test sont séparées des corrections de code
+      ---
+      duration_ms: 358.538333
+      type: 'test'
+      ...
+    # Subtest: une attente que l'automate tranche n'est pas une intervention, et incidents et écarts de recette sont comptés à part
+    ok 2 - une attente que l'automate tranche n'est pas une intervention, et incidents et écarts de recette sont comptés à part
+      ---
+      duration_ms: 184.407
+      type: 'test'
+      ...
+    # Subtest: a formal profile that costs more without finding fewer defects late is reserved to the risks that justify it, and no obligation is removed
+    ok 3 - a formal profile that costs more without finding fewer defects late is reserved to the risks that justify it, and no obligation is removed
+      ---
+      duration_ms: 183.79875
+      type: 'test'
+      ...
+    1..3
+ok 1 - the measurements of the cycle
+  ---
+  duration_ms: 727.244708
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 858.210708
