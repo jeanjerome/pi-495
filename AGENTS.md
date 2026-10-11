@@ -6,7 +6,7 @@
 
 ## Where things are
 
-`specs/` is the project: what remains to do (`specs/plan.yaml`), the dossier of each epic added since e38 (`specs/epics/`, cited as the `source:` of its plan entry), the stories of the open work (`specs/stories/`), the defects (`specs/bugs/`), the product decisions (`specs/adr/`), the evidence (`specs/verifications/`), the normative corpus (`specs/amont/`, read by two Preflight controls), and the measurements written before the switch (`specs/archive/`). `cycle/` is the process: the six steps, the review rules, the story format and the tool that drives them. `specs/README.md` indexes the first; `cycle/README.md` the second.
+`specs/` is the project: what remains to do (`specs/plan.yaml`), the dossier of each epic added since e38 (`specs/epics/`, cited as the `source:` of its plan entry), the stories of the open work (`specs/stories/`), the defects (`specs/bugs/`), the product decisions (`specs/adr/`), the evidence (`specs/verifications/`), the normative corpus (`specs/amont/`, read by two Preflight controls), and the measurements written before the switch (`specs/archive/`). `cycle/` is the process: the six steps, the review rules, the story format and the tool that drives them. `specs/README.md` indexes the first; `cycle/README.md` the second. `site/` is the static landing page published at <https://jeanjerome.github.io/pi-495/>: plain HTML, CSS and JavaScript with no build step, deployed as is by `.github/workflows/pages.yml` on every push to `main` that changes it; the French and English pages are edited separately, and `python3 -m http.server --directory site` serves it locally.
 
 ## Learned User Preferences
 
@@ -67,7 +67,7 @@ An agent proposes. The kernel decides from executed checks. A human arbitrates t
 | Build | `npm run build` |
 | Lint | `npm run lint:code && npm run lint:layers && npm run lint:architecture && npm run lint:exports && npm run lint:distribution && npm run lint:story-format` |
 | Preflight | `npm run check` |
-| CI | N/A — no CI job configured; before every commit, run the checks the changed files call for (`CONVENTIONS.md` § Always Green) |
+| CI | N/A — the only workflow publishes `site/` to GitHub Pages and runs no check of the product; before every commit, run the checks the changed files call for (`CONVENTIONS.md` § Always Green) |
 
 ## Test
 

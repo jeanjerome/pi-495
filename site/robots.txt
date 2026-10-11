@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jeanjerome.github.io/pi-495/sitemap.xml

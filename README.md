@@ -21,7 +21,8 @@
   <a href="#features">Features</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#roadmap">Roadmap</a> ·
-  <a href="specs/README.md">Documentation</a>
+  <a href="specs/README.md">Documentation</a> ·
+  <a href="https://jeanjerome.github.io/pi-495/">Website</a>
 </p>
 
 **Pi-495 is a Pi extension that turns a software request into a change you can inspect, verify and integrate.** It writes your request down as a specification with observable acceptance criteria, freezes the checks that will judge it before any code exists, coordinates the agents that produce the change, and runs those checks on the result. Each step passes a gate on recorded evidence. You review the changes and resolve decisions that need human judgment.
