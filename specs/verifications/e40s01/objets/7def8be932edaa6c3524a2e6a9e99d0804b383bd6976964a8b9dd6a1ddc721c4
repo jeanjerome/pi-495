@@ -1,0 +1,41 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Sécurité — aucune variable du contrôle, déclarée ou laissée passer par sa liste blanche, ne rétablit la lecture de la configuration git globale de l'hôte",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/runner.ts",
+    "ligne": 49,
+    "constat": "L'isolement ne retire que les variables qui commencent par GIT_CONFIG. GIT_TEMPLATE_DIR passe toujours, qu'elle soit déclarée dans control.env ou laissée passer par la liste blanche, et un `git init` ou un `git clone` du contrôle copie le fichier `config` de ce répertoire dans le `.git/config` du dépôt de la copie. Une sonde jetable (GenericControlRunner, sous UnconfinedSandbox puis sous SeatbeltSandbox) utilise un HOME dont `.config/git/config`, le second fichier de la portée globale de git, signe avec une clé absente et porte credential.helper. Avec GIT_TEMPLATE_DIR=<HOME>/.config/git, déclarée ou laissée passer par la liste blanche [PATH, HOME, GIT_TEMPLATE_DIR], la commande `git init -q r && cd r && git -c user.name=c -c user.email=c@x commit --allow-empty` liste user.name=host, user.signingkey, commit.gpgsign=true et credential.helper=hosthelper, avec la portée locale. Le commit échoue (« Couldn't load public key ») et l'évidence est FAIL ; sans cette variable, elle est PASS.",
+    "contournement": "« Aucune variable du contrôle, déclarée par la technologie ou le propriétaire, ou laissée passer par sa liste blanche, ne rétablit cette lecture : l'isolement s'applique après elles » — la signature, l'identité et le credential.helper de la configuration globale de l'hôte (fichier XDG) reviennent au contrôle par GIT_TEMPLATE_DIR."
+   },
+   {
+    "id": "A2-2",
+    "scenario": "Une variable du contrôle ne rend pas à git la configuration de l'hôte",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/runner.ts",
+    "ligne": 108,
+    "constat": "Les nouveaux filtres sont tenus par des tests. Rendre le filtre de control.env sans effet fait échouer le test des portées, sur « under a declared GIT_CONFIG_COUNT… ». Le retirer de la liste blanche, ou restreindre le préfixe à GIT_CONFIG_, fait échouer un test. Poser l'isolement avant control.env fait échouer les trois tests. Les trois scénarios restent tenus par le code et par un test.",
+    "mutation": "filter(([name]) => !isGitConfiguration(name)) → filter(() => true) sur control.env ; retrait du filtre de env_allowlist ; startsWith(\"GIT_CONFIG\") → startsWith(\"GIT_CONFIG_\") ; isolement posé avant control.env"
+   }
+  ],
+  "fermes": [
+   "A1-1",
+   "B1-1"
+  ],
+  "resume": "J'ai rejoué A1-1 et B1-1 sur e1d09ed1, sous UnconfinedSandbox et sous SeatbeltSandbox. GIT_CONFIG_COUNT/KEY/VALUE, GIT_CONFIG_PARAMETERS et GIT_CONFIG, qu'elles soient déclarées ou laissées passer par la liste blanche, ne font plus apparaître aucun réglage de l'hôte, et le commit est PASS : les deux sont fermés. Les trois scénarios sont tenus par le code et par un test, et chaque mutation qui a un effet sur le filtre ou sur l'ordre de l'isolement fait échouer un test. Il reste un nouveau contournement, bloquant (A2-1). GIT_TEMPLATE_DIR, déclarée ou laissée passer par la liste blanche, fait copier par `git init` ou `git clone` le fichier de configuration globale XDG de l'hôte (~/.config/git/config) dans la configuration locale du dépôt de la copie. Le contrôle reprend ainsi la signature, l'identité et le credential.helper de l'hôte, et son commit échoue, sous Seatbelt comme sans confinement."
+ },
+ {
+  "verdict": "pass",
+  "constats": [],
+  "fermes": [
+   "A1-1",
+   "B1-1"
+  ],
+  "resume": "J'ai rejoué A1-1 et B1-1 à la tête e1d09ed1 par une sonde jetable, sous UnconfinedSandbox et sous SeatbeltSandbox. La sonde passait par GenericControlRunner, avec un HOME dont le .gitconfig porte user.name, une clé de signature absente, commit.gpgsign, credential.helper, core.hooksPath et core.sshCommand. Cinq chemins ont été essayés : GIT_CONFIG_COUNT/KEY_0/VALUE_0 avec include.path déclarés, GIT_CONFIG_PARAMETERS déclaré, GIT_CONFIG déclaré, les mêmes variables posées par l'hôte et laissées passer par la liste blanche, et enfin XDG_CONFIG_HOME ou GIT_CONFIG_GLOBAL/SYSTEM/NOSYSTEM=0 déclarés. Sur aucun de ces chemins `git config --list --show-origin --show-scope` ne montre de réglage tiré du fichier de l'hôte ni de portée global ou system : seule la configuration locale du dépôt de la copie apparaît. Le commit de contrôle est PASS, sans signature. A1-1 et B1-1 sont donc fermés. Le retrait par profileFor de toute variable préfixée GIT_CONFIG, dans control.env comme dans env_allowlist, couvre toutes les variables par lesquelles git 2.55 prend sa configuration depuis l'environnement. Le contrôle est le seul chemin d'exécution : GenericControlRunner est l'unique ControlExecutionPort, et ses trois backends construisent l'environnement par buildEnv à partir du profil filtré. Je n'ai trouvé aucun autre chemin par une variable du contrôle. Six mutations ont été essayées sur les deux tests de l'histoire, et chacune fait échouer au moins un test : le prédicat isGitConfiguration rendu toujours faux, la liste blanche non filtrée, control.env non filtré, le préfixe changé en GIT_CONFIG_, la ligne GIT_CONFIG_GLOBAL retirée, les lignes GIT_CONFIG_SYSTEM et GIT_CONFIG_NOSYSTEM retirées ensemble. Les promesses (signature et PASS, aucune portée globale ni système, aucune variable qui rétablit la lecture) sont tenues par le code et par control-git-signature.test.ts et control-git-scopes.test.ts. L'arbre est remis en l'état, et la sonde jetable comme le fichier de sauvegarde ont été supprimés."
+ }
+]

@@ -1,0 +1,56 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité — aucune variable du contrôle, déclarée ou laissée passer par la liste blanche, ne rétablit la lecture de la configuration git de l'hôte",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/runner.ts",
+    "ligne": 38,
+    "constat": "L'isolement ne neutralise que GIT_CONFIG_GLOBAL, GIT_CONFIG_SYSTEM et GIT_CONFIG_NOSYSTEM. Les variables que git fait passer avant les fichiers, GIT_CONFIG_COUNT/GIT_CONFIG_KEY_n/GIT_CONFIG_VALUE_n et GIT_CONFIG_PARAMETERS, passent toujours, qu'elles soient déclarées par le contrôle ou laissées passer par sa liste blanche. Avec `include.path=<HOME>/.gitconfig`, elles font relire au contrôle le fichier de configuration globale de l'hôte. Une sonde jetable sous SeatbeltSandbox, avec un contrôle qui déclare env {GIT_CONFIG_COUNT:'1', GIT_CONFIG_KEY_0:'include.path', GIT_CONFIG_VALUE_0:'<home>/.gitconfig'}, donne ceci : `git config --show-origin` liste user.name=host, commit.gpgsign=true, user.signingkey et core.hookspath, tous lus dans file:<home>/.gitconfig. Le commit essaie de signer avec la clé absente et l'évidence est FAIL. GIT_CONFIG_PARAMETERS=\"'include.path'='<home>/.gitconfig'\" donne le même résultat. Une liste blanche qui laisse passer GIT_CONFIG_COUNT, KEY et VALUE depuis l'environnement de l'hôte transmet de même commit.gpgsign=true et core.sshCommand. En plus, l'ancienne variable GIT_CONFIG, une fois déclarée, fait lister à `git config` les réglages du ~/.gitconfig de l'hôte.",
+    "contournement": "« Aucune variable du contrôle, déclarée par la technologie ou le propriétaire, ou laissée passer par sa liste blanche, ne rétablit cette lecture : l'isolement s'applique après elles » ; « ni signature, ni identité, ni credential.helper, ni core.hooksPath, ni core.sshCommand venus du poste ».",
+    "mutation": "Sonde jetable, non commitée, avec SeatbeltSandbox et controlOf : env déclaré GIT_CONFIG_COUNT/KEY_0=include.path/VALUE_0=<home>/.gitconfig → la signature de l'hôte est rétablie et l'évidence est FAIL. Même résultat par GIT_CONFIG_PARAMETERS, et par GIT_CONFIG_COUNT laissé passer depuis process.env par la liste blanche."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Un contrôle ne voit aucun réglage git global ni système",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/runner.ts",
+    "ligne": 39,
+    "constat": "Les trois mutants survivants (`\"/dev/null\"`/`\"1\"` → `\"\"` aux lignes 39-41) sont équivalents pour git 2.55. Avec GIT_CONFIG_GLOBAL vide, git ne lit aucun fichier global (vérifié à la main). GIT_CONFIG_SYSTEM et GIT_CONFIG_NOSYSTEM se doublent : retirer l'un des deux laisse les tests verts mais n'expose aucun réglage système. Les mutations qui ont un effet échouent toutes : sans la fusion, avec l'ordre inversé, sans GIT_CONFIG_GLOBAL, sans les deux réglages système. Aucune promesse ne reste donc sans test.",
+    "mutation": "Mutations sur runner.ts : env: control.env → les 2 tests échouent ; {...GIT, ...control.env} → scopes échoue ; sans GLOBAL → les 2 échouent ; sans SYSTEM ni NOSYSTEM → scopes échoue ; sans l'un des deux réglages système seulement → les tests restent verts (mutant équivalent)."
+   }
+  ],
+  "resume": "Les trois scénarios sont tenus par le code et par les tests. Le commit fait sans signature passe en PASS, sous UnconfinedSandbox comme sous SeatbeltSandbox (sonde jetable). Aucune portée globale ni système n'apparaît, même avec GIT_CONFIG_GLOBAL déclaré ou laissé passer par la liste blanche. Les mutations qui ont un effet (fusion retirée, ordre inversé, clé retirée) font échouer control-git-signature et control-git-scopes. Les trois mutants survivants des lignes 39-41 sont équivalents. La section Sécurité est en revanche contournée (A1-1). L'isolement neutralise les trois variables de fichier, mais pas GIT_CONFIG_COUNT/KEY/VALUE ni GIT_CONFIG_PARAMETERS. Déclarées par le contrôle ou laissées passer par sa liste blanche, elles rétablissent la lecture du ~/.gitconfig de l'hôte par include.path, ou transmettent directement commit.gpgsign et core.sshCommand. La signature de l'hôte revient alors et l'évidence passe à FAIL. Verdict : fail."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — aucune variable du contrôle ne rétablit la lecture de la configuration git de l'hôte",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/runner.ts",
+    "ligne": 104,
+    "constat": "L'isolement ne pose que GIT_CONFIG_GLOBAL, GIT_CONFIG_SYSTEM et GIT_CONFIG_NOSYSTEM. Il laisse passer GIT_CONFIG_COUNT/GIT_CONFIG_KEY_n/GIT_CONFIG_VALUE_n, qu'ils soient déclarés dans control.env, et GIT_CONFIG_PARAMETERS, laissée passer par la liste blanche. Une variable `include.path=<HOME de l'hôte>/.gitconfig` fait donc relire à git le fichier global de l'hôte. Sonde jetable, par GenericControlRunner sous UnconfinedSandbox, avec un HOME dont le .gitconfig signe avec une clé absente et porte credential.helper : avec env {GIT_CONFIG_COUNT:1, GIT_CONFIG_KEY_0:include.path, GIT_CONFIG_VALUE_0:$HOME/.gitconfig}, ou avec la liste blanche [PATH, HOME, GIT_CONFIG_PARAMETERS] et l'hôte qui pose GIT_CONFIG_PARAMETERS=\"'include.path'='$HOME/.gitconfig'\", `git config --list --show-origin` montre user.name=host, commit.gpgsign=true, user.signingkey et credential.helper=hosthelper, lus dans file:$HOME/.gitconfig. Le commit échoue sur la clé absente et l'évidence est FAIL ; la même commande sans ces variables donne PASS. Ces réglages portent la portée « command » : le Then des scénarios, qui ne regarde que les portées global et system, reste vrai, mais la garantie est contournée. Sous Seatbelt, ~/.gitconfig reste lisible (allow file-read*, seuls ~/.ssh, ~/.aws, ~/.gnupg et auth.json sont refusés), donc le chemin vaut aussi dans le bac à sable réel.",
+    "contournement": "« Aucune variable du contrôle, déclarée par la technologie ou le propriétaire, ou laissée passer par sa liste blanche, ne rétablit cette lecture : l'isolement s'applique après elles. » — plus aucun réglage git global (signature, identité, credential.helper…) venu du poste."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Un contrôle ne voit aucun réglage git global ni système / Une variable du contrôle ne rend pas à git la configuration de l'hôte",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/runner.ts",
+    "ligne": 39,
+    "constat": "Les trois mutants StringLiteral → \"\" qui ont survécu (lignes 39, 40 et 41) sont équivalents pour la lecture. git lit sans erreur un GIT_CONFIG_GLOBAL ou un GIT_CONFIG_SYSTEM vide comme un fichier absent, et GIT_CONFIG_NOSYSTEM et GIT_CONFIG_SYSTEM se couvrent l'un l'autre. Les trois remplacés ensemble laissent les deux tests verts sans qu'aucun réglage global ni système apparaisse. Les promesses restent tenues : retirer la ligne GLOBAL fait échouer les deux tests ; retirer ensemble SYSTEM et NOSYSTEM, ou poser l'isolement avant control.env, fait échouer le test des portées.",
+    "mutation": "Les trois valeurs remplacées par \"\" : 2 PASS. Ligne GLOBAL retirée : 2 FAIL. Lignes SYSTEM et NOSYSTEM retirées : 1 FAIL. { ...GIT_WITHOUT_HOST_CONFIGURATION, ...control.env } : 1 FAIL."
+   }
+  ],
+  "resume": "Le code tient les trois scénarios. Les tests control-git-signature et control-git-scopes les tiennent : retirer la ligne GLOBAL, retirer ensemble SYSTEM et NOSYSTEM, ou inverser l'ordre de fusion avec control.env fait échouer au moins un test. Les trois mutants survivants ('' au lieu de /dev/null ou de 1) sont équivalents pour la lecture, car git lit un chemin vide comme un fichier absent. La section Sécurité est contournée : l'isolement ne neutralise ni GIT_CONFIG_COUNT/KEY/VALUE (déclarés) ni GIT_CONFIG_PARAMETERS (liste blanche). Une variable include.path pointée sur ~/.gitconfig rend au contrôle la signature, l'identité et le credential.helper de l'hôte, et le commit du contrôle échoue (évidence FAIL), constaté par une sonde jetable non commitée. Le contournement est bloquant : le verdict est fail.",
+  "fermes": []
+ }
+]

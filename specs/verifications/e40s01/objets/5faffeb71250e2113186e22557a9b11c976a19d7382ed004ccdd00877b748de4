@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: a control runs git without the host's global or system configuration
+    # Subtest: sous un hôte qui signe ses commits avec une clé absente, un contrôle commite dans un dépôt de sa copie et son évidence est PASS
+    ok 1 - sous un hôte qui signe ses commits avec une clé absente, un contrôle commite dans un dépôt de sa copie et son évidence est PASS
+      ---
+      duration_ms: 38.193167
+      type: 'test'
+      ...
+    1..1
+ok 1 - a control runs git without the host's global or system configuration
+  ---
+  duration_ms: 38.670917
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 301.152916

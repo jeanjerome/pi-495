@@ -1,0 +1,10 @@
+19:23:06 PIT >> INFO : Verbose logging is disabled. If you encounter a problem, please enable it before reporting an issue.
+19:23:06 PIT >> INFO : Created 2 mutation test units in pre scan
+19:23:06 PIT >> INFO : Sending 6 test classes to minion
+19:23:06 PIT >> INFO : Sent tests to minion
+19:23:06 PIT >> INFO : Calculated coverage in 0 seconds.
+19:23:06 PIT >> INFO : 0 tests took longer than 2000 ms
+19:23:06 PIT >> INFO : Slowest test ([engine:junit-jupiter]/[class:registry.UserRegistryTest]/[method:create_savesANewUser()]) took 11 ms
+19:23:06 PIT >> INFO : Largest test ([engine:junit-jupiter]/[class:registry.UserRegistryTest]/[method:create_refusesANameAlreadyTaken()]) covered 54 blocks
+19:23:06 PIT >> INFO : Created 1 mutation test units
+19:23:07 PIT >> INFO : Completed in 0 seconds

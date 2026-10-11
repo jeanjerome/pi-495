@@ -1,0 +1,56 @@
+TAP version 13
+# Subtest: a control sees no git configuration of the host
+    # Subtest: la configuration git qu'un contrôle voit n'a aucune entrée de portée globale ni système, même quand son environnement déclaré ou sa liste blanche pose GIT_CONFIG_GLOBAL
+    ok 1 - la configuration git qu'un contrôle voit n'a aucune entrée de portée globale ni système, même quand son environnement déclaré ou sa liste blanche pose GIT_CONFIG_GLOBAL
+      ---
+      duration_ms: 20.331208
+      type: 'test'
+      ...
+    # Subtest: aucune variable de configuration git que le contrôle déclare ou laisse passer ne lui fait relire la configuration globale de l'hôte, pas même par include.path
+    not ok 2 - aucune variable de configuration git que le contrôle déclare ou laisse passer ne lui fait relire la configuration globale de l'hôte, pas même par include.path
+      ---
+      duration_ms: 68.896625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gu84jt/test/v1-adapters/control-git-scopes.test.ts:76:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        in a repository initialised under a declared GIT_TEMPLATE_DIR
+        + actual - expected
+        
+        + [
+        +   'file:.git/config\tuser.name=host',
+        +   'file:.git/config\tuser.email=host@example.invalid'
+        + ]
+        - []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual:
+        0: 'file:.git/config\tuser.name=host'
+        1: 'file:.git/config\tuser.email=host@example.invalid'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gu84jt/test/v1-adapters/control-git-scopes.test.ts:124:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - a control sees no git configuration of the host
+  ---
+  duration_ms: 89.964417
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-gu84jt/test/v1-adapters/control-git-scopes.test.ts:54:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 355.009542

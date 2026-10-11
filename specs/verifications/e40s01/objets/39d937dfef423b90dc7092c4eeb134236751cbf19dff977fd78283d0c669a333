@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: a control sees no git configuration of the host
+    # Subtest: la configuration git qu'un contrôle voit n'a aucune entrée de portée globale ni système, même quand son environnement déclaré ou sa liste blanche pose GIT_CONFIG_GLOBAL
+    ok 1 - la configuration git qu'un contrôle voit n'a aucune entrée de portée globale ni système, même quand son environnement déclaré ou sa liste blanche pose GIT_CONFIG_GLOBAL
+      ---
+      duration_ms: 20.744666
+      type: 'test'
+      ...
+    1..1
+ok 1 - a control sees no git configuration of the host
+  ---
+  duration_ms: 21.202459
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 279.395375
