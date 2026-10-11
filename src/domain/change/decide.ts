@@ -715,6 +715,7 @@ class Ctx {
 				arbitration: c.protocol.arbitration,
 				environment_digest: c.protocol.environment_digest,
 				acceptance_recipe_control_id: c.protocol.acceptance?.recipe_control_id ?? null,
+				...(c.protocol.project_control_ids ? { project_control_ids: c.protocol.project_control_ids } : {}),
 				formal: frozenFormalOf(c.protocol),
 			},
 		});

@@ -56,6 +56,28 @@ export const AcceptanceRecipeDeclaration = Type.Object(
 );
 export type AcceptanceRecipeDeclaration = Static<typeof AcceptanceRecipeDeclaration>;
 
+/**
+ * A control the profile declares for the target beside those its technology detects — its type check, its import
+ * rules, its own lints — run on the reference and on each candidate and judged by its exit code. G5 requires it to
+ * pass on the candidate. `protected_paths` names the files it reads to judge, which a producer may not modify;
+ * `provides` and `requires` order it after the control that writes what it reads, such as a build.
+ */
+export const ProjectControlDeclaration = Type.Object(
+	{
+		control_id: Identifier,
+		title: Type.String({ minLength: 1 }),
+		command: Type.Array(Type.String(), { minItems: 1 }),
+		timeout_ms: PositiveInt,
+		protected_paths: Type.Array(Type.String()),
+		network: Type.Optional(Closed(["denied", "loopback", "allowed"] as const)),
+		writable_paths: Type.Optional(Type.Array(Type.String())),
+		provides: Type.Optional(Type.Array(Type.String())),
+		requires: Type.Optional(Type.Array(Type.String())),
+	},
+	{ additionalProperties: false },
+);
+export type ProjectControlDeclaration = Static<typeof ProjectControlDeclaration>;
+
 const Policy = Type.Object(
 	{
 		policy_id: Type.Optional(Identifier),
@@ -74,6 +96,13 @@ const Policy = Type.Object(
 		acceptance_recipe: Type.Optional(Type.Union([AcceptanceRecipeDeclaration, Type.Null()])),
 		/** null adopts no formal model, as the default policy does: no formal tool is then looked for nor run. */
 		formal_control: Type.Optional(Type.Union([FormalPackage, Type.Null()])),
+		/** Empty declares none, as the default policy does: the controls the technology detects are then all there is. */
+		project_controls: Type.Optional(Type.Array(ProjectControlDeclaration)),
+		/**
+		 * The test files the suite its technology detects runs, as patterns appended to the command of that suite.
+		 * Empty runs the suite as its technology runs it, as the default policy does.
+		 */
+		suite_paths: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
 	},
 	{ additionalProperties: false },
 );

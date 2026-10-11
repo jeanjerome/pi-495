@@ -285,6 +285,8 @@ export interface FrozenProtocol {
 	environment_digest: string;
 	/** The control of the acceptance run G5 requires on the candidate; absent from a protocol frozen before it could. */
 	acceptance_recipe_control_id?: string | null;
+	/** The controls the profile declared, each required on the candidate; absent from a protocol that declared none. */
+	project_control_ids?: string[];
 	/** The formal package G5 requires the exploration of; absent from a protocol that adopts none or was frozen before. */
 	formal?: FrozenFormalPackage | null;
 }

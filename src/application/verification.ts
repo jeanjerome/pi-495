@@ -59,6 +59,7 @@ import { EXECUTOR_ACTOR } from "./actors.ts";
 import { openWorkspaceWithComplements } from "./complement.ts";
 import { introducedLinesOf, type IntroducedLinesResult } from "./coverage.ts";
 import { citationOf, establishedExploration, formalInputsOf } from "./formal-reuse.ts";
+import { projectControlsOf } from "./project-controls.ts";
 import type { PreparationRecord, ReferenceSuiteObservation } from "./preparation.ts";
 import {
 	type ControlWitnesses,
@@ -516,10 +517,11 @@ export class VerificationCoordinator {
 			};
 		});
 		const recipe = recipeControlOf(this.deps.policy, input.requirements_revision);
+		const declared = projectControlsOf(this.deps.policy);
 		return {
 			protocol_id: this.deps.id("prt"),
 			change_id: input.change_id,
-			controls: recipe ? [...controls, recipe] : controls,
+			controls: [...controls, ...declared, ...(recipe ? [recipe] : [])],
 			qualifications: input.qualifications,
 			capability_diagnosis:
 				input.recommendations.length > 0
@@ -535,6 +537,7 @@ export class VerificationCoordinator {
 			...(input.quality_referential ? { quality_referential: input.quality_referential } : {}),
 			...(input.architecture_map ? { architecture_map: input.architecture_map } : {}),
 			...acceptanceOf(this.deps.policy, recipe),
+			...(declared.length > 0 ? { project_control_ids: declared.map((c) => c.control_id) } : {}),
 		};
 	}
 

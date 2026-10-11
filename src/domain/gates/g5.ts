@@ -112,24 +112,31 @@ export function evaluateG5(
 	for (const rid of formal.failed) failed.add(rid);
 	for (const rid of formal.indeterminate) indeterminate.add(rid);
 
-	// The acceptance run is an obligation of its own: no other control's PASS stands for it, and only its run on
-	// this very candidate counts.
+	// A control the profile declared and the acceptance run are each an obligation of their own: no other control's
+	// PASS stands for them — a green suite does not stand for a refused import — and only their run on this very
+	// candidate counts.
 	const recipe = protocol.acceptance_recipe_control_id;
-	if (recipe) {
-		const run = latestByControl.get(recipe);
+	const own = [
+		...(protocol.project_control_ids ?? []).map((cid) => ["project", "declared control", cid] as const),
+		...(recipe ? [["recipe", "acceptance recipe", recipe] as const] : []),
+	];
+	for (const [kind, what, cid] of own) {
+		const key = `${kind}:${cid}`;
+		const label = `${what} ${cid}`;
+		const run = latestByControl.get(cid);
 		if (!run) {
-			missing.push(`recipe:${recipe}`);
-			reasons.push(`acceptance recipe ${recipe} was not run on the candidate ${candidate.manifest_digest}`);
-			indeterminate.add(`recipe:${recipe}`);
-		} else {
-			retained.push(run.evidence_id);
-			if (run.verdict === "FAIL" || run.findings_blocking > 0) {
-				failed.add(`recipe:${recipe}`);
-				reasons.push(`acceptance recipe ${recipe}: FAIL`);
-			} else if (run.verdict !== "PASS") {
-				indeterminate.add(`recipe:${recipe}`);
-				reasons.push(`acceptance recipe ${recipe}: ${run.verdict}`);
-			}
+			missing.push(key);
+			reasons.push(`${label} was not run on the candidate ${candidate.manifest_digest}`);
+			indeterminate.add(key);
+			continue;
+		}
+		retained.push(run.evidence_id);
+		if (run.verdict === "FAIL" || run.findings_blocking > 0) {
+			failed.add(key);
+			reasons.push(`${label}: FAIL`);
+		} else if (run.verdict !== "PASS") {
+			indeterminate.add(key);
+			reasons.push(`${label}: ${run.verdict}`);
 		}
 	}
 

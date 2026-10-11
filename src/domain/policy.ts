@@ -1,5 +1,5 @@
 /** Active policy: configured before execution, versioned, never modified by a producer. */
-import type { AcceptanceRecipeDeclaration } from "../contracts/v1/config.ts";
+import type { AcceptanceRecipeDeclaration, ProjectControlDeclaration } from "../contracts/v1/config.ts";
 import type { BaselinePolicy, FormalPackage } from "../contracts/v1/protocol.ts";
 
 /** Bounds applied by the controller, never by a producer (DEC-03). */
@@ -61,6 +61,10 @@ export interface ActivePolicy {
 	acceptance_recipe: AcceptanceRecipeDeclaration | null;
 	/** The TLA+ model the owner adopted as a means of verification; null adopts none, and no formal tool is run. */
 	formal_control: FormalPackage | null;
+	/** The controls the profile declares beside those the technology detects, each required at G5. */
+	project_controls: ProjectControlDeclaration[];
+	/** The test files the suite the technology detects runs, appended to its command; empty runs it as detected. */
+	suite_paths: string[];
 }
 
 export const DEFAULT_POLICY: ActivePolicy = {
@@ -98,4 +102,6 @@ export const DEFAULT_POLICY: ActivePolicy = {
 	review_missions: {},
 	acceptance_recipe: null,
 	formal_control: null,
+	project_controls: [],
+	suite_paths: [],
 };

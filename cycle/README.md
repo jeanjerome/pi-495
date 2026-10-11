@@ -312,6 +312,8 @@ blocks; `npm run cycle -- <story> etat` says where it stands;
 `npm run cycle -- suite` runs the epics marked ready, without the owner;
 `npm run cycle -- defauts [severity]` fixes the open defects of the registry, without running an epic;
 `npm run cycle -- reprises` drives the behaviour-preserving refactorings of `specs/reprises.md`;
+`npm run cycle -- mesures [<profil>=]<story>...` prints what the dossiers of these stories measure of the way they
+were made, missing values left missing, and what it recommends of each profile (`specs/experiments/e38/README.md`);
 `npm run cycle -- <story> auto` drives a single story the same way;
 `npm run cycle -- <story> accepte [note]` records the agreement after the acceptance run;
 `npm run cycle -- <story> ecart "<what is missing>"` sends it back to red-green for the named gap,

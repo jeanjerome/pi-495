@@ -2156,6 +2156,14 @@
         }
       },
       "additionalProperties": false
+    },
+    "project_control_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      }
     }
   },
   "$id": "urn:495:contract:protocol:1",

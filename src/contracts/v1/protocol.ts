@@ -779,6 +779,8 @@ export const Protocol = Type.Object(
 		architecture_map: Type.Optional(AdoptedArchitectureMap),
 		/** Absent from a protocol frozen before the profile could declare review missions and an acceptance recipe. */
 		acceptance: Type.Optional(AcceptancePlan),
+		/** The controls the profile declared, which G5 requires on the candidate; absent when it declared none. */
+		project_control_ids: Type.Optional(Type.Array(Identifier)),
 	},
 	{ $id: contractId("protocol"), additionalProperties: false },
 );

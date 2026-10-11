@@ -16,14 +16,11 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PiRpcClient } from "../../test/helpers/rpc-client.ts";
-import { type EtatLu, jugerCampagne, lireEtat, lirePreuves } from "./verdict-campagne.ts";
+import { conduire, repondeur } from "./pilote-pi.ts";
+import { jugerCampagne, lireEtat, lirePreuves } from "./verdict-campagne.ts";
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const MODELE_PAR_DEFAUT = "anthropic/claude-sonnet-5-5";
-const RELANCES_MAX = 10;
-const DELAI_COMMANDE_MS = 60 * 60_000;
-/** The options a human answers with in a campaign: adopt the mandate, accept the candidate. */
-const REPONSES = ["adopt", "accept"];
 
 interface Cible {
 	objectif: string;
@@ -87,31 +84,6 @@ function preparerCible(technologie: string, cible: Cible, dossierCible: string):
 	for (const commande of cible.preparation) executer(commande, dossierCible, cible.env());
 }
 
-/** Whether the change can go no further without a human or a new attempt. */
-function termine(etat: EtatLu): boolean {
-	return etat.statut === "completed" || etat.statut === "blocked" || etat.statut === "cancelled";
-}
-
-async function conduire(client: PiRpcClient, dossier: string, objectif: string): Promise<void> {
-	const commandes = [`/495 start ${objectif}`, ...Array.from({ length: RELANCES_MAX }, () => "/495 resume")];
-	for (const [i, commande] of commandes.entries()) {
-		if (i > 0 && termine(lireEtat(dossier))) return;
-		console.log(`> ${commande}`);
-		client.send({ id: `commande-${i}`, type: "prompt", message: commande });
-		await client.waitFor((e) => e.type === "response" && e.id === `commande-${i}`, DELAI_COMMANDE_MS);
-	}
-}
-
-/** Answers a decision dialog the way an owner who accepts the work would, and refuses to guess otherwise. */
-function repondre(demande: { method?: string; title?: string; options?: unknown }): Record<string, unknown> | null {
-	if (demande.method === "confirm") return { confirmed: true };
-	if (demande.method !== "select") return { cancelled: true };
-	const options = (demande.options ?? []) as string[];
-	const choisie = options.find((o) => REPONSES.some((id) => o.startsWith(`${id} — `)));
-	console.log(`dialog "${demande.title ?? ""}" -> ${choisie ?? "later"}`);
-	return choisie ? { value: choisie } : { cancelled: true };
-}
-
 async function main(): Promise<number> {
 	const args = process.argv.slice(2);
 	const technologie = args[0] ?? "";
@@ -165,7 +137,8 @@ async function main(): Promise<number> {
 			HARNESS495_RPC_HUMAN_ACTOR: "campagne",
 			HARNESS495_HUMAN_ACCEPTANCE: "1",
 		},
-		respond: repondre,
+		// An owner who adopts the mandate and accepts the candidate, and refuses to guess anything else.
+		respond: repondeur(["adopt", "accept"]),
 	});
 	try {
 		await conduire(client, dossier, cible.objectif);

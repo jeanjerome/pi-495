@@ -56,6 +56,27 @@ export function commitsEntre(cwd: string, base: string): Commit[] {
 	return commits;
 }
 
+/** A commit with the lines it removed from each path it changed; a binary file counts one. */
+export interface CommitDetaille {
+	sujet: string;
+	changements: { chemin: string; retirees: number }[];
+}
+
+/** The commits `de..a`, oldest first, each with what it removed from every path; null when `a` is not a revision. */
+export function commitsDetailles(cwd: string, de: string, a: string): CommitDetaille[] | null {
+	if (spawnSync("git", ["rev-parse", "--verify", "--quiet", `${a}^{commit}`], { cwd }).status !== 0) return null;
+	const out = git(cwd, ["log", "--reverse", "--no-renames", "--format=%x00%s", "--numstat", `${de}..${a}`]);
+	const commits: CommitDetaille[] = [];
+	for (const line of out.split("\n")) {
+		if (line.startsWith("\0")) commits.push({ sujet: line.slice(1), changements: [] });
+		else if (line !== "") {
+			const [, retirees, chemin] = line.split("\t");
+			commits.at(-1)?.changements.push({ chemin: chemin ?? "", retirees: retirees === "-" ? 1 : Number(retirees) });
+		}
+	}
+	return commits;
+}
+
 /**
  * A commit is test-only when it is a `test:` commit and every path it touches is under `test/`: the
  * code a story keeps under `test/`, such as a replay harness, is committed as `feat:` and owes no red.

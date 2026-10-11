@@ -1067,4 +1067,41 @@ describe("the workspaces of a preparation, once a complement is adopted", () => 
 			"the complement the copy carries is not reported as something the producer wrote",
 		);
 	});
+
+	it("given an adopted complement and a profile that names the test files of the suite, then the unit control frozen with the protocol runs those files alone", async () => {
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: { prepare: { steps: [{ kind: "complete", output: report([]) }] } },
+			policy: { suite_paths: ["test/*.test.js", "test/*.test.mjs"] },
+		});
+		const { change } = await t.harness.start({
+			project_path: trackedProject(fixtureTsWithoutTests),
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+		const changeId = change.change_id;
+		await t.harness.advance(changeId, { max_steps: 40 });
+		answerPending(t, changeId, "adopt_complement");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		t.agent.scripts.set("prepare", {
+			steps: [
+				{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+				{ kind: "complete", output: report(["test/shout.test.js"]) },
+			],
+		});
+		answerPending(t, changeId, "prepare");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		const state = t.ledger.loadChange(changeId)!.state;
+		assert.ok(
+			state.adopted.protocol,
+			`the protocol is frozen: ${JSON.stringify({ phase: state.phase, status: state.status, stop: state.stop_detail, pending: state.pending_decisions })}`,
+		);
+		const protocol = await t.harness.artifacts.read<Protocol>(state.adopted.protocol.ref);
+		const unit = protocol.controls.find((c) => c.control_id === "unit");
+		assert.deepEqual(
+			unit?.command.slice(-2),
+			["test/*.test.js", "test/*.test.mjs"],
+			`the frozen unit control runs the files the profile names: ${JSON.stringify(unit?.command)}`,
+		);
+	});
 });

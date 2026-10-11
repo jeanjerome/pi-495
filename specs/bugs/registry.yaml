@@ -3470,3 +3470,188 @@ bugs:
       Carry `reused_from` on the `evidence.recorded` fact of a citation and show it on the result line, with a test on
       the event a second candidate records.
     status: open
+  - bug_id: BUG-2026-10-11T013000
+    date: "2026-10-11"
+    title: "The sandbox tests of pi-495 fail instead of skipping when its suite runs inside the platform sandbox"
+    severity: low
+    priority: p3
+    scope: test
+    what_happened: >
+      Run on a copy of pi-495 under the verification profile of Seatbelt, as the kernel runs a control of a target,
+      `node --test 'test/**/*.test.ts'` fails 551 of its 1734 tests. The tests that start Seatbelt themselves are guarded
+      by `NO_QUALIFIED_SANDBOX` (`test/helpers/fixtures.ts`), which reads `selectSandbox` and finds Seatbelt qualified
+      inside Seatbelt, so they run nested and fail instead of skipping. The kernel tests that commit in a fixture
+      repository fail too on a machine whose global git configuration signs commits with a key under `~/.ssh`, which the
+      profile does not let the command read.
+    what_expected: >
+      A test that needs to start a sandbox skips, saying why, when it already runs inside one; a fixture repository
+      commits without depending on how the host's git signs commits.
+    steps_to_reproduce:
+      - "On macOS, extract a copy of pi-495 with its `node_modules`, make it a git repository, then run `node --test 'test/v2-kernel/**/*.test.ts'` in it through `selectSandbox().backend.run` with the profile `GenericControlRunner.profileFor` gives a control declaring `test-output/` writable: 395 of 481 tests fail, on `git commit` and on nested `sandbox-exec`."
+    root_cause: >
+      The qualification of the platform sandbox is read from the platform, not from whether the process is already
+      confined; the helpers that commit inherit the host's git configuration.
+    evidence: >
+      Measured on 2026-10-11 while the stable controller of the dogfooding of pi-495 was declared
+      (`specs/experiments/e38/dogfood/README.md`): `v0-pure` and `cycle` pass confined (599 tests), `v1-adapters` fails
+      15, `v2-kernel` 395. Not introduced by a branch: the suite was never run confined before.
+    risk_level: low
+    follow_ups: >
+      Make `NO_QUALIFIED_SANDBOX` true when a sandbox cannot start inside the current process, and give the fixture
+      repositories `commit.gpgsign false`, as `test/helpers/cycle.ts` already does; then widen the declared `test`
+      control of the stable controller to the generations that pass confined.
+    status: open
+  - bug_id: BUG-2026-10-11T020000
+    date: "2026-10-11"
+    title: "The dogfooding campaign accepts any revision as controller, qualified or not"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `node cycle/src/dogfood.ts --controleur <revision>` extracts and runs whatever revision it is given, `HEAD` or an
+      unlanded commit included, without checking that it was qualified: no green Preflight nor reference campaign at
+      that revision is looked for. The record states the promotion rule — a candidate becomes a controller only once
+      qualified and on the owner's mandate — but nothing refuses a controller that does not meet it.
+    what_expected: >
+      A controller revision whose qualification the repository does not record is refused, naming what is missing, or
+      the record says that the controller was not qualified.
+    steps_to_reproduce:
+      - "Run `node cycle/src/dogfood.ts --objectif \"<change>\" --controleur HEAD` on a branch whose head no Preflight nor reference campaign has judged: the campaign runs under it and its record does not say it was unqualified."
+    root_cause: >
+      The launcher (`cycle/src/dogfood.ts`) resolves the controller revision and extracts it; the qualification the
+      promotion rule names is recorded in the cycle's journals and the landing on `main`, which it does not read.
+    evidence: >
+      Introduced by the branch e38s13, which adds the campaign. Only the operator chooses the controller and the default
+      is `main`, a landed revision: this is not a self-update, the candidate never replaces its controller.
+    risk_level: low
+    follow_ups: >
+      Read the qualification of the controller revision — `main` or a landing recorded under `specs/verifications/` —
+      before running the campaign, and refuse or record an unqualified controller.
+    status: open
+  - bug_id: BUG-2026-10-11T030000
+    date: "2026-10-11"
+    title: "The dogfooding campaign sets aside only the root npm configuration of the copies it installs, not the one a git dependency carries"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      The launcher (`cycle/src/dogfood.ts`, `extraire`) runs `npm ci --ignore-scripts` with the `.npmrc` at the root of
+      the extracted copy set aside, so no program the candidate's npm configuration names runs before the controller
+      identifies itself. npm 11.19.0 (pacote 21, `lib/git.js` `#prepareDir`) installs a git dependency whose
+      `package.json` declares an install-type script or workspaces by an inner `npm install --force` run in its clone.
+      That inner npm inherits `ignore-scripts` from the environment, but reads the clone's own `.npmrc` as project
+      configuration. A git dependency named by the candidate's lock, whose `.npmrc` sets `git=` and which itself has a
+      git dependency, would have npm run a program it chose, unconfined, before the controller identifies itself.
+    what_expected: >
+      No npm configuration the candidate can bring, at the root of its copy or in a dependency it fetches, names a
+      program that npm runs while the campaign installs the controller or the candidate.
+    steps_to_reproduce:
+      - "Not demonstrated: give the candidate's lock a git dependency with a `prepare` script, a `.npmrc` setting `git=` to a program that only writes a marker file, and a git dependency of its own; run `node cycle/src/dogfood.ts --objectif \"<change>\"` and look for the marker."
+    root_cause: >
+      Only the root `.npmrc` is set aside; the `git` npm uses is left to the configuration each nested install reads,
+      and a project `.npmrc` takes precedence over none given on the command line or in the environment.
+    evidence: >
+      Rendered reachable by the branch e38s13, which adds the campaign. Read in npm's source (pacote `lib/git.js`
+      lines 160-198, `lib/fetcher.js` 99-121, `@npmcli/config` `lib/set-envs.js`) during the round-1 review; no
+      executable probe was written, so the bypass is neither confirmed nor ruled out.
+    risk_level: low
+    follow_ups: >
+      Write the probe; if it confirms the bypass, name the `git` program on the command line of the outer `npm ci`,
+      which npm exports to the inner installs through the environment, above any project configuration.
+    status: open
+  - bug_id: BUG-2026-10-11T040000
+    date: "2026-10-11"
+    title: "cycle mesures reads the companion only for a story given under the exact label tla, so a formal profile given under another label is measured and recommended"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `verifierProfil` (`cycle/src/mesures.ts`) refuses a story whose companion keeps no `modele-d-etats` with a
+      manifest only when the label before `=` is exactly `tla` (`PROFIL_A_ETATS`). A story given as `formel=<story>` —
+      the label the recipe that found the gap used — or as `TLA=<story>` is still measured under that label, and the
+      bilan writes a recommendation for it although the story's companion keeps only `exemples`.
+    what_expected: >
+      A bilan never recommends a formal means on a story whose companion keeps none, whatever label the story is given
+      under: the profile is read in the companion, not in the label.
+    steps_to_reproduce:
+      - "Run `npm run cycle -- mesures simple=<s1> formel=<s2>` with a story `<s2>` whose companion keeps only `exemples`: the bilan measures it and recommends for `formel`."
+    root_cause: >
+      The label is matched against the one name `tla` that `specs/experiments/e38/README.md` fixes for the
+      state-machine profile; any other label is taken as written, with no check of what the story was verified with.
+    evidence: >
+      Introduced by the branch e38s13, which adds the companion check for the state-machine profile. Read in
+      `cycle/src/mesures.ts` during the round-1 review; the promise holds for the label the README names.
+    risk_level: low
+    follow_ups: >
+      Derive the profile of a story from its companion, or refuse a label `cycle mesures` does not know, rather than
+      checking one label.
+    status: open
+  - bug_id: BUG-2026-10-11T040100
+    date: "2026-10-11"
+    title: "A profile whose suite_paths match no .mjs file leaves the coverage witness unrun, so a Node target that adopts the coverage complement cannot freeze its protocol"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      `withSuitePaths` (`src/application/project-controls.ts`) appends the profile's `suite_paths` to the suite the
+      technology detects. The Node coverage control reads the LCOV report that suite writes, and qualifies on witness
+      tests written as `test/495-covered-witness.test.mjs` and `test/495-uncovered-witness.test.mjs`
+      (`witnessTestLayout`, `src/adapters/stacks/node/project/witness-layout.ts`). Under a profile naming
+      `test/*.test.js` alone, those witnesses are never run: both witnesses give INDETERMINATE ("no coverage report
+      measures ... src/witness495/covered.mjs") and the change stops at qualification with CAPABILITY_MISSING
+      "protocol not frozen". The stable controller of pi-495 (`specs/experiments/e38/dogfood/config.json`) names
+      `test/*.test.js`, `test/*.test.ts`, `test/v0-pure/**/*.test.ts` and `test/cycle/**/*.test.ts`, none of which
+      matches a `.mjs` witness, so a dogfooding change whose owner adopts the coverage complement would block there.
+    what_expected: >
+      The test files a profile names narrow what the suite runs of the target's tests, never the witnesses 495
+      writes to qualify a control on that suite.
+    steps_to_reproduce:
+      - "In `test/v2-kernel/preparation.test.ts`, the test of the frozen unit control under an adopted complement, set `policy: { suite_paths: [\"test/*.test.js\"] }`: the change ends in qualification, blocked, with the coverage witnesses INDETERMINATE."
+    root_cause: >
+      The witnesses' paths are chosen by the technology and the suite's scope by the profile, and nothing reconciles
+      them: qualification runs the frozen command, scope included, on a tree whose witnesses lie outside it.
+    evidence: >
+      Introduced by the branch e38s13, which adds `suite_paths`. Observed while writing the test of the second
+      detection during the round-1 review: with `test/*.test.js` alone the protocol is not frozen, with
+      `test/*.test.mjs` added it is. The dogfooding campaign's answerer does not adopt a complement, so the real
+      campaign does not reach this path.
+    risk_level: medium
+    follow_ups: >
+      Run a control's qualification with the witness files it writes added to the suite's scope, or have the profile's
+      scope apply to the target's tests alone; until then, a profile naming `suite_paths` has to match the witnesses'
+      `.mjs` files.
+    status: open
+  - bug_id: BUG-2026-10-11T105300
+    date: "2026-10-11"
+    title: "A prepared test written under test/ but outside the profile's suite_paths never runs, so the prepared suite is INDETERMINATE on the reference and the change stops before G2"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      `withSuitePaths` (`src/application/project-controls.ts`) appends the profile's `suite_paths` to the suite the
+      technology detects, but the paths the preparer may write stay those of the technology: the Node preparation
+      allows all of `test/` and `tests/` (`preparationPaths`, `src/adapters/stacks/node/tests/unit-controls.ts`), and
+      nothing tells the preparer which of them the suite runs. Under the stable controller of pi-495
+      (`specs/experiments/e38/dogfood/config.json`, `test/*.test.{js,ts}`, `test/v0-pure/**`, `test/cycle/**`), a
+      prepared test put at `test/v2-kernel/shout.test.js`, where pi-495's own convention puts a kernel test, is never
+      executed: the prepared suite is judged `on_reference: INDETERMINATE` with the note "prepared suite is not loadable
+      or produced no test: no test was executed", an incident requirement IH-04 follows, and the change does not reach G2.
+    what_expected: >
+      A test the preparer is allowed to write is run by the suite that judges it, or the preparer is told, or held to,
+      the paths that suite runs.
+    steps_to_reproduce:
+      - "On the pi-495-shaped bench of the dogfooding campaign, have the scripted preparer write its test under `test/v2-kernel/` instead of the root of `test/`."
+      - "Run the campaign to the judgement of the prepared suite: `on_reference` is INDETERMINATE with \"no test was executed\", not PASS or FAIL, and IH-04 is raised."
+    root_cause: >
+      The suite's scope is the profile's and the preparation's writable paths are the technology's, and nothing
+      reconciles them: the preparation accepts a path the narrowed suite command does not match.
+    evidence: >
+      Introduced by the branch e38s13, which adds `suite_paths`. Found in the round-1 review by a throwaway probe on the
+      pi-495-shaped bench (not committed). The real campaign at the controller with the branch's code
+      (dogfood-20261011T022605) wrote its prepared test at the root of `test/` and was judged FAIL with no timeout note,
+      so the observed run did not reach this path.
+    risk_level: medium
+    follow_ups: >
+      Narrow the preparation's writable paths to the profile's `suite_paths` when it names some, or name those paths in
+      the preparer's mandate; until then, a prepared test outside them leaves the prepared suite undecided.
+    status: open

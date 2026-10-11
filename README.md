@@ -278,7 +278,9 @@ Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, other
     "required_reviews": [],
     "review_missions": {},
     "acceptance_recipe": null,
-    "formal_control": null
+    "formal_control": null,
+    "project_controls": [],
+    "suite_paths": []
   },
   "isolation": { "allow_unconfined": false },
   "human_origin": { "rpc_actor_env": "HARNESS495_RPC_HUMAN_ACTOR" },
@@ -299,6 +301,8 @@ Configuration and state live outside your project: `$HARNESS495_DATA_DIR`, other
 | `policy.review_missions` | What each required review is asked to judge, by role; two roles never share a mission. |
 | `policy.acceptance_recipe` | The acceptance run every candidate must pass before acceptance: the journey, its preconditions, the entry it drives, its observations, its negative control on a private copy or why none applies, what it simulates, what it leaves unexercised, the external data it reads, and the command that writes its [report](contracts/v1/acceptance-report.json), `{candidate}` standing for the candidate it runs on. |
 | `policy.formal_control` | A TLA+ model adopted as a means of verification, explored by the TLC the owner installed (`tool.java`, `tool.jar`, `tool.version` as TLC prints it): its `model` and `config`, every file it is made of pinned by sha256 in `files`, the `required_properties` an exploration must check, the pinned mutant that must end on a counterexample (`expected_violation`), its `budget`, the program `requirement_ids` it bears on and the `correspondence` cases of other controls that tie the model to the code. A completed exploration proves the model under its bounds; a requirement of the program is kept only when the correspondence cases pass on the candidate too. `null` adopts no model, and no Java is started. |
+| `policy.project_controls` | Controls the project runs on itself beside those its technology detects — a type check, import rules, its own lints — each a `control_id`, a `title`, a `command` judged by its exit code, a `timeout_ms` and the `protected_paths` a producer may not modify, ordered by `provides` and `requires` after the control that writes what it reads. They run on the reference and on each candidate, and acceptance requires every one of them to pass on the candidate: a green suite does not stand for a refused import. |
+| `policy.suite_paths` | The test files the suite its technology detects runs, as patterns appended to its command — for a project whose whole suite cannot run inside the sandbox, such as one whose tests launch a sandbox of their own. Read from this file, never from the project, so a change that rewrites the project's test script neither narrows the suite that judges its requirements nor lengthens it; a test outside these patterns, a prepared one included, does not run. Empty runs the suite as its technology runs it. |
 | `isolation.allow_unconfined` | Run checks without a sandbox. Leave `false`. |
 | `human_origin.rpc_actor_env` | Environment variable through which an RPC host names its human actor. |
 | `workspace_exclusions` | Paths left out of workspaces, on top of the outputs the project's technology declares. Keep the inputs the checks need. |

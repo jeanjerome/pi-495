@@ -447,6 +447,81 @@
               "type": "null"
             }
           ]
+        },
+        "project_controls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "control_id",
+              "title",
+              "command",
+              "timeout_ms",
+              "protected_paths"
+            ],
+            "properties": {
+              "control_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1
+              },
+              "command": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              },
+              "timeout_ms": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "protected_paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "network": {
+                "type": "string",
+                "enum": [
+                  "denied",
+                  "loopback",
+                  "allowed"
+                ]
+              },
+              "writable_paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "provides": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "requires": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "suite_paths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "additionalProperties": false

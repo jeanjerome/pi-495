@@ -14,7 +14,7 @@ import { makeHarness, specReport, trackedProject, type PolicyOverride, type Test
  * of that module deprived of `shout`, and writes what it observed of each. `--other` names another candidate than the
  * one it was given; `--summary` writes a summary without any observation.
  */
-const RECIPE_SCRIPT = `import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+export const RECIPE_SCRIPT = `import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 const [given, mode] = process.argv.slice(2);
@@ -39,7 +39,7 @@ const report = {
 writeFileSync("recipe-report.json", JSON.stringify(report));
 `;
 
-function recipe(command: string[]): AcceptanceRecipeDeclaration {
+export function recipe(command: string[]): AcceptanceRecipeDeclaration {
 	return {
 		journey: "shout a name through the module the package exposes",
 		preconditions: ["the candidate is frozen"],

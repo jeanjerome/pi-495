@@ -1,0 +1,168 @@
+{
+  "policy": {
+    "policy_id": "pi-495-dogfood",
+    "suite_paths": [
+      "test/*.test.js",
+      "test/*.test.ts",
+      "test/v0-pure/**/*.test.ts",
+      "test/cycle/**/*.test.ts"
+    ],
+    "project_controls": [
+      {
+        "control_id": "build",
+        "title": "npm run build (tsc -p tsconfig.build.json), which rebuilds dist/ before every check",
+        "command": [
+          "node",
+          "node_modules/typescript/bin/tsc",
+          "-p",
+          "tsconfig.build.json"
+        ],
+        "timeout_ms": 300000,
+        "protected_paths": [
+          "scripts/",
+          "package.json",
+          "tsconfig.build.json"
+        ],
+        "writable_paths": [
+          "dist/"
+        ],
+        "provides": [
+          "dist"
+        ]
+      },
+      {
+        "control_id": "lint-code",
+        "title": "npm run lint:code (biome check)",
+        "command": [
+          "node",
+          "node_modules/@biomejs/biome/bin/biome",
+          "check"
+        ],
+        "timeout_ms": 300000,
+        "protected_paths": [
+          "scripts/",
+          "package.json",
+          "biome.jsonc"
+        ]
+      },
+      {
+        "control_id": "typecheck",
+        "title": "npm run typecheck (tsc -p tsconfig.json --noEmit), which reads dist/stack.d.ts",
+        "command": [
+          "node",
+          "node_modules/typescript/bin/tsc",
+          "-p",
+          "tsconfig.json",
+          "--noEmit"
+        ],
+        "timeout_ms": 300000,
+        "protected_paths": [
+          "scripts/",
+          "package.json",
+          "tsconfig.json"
+        ],
+        "requires": [
+          "dist"
+        ]
+      },
+      {
+        "control_id": "lint-layers",
+        "title": "npm run lint:layers (node scripts/check-layers.ts)",
+        "command": [
+          "node",
+          "scripts/check-layers.ts"
+        ],
+        "timeout_ms": 60000,
+        "protected_paths": [
+          "scripts/",
+          "package.json"
+        ]
+      },
+      {
+        "control_id": "lint-architecture",
+        "title": "npm run lint:architecture (node scripts/check-architecture.ts)",
+        "command": [
+          "node",
+          "scripts/check-architecture.ts"
+        ],
+        "timeout_ms": 60000,
+        "protected_paths": [
+          "scripts/",
+          "package.json",
+          "specs/amont/"
+        ]
+      },
+      {
+        "control_id": "lint-exports",
+        "title": "npm run lint:exports (node scripts/check-exports.ts)",
+        "command": [
+          "node",
+          "scripts/check-exports.ts"
+        ],
+        "timeout_ms": 60000,
+        "protected_paths": [
+          "scripts/",
+          "package.json"
+        ]
+      },
+      {
+        "control_id": "lint-distribution",
+        "title": "npm run lint:distribution (node scripts/check-distribution.ts)",
+        "command": [
+          "node",
+          "scripts/check-distribution.ts"
+        ],
+        "timeout_ms": 300000,
+        "protected_paths": [
+          "scripts/",
+          "package.json",
+          "NOTICE",
+          "tsconfig.build.json"
+        ],
+        "writable_paths": [
+          ".dist-check/"
+        ],
+        "requires": [
+          "dist"
+        ]
+      },
+      {
+        "control_id": "lint-story-format",
+        "title": "npm run lint:story-format (node scripts/check-story-format.ts)",
+        "command": [
+          "node",
+          "scripts/check-story-format.ts"
+        ],
+        "timeout_ms": 60000,
+        "protected_paths": [
+          "scripts/",
+          "package.json",
+          "cycle/format-de-story.md"
+        ]
+      },
+      {
+        "control_id": "test",
+        "title": "npm run test, restricted to the generations that run confined (node --test test/v0-pure test/cycle)",
+        "command": [
+          "node",
+          "--test",
+          "test/v0-pure/**/*.test.ts",
+          "test/cycle/**/*.test.ts"
+        ],
+        "timeout_ms": 1800000,
+        "protected_paths": [
+          "scripts/",
+          "package.json",
+          "test/"
+        ],
+        "network": "loopback",
+        "requires": [
+          "dist"
+        ],
+        "writable_paths": [
+          "test-output/"
+        ]
+      }
+    ]
+  }
+}

@@ -6,6 +6,8 @@
  * stories and driving each to its landing, and repairs the registry's open defects between them;
  * `cycle defauts [gravité]` repairs the open defects alone;
  * `cycle reprises` runs the refactorings of `specs/reprises.md` that change no behaviour, one commit each;
+ * `cycle mesures [<profil>=]<story>...` prints, as JSON, what the dossiers of these stories measure of the way
+ * they were made;
  * `cycle <story> suivre` follows a running story from another terminal;
  * `cycle <story> accepte [note]` records the owner's acceptance; `cycle <story> ecart "<texte>"`
  * sends the story back to the red-green for a gap the owner names; `cycle <story> etat` prints
@@ -32,6 +34,7 @@ import { apresIssue } from "./automate.ts";
 import { type Contexte, accepter, conduirePas, rouvrir } from "./cycle.ts";
 import { commiter, commitsEntre, revision } from "./git.ts";
 import { type Evenement, Journal, type Pas, racineCycle } from "./journal.ts";
+import { bilan } from "./mesures.ts";
 import { derniereDeSonEpic, lirePlan, marquerStoryListee } from "./plan.ts";
 import type { Gravite } from "./registre.ts";
 import { reprendre } from "./reprise.ts";
@@ -164,8 +167,23 @@ async function lancerReprises(): Promise<number> {
 	return code;
 }
 
+/** The measurements of the stories named, read from their dossiers; nothing is written. */
+function mesures(stories: string[]): number {
+	if (stories.length === 0) {
+		console.error("usage: cycle mesures [<profil>=]<story>...");
+		return 2;
+	}
+	try {
+		console.log(JSON.stringify(bilan(stories, process.cwd(), racineCycle()), null, 2));
+	} catch (e) {
+		console.error(`⛔ ${messageOf(e)}`);
+		return 2;
+	}
+	return 0;
+}
+
 const USAGE =
-	"usage: cycle suite | cycle defauts [gravité] | cycle reprises | cycle <story> [etat | suivre | auto | accepte [note] | ecart <texte>]";
+	"usage: cycle suite | cycle defauts [gravité] | cycle reprises | cycle mesures [<profil>=]<story>... | cycle <story> [etat | suivre | auto | accepte [note] | ecart <texte>]";
 const COMMANDES = ["etat", "suivre", "auto", "accepte", "ecart"];
 
 /**
@@ -207,6 +225,7 @@ async function main(argv: string[]): Promise<number> {
 	if (id === "suite") return await lancerSuite();
 	if (id === "defauts") return await lancerDefauts(commande);
 	if (id === "reprises") return await lancerReprises();
+	if (id === "mesures") return mesures([commande, ...reste].filter((s) => s !== undefined));
 	if (commande !== undefined && !COMMANDES.includes(commande)) {
 		console.error(USAGE);
 		return 2;

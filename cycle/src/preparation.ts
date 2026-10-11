@@ -91,7 +91,7 @@ function bloquee(texte: string, resultats: Resultat[] = []): Examen {
 }
 
 /** The state models the companion keeps, by manifest. */
-function manifestesRetenus(story: Story): string[] {
+export function manifestesRetenus(story: Story): string[] {
 	const manifestes = new Set<string>();
 	for (const p of story.verification?.promesses ?? [])
 		for (const m of p.moyens)
