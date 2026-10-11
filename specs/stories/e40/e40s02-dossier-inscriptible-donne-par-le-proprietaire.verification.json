@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "story": "e40s02",
+  "promesses": [
+    {
+      "id": "P1",
+      "scenario": "Le propriétaire donne un dossier de la copie à un contrôle détecté ou déclaré, et la définition figée le porte",
+      "categorie": "nouveau-comportement",
+      "observation": "les chemins inscriptibles des définitions de unit et de lint-own dans le protocole figé",
+      "oracles": [
+        {
+          "tache": 1,
+          "cas": "test/v2-kernel/preparation.test.ts",
+          "assertion": "les contrôles figés portent les dossiers que la configuration du contrôleur leur donne : test-output/ pour unit, détecté, et .lint-cache/ pour lint-own, déclaré"
+        }
+      ],
+      "dependances": [],
+      "interactions": [
+        { "genre": "revision", "description": "les dossiers se lisent dans la configuration au gel du protocole ; une configuration changée après G2 ne modifie pas le contrôle figé" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "un contrôle détecté et un contrôle déclaré couvrent les deux voies par lesquelles un contrôle entre au protocole" },
+        { "moyen": "proprietes", "retenu": false, "raison": "un ajout de chemins à une liste, sans entrée à faire varier au-delà des deux voies" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "le gel est une étape existante que la story ne change pas" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P2",
+      "scenario": "Le contrôleur crée le dossier inscriptible avant que le contrôle tourne",
+      "categorie": "nouveau-comportement",
+      "observation": "le fichier écrit dans test-output/ et l'évidence PASS du contrôle",
+      "oracles": [
+        {
+          "tache": 2,
+          "cas": "test/v1-adapters/control-writable-directory.test.ts",
+          "assertion": "un contrôle qui écrit un fichier directement dans test-output/, absent de la copie, le trouve créé par le contrôleur et son évidence est PASS"
+        }
+      ],
+      "dependances": ["P3", "P4"],
+      "interactions": [
+        { "genre": "ordre-des-evenements", "description": "le dossier est créé après l'examen des liens et des fichiers, avant la commande" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "une copie sans le dossier et une commande qui écrit dedans sans le créer" },
+        { "moyen": "proprietes", "retenu": false, "raison": "un seul chemin suffit à montrer la création" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "un seul lancement" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P3",
+      "scenario": "Un lien posé sur un chemin inscriptible ou au-dessus fait refuser le contrôle sans rien accorder",
+      "categorie": "nouveau-comportement",
+      "observation": "l'évidence INDETERMINATE et sa note, l'absence d'observation de processus et de fichier ran",
+      "oracles": [
+        {
+          "tache": 3,
+          "cas": "test/v1-adapters/control-writable-directory.test.ts",
+          "assertion": "un lien posé sur le chemin inscriptible ou sur un dossier qui y mène, vers la copie, vers src, hors de la copie ou vers un chemin absent, fait refuser le contrôle : aucune commande ne tourne, ran n'existe pas, rien n'est créé hors de la copie, et l'évidence est INDETERMINATE avec une note qui nomme le chemin et le lien"
+        }
+      ],
+      "dependances": [],
+      "interactions": [
+        { "genre": "effet-externe", "description": "le lien est lu dans la copie, que le candidat écrit ; sa cible peut être dans la copie, hors d'elle ou absente" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "un cas par cible de lien et un lien au-dessus du chemin, dont les deux du 11 octobre" },
+        { "moyen": "proprietes", "retenu": false, "raison": "les cibles possibles se rangent en quatre classes, écrites en cas" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "un examen avant le lancement, sans état" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P4",
+      "scenario": "Un fichier posé à la place d'un dossier inscriptible fait refuser le contrôle",
+      "categorie": "nouveau-comportement",
+      "observation": "l'évidence INDETERMINATE et sa note, l'absence d'observation de processus et de fichier ran",
+      "oracles": [
+        {
+          "tache": 4,
+          "cas": "test/v1-adapters/control-writable-directory.test.ts",
+          "assertion": "un fichier ordinaire posé à la place de test-output/ fait refuser le contrôle : aucune commande ne tourne, ran n'existe pas, et l'évidence est INDETERMINATE avec une note qui nomme le chemin et le fichier"
+        }
+      ],
+      "dependances": [],
+      "interactions": [
+        { "genre": "effet-externe", "description": "le fichier est lu dans la copie, que le candidat écrit" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "un fichier ordinaire à la place du dossier" },
+        { "moyen": "proprietes", "retenu": false, "raison": "un seul genre d'entrée, distinct du fichier que le profil désigne" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "un examen avant le lancement, sans état" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    }
+  ]
+}
