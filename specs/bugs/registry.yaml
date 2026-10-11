@@ -3364,7 +3364,7 @@ bugs:
     follow_ups: >
       Journal the stop and its motif where `apresIssue` returns `arret`, and hold it with a test of an arbitration that stops.
     status: open
-  - bug_id: BUG-2026-10-10T190000
+  - bug_id: BUG-2026-10-10T190200
     date: "2026-10-10"
     title: "No test holds that the Lean check copies a link among the compiled modules as the file it points to"
     severity: low
