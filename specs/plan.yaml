@@ -559,7 +559,7 @@ epics:
       conteneur ; Apple `container` sert à produire pi-495, pas aux projets cibles.
     stories:
       - { id: e40s01, status: "versée", title: "git, dans un contrôle, ne lit ni la configuration globale ni la configuration système de l'hôte" }
-      - { id: e40s02, status: "à faire", title: "Le propriétaire donne à un contrôle un dossier inscriptible de la copie, créé par le contrôleur, et un lien ou un fichier du candidat fait refuser au lieu d'élargir" }
+      - { id: e40s02, status: "versée", title: "Le propriétaire donne à un contrôle un dossier inscriptible de la copie, créé par le contrôleur, et un lien ou un fichier du candidat fait refuser au lieu d'élargir" }
       - { id: e40s03, status: "à faire", title: "Sous macOS, une écriture refusée est lue dans les refus que le noyau publie en direct et proposée au propriétaire, qui seul l'accorde" }
       - { id: e40s04, status: "à faire", title: "Sous Linux, une écriture refusée est proposée d'après la sortie du contrôle, présentée comme une indication du candidat non vérifiée" }
       - { id: e40s05, status: "à faire", title: "Le dogfooding de pi-495 atteint G2, construit le candidat et l'intègre sous le contrôleur identifié au départ" }
