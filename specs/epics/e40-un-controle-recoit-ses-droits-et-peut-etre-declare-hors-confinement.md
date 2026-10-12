@@ -2,7 +2,8 @@
 
 Statut : à faire
 Point de départ : `b3e88aa9`, branche main, le 11 octobre 2026.
-Décision : `specs/adr/D-90-un-controle-recoit-ses-droits-du-proprietaire-et-peut-etre-declare-hors-confinement.md`.
+Décision : `specs/adr/D-90-un-controle-recoit-ses-droits-du-proprietaire-et-peut-etre-declare-hors-confinement.md`, dont la
+règle 3 est remplacée par `specs/adr/D-92-un-dossier-a-proposer-se-releve-dans-ce-qu-une-suite-ecrit-sur-un-double-de-la-copie.md`.
 Étude : `specs/spikes/confinement-de-l-execution-dans-d-autres-projets.md`, close le 11 octobre.
 
 ## Résultat pour le propriétaire
@@ -58,7 +59,8 @@ Essais du 11 octobre sur cette machine (macOS 27, Apple Silicon), décrits dans 
 - Sous un profil Seatbelt qui restreint quoi que ce soit, `sandbox-exec` refuse un second profil, sauf profil
   identique. Aucun des dix-sept projets lus ne contourne ce refus.
 - Les refus de Seatbelt se lisent en direct par `/usr/bin/log stream`, avec le processus, l'opération et le chemin
-  réel ; `log show` ne les rend pas après coup.
+  réel ; `log show` ne les rend pas après coup. Le 12 octobre, ce journal s'est révélé perdre des lancements entiers,
+  sans le signaler (`D-92`) : la proposition se relève dans la copie.
 
 ## Partie 1 — Les droits d'un contrôle viennent du propriétaire, jamais du candidat
 
@@ -66,8 +68,7 @@ Essais du 11 octobre sur cette machine (macOS 27, Apple Silicon), décrits dans 
 | --- | --- | --- |
 | e40s01 | git, dans un contrôle, ne lit ni la configuration globale ni la configuration système de l'hôte | Aucun |
 | e40s02 | Le propriétaire donne à un contrôle, détecté ou déclaré, un dossier inscriptible de la copie dans la configuration du contrôleur. Le contrôleur crée ce dossier avant l'exécution. Un lien ou un fichier que le candidat y a mis fait refuser, et aucun droit ne s'accorde par la cible d'un lien | Aucun |
-| e40s03 | Sous macOS, une écriture refusée à la première exécution est lue dans les refus que le noyau publie en direct pour les processus du contrôle, et proposée au propriétaire : chemin, contrôle, cible. Adoptée, elle s'inscrit dans la configuration du contrôleur. Sans le propriétaire, rien n'est accordé | e40s02 |
-| e40s04 | Sous Linux, la proposition vient des chemins lus dans la sortie du contrôle, et le propriétaire la voit comme une indication du candidat, non vérifiée | e40s03 |
+| e40s03 | Après une préparation refusée, la suite est relancée une fois sur un double jetable de la copie où elle peut écrire, sous macOS comme sous Linux, et les dossiers qu'elle y crée sont proposés au propriétaire : chemins, contrôle. Adoptée, la proposition s'inscrit dans la configuration du contrôleur. Sans le propriétaire, rien n'est accordé | e40s02 |
 | e40s05 | Le dogfooding de pi-495 atteint G2, construit le candidat et l'intègre sous le contrôleur identifié au départ, avec `suite_paths` tel que `e38s13` l'a laissé | e40s01, e40s02 |
 
 ## Partie 2 — Le propriétaire peut déclarer un contrôle hors confinement
@@ -89,6 +90,8 @@ Essais du 11 octobre sur cette machine (macOS 27, Apple Silicon), décrits dans 
   compris, et n'y lance ni Docker ni VM (`D-90`).
 - La lecture reste permise hors de la liste des secrets, et un contrôle n'écrit toujours pas les caches des outils
   (`D-76`).
+- Aucune proposition ne se lit dans la sortie d'un contrôle : le relevé d'e40s03 vaut sous Linux comme sous macOS, et
+  la story Linux qui devait la lire est retirée du plan (`D-92`).
 - `BUG-2026-10-11T013000` : e40s01 corrige sa partie git. Sa partie Seatbelt — la qualification lit la plateforme et
   non un vrai profil, si bien que 495 se croit qualifié sous un autre Seatbelt — reste au registre.
   `BUG-2026-10-11T105300` est corrigé par e40s07.

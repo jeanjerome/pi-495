@@ -1,6 +1,6 @@
 # D-90: Un contrôle reçoit ses droits du propriétaire, jamais du candidat, et le propriétaire peut en déclarer un hors confinement
 
-**Status:** Acceptée (arbitrage du propriétaire, 2026-10-11)
+**Status:** Acceptée (arbitrage du propriétaire, 2026-10-11) ; règle 3 remplacée par `D-92`
 **Date:** 2026-10-11
 
 ## Contexte
