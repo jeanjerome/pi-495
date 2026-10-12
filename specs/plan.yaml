@@ -562,7 +562,7 @@ epics:
       - { id: e40s02, status: "versée", title: "Le propriétaire donne à un contrôle un dossier inscriptible de la copie, créé par le contrôleur, et un lien ou un fichier du candidat fait refuser au lieu d'élargir" }
       - { id: e40s03, status: "versée", title: "Après une préparation refusée, les dossiers que la suite écrit sur un double de la copie sont proposés au propriétaire, qui seul les accorde" }
       - { id: e40s05, status: "versée", title: "Le dogfooding de pi-495 atteint G2, construit le candidat et l'intègre sous le contrôleur identifié au départ" }
-      - { id: e40s06, status: "à faire", title: "Le propriétaire déclare et adopte un contrôle hors confinement, que le candidat ne peut ni créer ni étendre et que le verdict nomme" }
+      - { id: e40s06, status: "versée", title: "Le propriétaire déclare et adopte un contrôle hors confinement, que le candidat ne peut ni créer ni étendre et que le verdict nomme" }
       - { id: e40s07, status: "à faire", title: "Les tests de bac à sable de pi-495 tournent dans un contrôle hors confinement, et le dogfooding atteint l'intégration avec toute sa suite" }
 
   # Raccordement prévu : e38s06 réalise la tranche de caractérisation d’une exigence déclarée déjà satisfaite ; le reste de cet epic demeure ouvert.
