@@ -1,0 +1,35 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [],
+  "fermes": [],
+  "resume": "Les six promesses de la story sont tenues par le code et par un test : chaque mutation d'une ligne porteuse fait échouer son test. Scénario 1 (isolement de deux lancements) — retirer le repère de la deny-default casse les deux tests Seatbelt (0/2). Scénario 2 (évidence : les deux écritures, test-output relatif, l'autre absolu) — tenu ; le cas A1-3 (copie donnée par un chemin ≠ réel) est désormais couvert par b6eba94d : retirer la racine realpath des roots fait échouer le test. Scénarios 3/4 (premier niveau de la copie, rien hors copie, rien sans écriture refusée) — retirer le garde d'empreinte vide fait échouer le test v0. Scénario 5 — retirer `...file` (perte de `language`) et retirer la fusion `...given` (perte de `coverage/` déjà donné) font chacun échouer le test v2 : le manque A1-1/B1-1 du tour 1 est corrigé par ce416d2d. Scénario 6 — neutraliser la garde `option_id === \"grant_writable\"` fait échouer le test.\n\nSécurité attaquée, aucun contournement : la garantie « le refus vient du noyau, pas du contrôle » repose sur un repère UUID aléatoire par lancement. J'ai vérifié que sandbox-exec se remplace par exec : le repère ne vit que dans l'argv parent transitoire, absent de tout argv de processus confiné vivant ; un confiné ne peut énumérer les processus (`ps` → Operation not permitted) et le repère n'est ni dans son argv ni dans son env. Forger une ligne passant le prédicat `ENDSWITH \"${marker}\"` est infaisable. Garde par le propriétaire, borne hors-copie, et « la sortie du contrôle n'est jamais lue » (la proposition lit le journal noyau, pas stdout) sont tenues.\n\nRésidu non relevé (A1-2, déjà traité au tour 1) : des deux attentes de minutage, be8b1be6 tient maintenant de façon fiable l'attente du témoin (retrait → échec 5/5), mais l'attente du démarrage de `log` n'est encore attrapée qu'environ 1/5 sous mutation. Aucune promesse listée n'en dépend (le portage des écritures refusées est tenu par le test concurrent et par le témoin), et A1-2 est une observation déjà traitée que la consigne demande de ne pas recompter : je le signale ici sans en faire un constat. Aucun contournement du tour précédent à rejouer."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Une suite préparée refusée en écriture dans la copie fait proposer le dossier au propriétaire",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/seatbelt-refusals.ts",
+    "ligne": 9,
+    "constat": "`REFUSAL` lit le nom du processus avec un `(.+)` gourmand, donc le nom du fichier que le code confiné tente de créer peut ressembler à une seconde ligne de refus. Une suite préparée qui tente d'écrire, à la racine de la copie, le fichier nommé `a(1) deny(1) file-write-create ..` donne, dans l'évidence, le chemin `..` et un processus `node(<pid>) deny(1) file-write-create /…/copy/a`. `offeredWritableDirectories` propose alors `../`, et `grant_writable` écrirait `../` sous `policy.writable_paths.unit` dans config.json, puisque le contrat n'impose qu'une longueur minimale de 1. Sondé sous Seatbelt avec GenericControlRunner : refused_writes = [{process:'node(11578) deny(1) file-write-create /…/copy/a', path:'..'}, {…, path:'src'}] et dossiers proposés = ['../','src/']. Au lancement, `profileFor` écarte ensuite `../` parce qu'il sort de la copie. Mais la proposition et l'écriture de config.json débordent la borne. Le propriétaire voit aussi un chemin (`..`, `src`) que le code n'a jamais tenté d'écrire.",
+    "contournement": "« seul un dossier de la copie, son premier niveau sous la copie, est proposé » et « Le chemin, lui, est celui que le code a tenté d'écrire. Le propriétaire voit donc le chemin exact et le dossier proposé avant de répondre. »"
+   },
+   {
+    "id": "B2-2",
+    "scenario": "Sous Seatbelt, l'observation d'un lancement porte les écritures que le noyau lui a refusées, et seulement les siennes",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/seatbelt-refusals.ts",
+    "ligne": 42,
+    "constat": "Le nouveau test tue la mutation qui ferme la lecture sans attendre le témoin : il a échoué trois fois sur trois. En revanche, retirer `await bounded(ready)` laisse les deux tests verts, trois fois sur trois. L'attente du démarrage de `log` n'est donc toujours tenue par aucun test. La promesse elle-même tient. Ce constat ne fait que compléter A1-2 et n'est pas compté de nouveau.",
+    "mutation": "`await bounded(ready);` retiré : seatbelt-refused-writes.test.ts reste vert (2/2, trois exécutions) ; `if (witnessed()) resolve();` remplacé par `resolve();` : le nouveau test échoue (trois exécutions)"
+   }
+  ],
+  "fermes": [],
+  "resume": "Les six promesses sont tenues par le code, et un test les tient. B1-1/A1-1 sont désormais tenus : le test relit `language` et `coverage/`. A1-3 aussi : si `copyRelative` ne reçoit que la copie telle qu'elle est donnée, le test de l'évidence échoue. Côté application, chaque mutation essayée est tuée par le test v2 : sans le remplacement de la politique, si les écritures montrées ne sont plus filtrées hors de la copie, ou si `grant_writable` n'est plus compté comme une préparation. La section Sécurité est en revanche contournée (B2-1). La regex `REFUSAL` lit le nom du processus avec un motif gourmand. Une suite préparée qui tente de créer à la racine de la copie un fichier nommé `a(1) deny(1) file-write-create ..` fait donc lire le chemin `..`, si bien que `../` est proposé au propriétaire et peut être écrit dans config.json. Un nom en `… src` fait de même proposer `src/` avec un chemin que le code n'a pas tenté d'écrire. Ce contournement a été sondé en vrai sous Seatbelt. Il est bloquant."
+ }
+]

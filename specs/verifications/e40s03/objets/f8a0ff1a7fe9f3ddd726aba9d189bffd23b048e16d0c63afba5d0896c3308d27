@@ -1,0 +1,66 @@
+TAP version 13
+# Subtest: the evidence of a control refused writes under Seatbelt
+    # Subtest: l'évidence d'un contrôle refusé en écriture sous Seatbelt porte test-output relatif à la copie et le fichier voisin par son chemin absolu, avec le processus et l'opération
+    not ok 1 - l'évidence d'un contrôle refusé en écriture sous Seatbelt porte test-output relatif à la copie et le fichier voisin par son chemin absolu, avec le processus et l'opération
+      ---
+      duration_ms: 52.501541
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-iYXEno/test/v1-adapters/control-refused-writes.test.ts:19:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + undefined
+        - [
+        -   {
+        -     operation: 'file-write-create',
+        -     path: 'test-output',
+        -     process: 'node'
+        -   },
+        -   {
+        -     operation: 'file-write-create',
+        -     path: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-iYXEno/test-output/control-refused-i0n6jo/beside/f.txt',
+        -     process: 'node'
+        -   }
+        - ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0:
+          process: 'node'
+          operation: 'file-write-create'
+          path: 'test-output'
+        1:
+          process: 'node'
+          operation: 'file-write-create'
+          path: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-iYXEno/test-output/control-refused-i0n6jo/beside/f.txt'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-iYXEno/test/v1-adapters/control-refused-writes.test.ts:40:10)
+        process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the evidence of a control refused writes under Seatbelt
+  ---
+  duration_ms: 53.11725
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-iYXEno/test/v1-adapters/control-refused-writes.test.ts:18:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 320.883833

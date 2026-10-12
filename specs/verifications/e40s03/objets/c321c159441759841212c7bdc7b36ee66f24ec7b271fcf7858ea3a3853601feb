@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the survey of a control's writes
+    # Subtest: le relevé d'un contrôle sous le confinement de la plateforme rend test-output/run/a et src/a.txt relatifs à la copie, aucun chemin hors d'elle, et rien n'est écrit dans le dossier voisin, ni directement ni par le lien
+    ok 1 - le relevé d'un contrôle sous le confinement de la plateforme rend test-output/run/a et src/a.txt relatifs à la copie, aucun chemin hors d'elle, et rien n'est écrit dans le dossier voisin, ni directement ni par le lien
+      ---
+      duration_ms: 40.811333
+      type: 'test'
+      ...
+    # Subtest: sous Seatbelt, le relevé d'un contrôle qui crée tmp-run/x puis efface tmp-run rend tmp-run/x
+    ok 2 - sous Seatbelt, le relevé d'un contrôle qui crée tmp-run/x puis efface tmp-run rend tmp-run/x
+      ---
+      duration_ms: 33.670542
+      type: 'test'
+      ...
+    # Subtest: le relevé d'un contrôle ne rend pas ce qu'il écrit sous un chemin qui lui est déjà donné
+    ok 3 - le relevé d'un contrôle ne rend pas ce qu'il écrit sous un chemin qui lui est déjà donné
+      ---
+      duration_ms: 33.262833
+      type: 'test'
+      ...
+    # Subtest: après le relevé d'un contrôle sous le confinement de la plateforme, un processus qu'il a détaché n'écrit plus dans la copie, ni par son répertoire, ni par un chemin absolu, ni par celui de la copie, et ne la recrée pas une fois supprimée
+    ok 4 - après le relevé d'un contrôle sous le confinement de la plateforme, un processus qu'il a détaché n'écrit plus dans la copie, ni par son répertoire, ni par un chemin absolu, ni par celui de la copie, et ne la recrée pas une fois supprimée
+      ---
+      duration_ms: 2075.882417
+      type: 'test'
+      ...
+    1..4
+ok 1 - the survey of a control's writes
+  ---
+  duration_ms: 2184.228209
+  type: 'suite'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2444.312625

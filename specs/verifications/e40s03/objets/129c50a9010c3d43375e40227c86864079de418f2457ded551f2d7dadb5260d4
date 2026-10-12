@@ -1,0 +1,55 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité — le double est une copie jetable de la référence et des fichiers préparés, supprimée après le relevé",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/application/phases/prepare.ts",
+    "ligne": 237,
+    "constat": "Sous Seatbelt, la suite d'une préparation refusée qu'on relève peut poser le drapeau utilisateur immuable (`/usr/bin/chflags uchg`) sur un fichier du double. Ce droit fait partie de `file-write*`, que `surveyProfile` accorde sous le préfixe du double (write-survey.ts:68). `removeCopy` ne fait que des `chmod` et échoue alors en EPERM, et `deleteCopy` avale l'échec : le double reste sur l'hôte sous `<copie>.<horodatage>.deleted`, avec les octets que l'agent a choisis, et la préparation continue jusqu'à IH-04. Sondé de bout en bout par un test jetable : `GitWorkspace.closeWorkspace` lève `EPERM: operation not permitted, unlink '…/workspaces/ws_…_1.….deleted/keep/payload'` et `workspaces/` garde le dossier.",
+    "contournement": "Le double est une copie jetable de la référence et des fichiers préparés, supprimée après le relevé : une suite relevée qui fait `chflags uchg keep/payload` dans le double (exécution de processus et file-write-flags autorisés sous le préfixe du double) obtient que le double survive au relevé, `deleteCopy` ne faisant que le signaler."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Le relevé d'un contrôle rend les chemins qu'il écrit dans la copie / Le relevé reste confiné (sous bubblewrap)",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/backends.ts",
+    "ligne": 229,
+    "constat": "Sur la machine de la relecture (macOS), aucun test n'exécute le chemin bubblewrap du relevé : bind du dossier à portée de l'exécution, `--unshare-pid` à la place de `--proc`. Ces mutants survivent faute d'exécution. Les tests « confined » de control-write-survey.test.ts couvrent ce chemin sous Linux, mais je ne les ai pas rejoués là.",
+    "mutation": "backends.ts:229 `scoped.length > 0` → `true`/`false` : rejoué sous Linux, aucun test ne l'exécute (outil)"
+   }
+  ],
+  "fermes": [],
+  "resume": "Les dix scénarios sont tenus par le code et par un test qui échoue sous mutation. Scénario 1 : le test de sandbox.test.ts surveille les `log stream` descendants, et le code n'en démarre plus. Scénarios 2 et 3 : un mutant qui accorde le parent du double fait échouer le test de confinement (direct.txt et through-link.txt écrits dehors). Scénario 4 : retirer unremovable_paths fait échouer le test tmp-run. Scénario 5 : relever aussi la préparation retenue fait échouer le test noyau. Scénarios 6 et 7 : retirer les chemins de l'effet fait échouer le test noyau. Scénarios 8 et 9 : le test noyau échoue si la condition grant_writable est retirée, si l'écriture de config.json est retirée, si les autres réglages sont perdus, ou si grant_writable ne compte plus comme préparation accordée. Scénario 10 : retirer `..` du filtre fait échouer le test v0. Le filtre des chemins absolus est un mutant équivalent : le premier segment vide est déjà écarté. Côté sécurité, j'ai sondé sous Seatbelt : un lien physique vers un fichier hors du double est refusé (EPERM) ; seule l'IH-04 de l'interface Pi peut répondre grant_writable ; facts.written vient du runner, après les faits du lecteur. Un contournement est trouvé (A1-1) : la suite relevée pose `chflags uchg` dans le double, qui survit alors à sa suppression, que deleteCopy ne fait que signaler. Le chemin bubblewrap n'a pas été rejoué faute de Linux (A1-2, à peser)."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — le double est une copie jetable de la référence et des fichiers préparés, supprimée après le relevé",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/workspace/git-workspace.ts",
+    "ligne": 198,
+    "constat": "Sous Seatbelt, le relevé donne à la suite `file-write*` sur tout le contenu du double, donc aussi le droit de changer les drapeaux d'un fichier. Une suite préparée qui exécute `chflags uchg keep/f` rend le double impossible à supprimer. `removeCopy` remet les modes en état mais pas les drapeaux, donc son `rm` échoue en EPERM. `deleteCopy` (`src/application/phases/prepare.ts:237`) se contente alors de signaler l'échec, et le double reste sur l'hôte sous `workspaces/<id>.<ts>.deleted`, avec ce que la suite y a écrit. Reproduit avec un test jetable par makeHarness({ sandbox: \"platform\" }) : IH-04 est posée en proposant `keep/` ; les messages disent « could not be deleted (EPERM … unlink …/keep/f) » ; `readdirSync(workspaces)` contient les copies `.deleted`. Le relevé est le seul chemin par lequel une suite préparée obtient un droit d'écriture sur tout le double. Avant la branche, un échec de suppression interrompait la préparation au lieu d'être dit puis ignoré. Correctifs possibles : retirer `uchg`/`uappnd` dans `removeCopy` (`chflags -R -h nouchg,nouappnd` sous darwin), ou refuser `file-write-flags` sur le double dans le profil du relevé.",
+    "contournement": "Le double est une copie jetable de la référence et des fichiers préparés, supprimée après le relevé : la suite relevée obtient que le double et ce qu'elle y a écrit survivent au relevé sur l'hôte."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Sécurité — supprimée après le relevé ; un processus détaché par le relevé ne recrée pas le chemin du double",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "test/v1-adapters/control-write-survey.test.ts",
+    "ligne": 167,
+    "constat": "Aucun test ne tient le fait que la règle Seatbelt du relevé ne donne pas le dossier `<copie>.surveyed` lui-même (`prefix \"…/\"` plutôt que `subpath`). Le processus détaché du test lit `process.cwd()` au démarrage, alors que la copie a déjà repris son nom d'origine. Il ne tente donc jamais de recréer `<copie>.surveyed`, et l'assertion `existsSync(started.cwd) === false` est vide. Avec la mutation, ce processus pourrait recréer `<copie>.surveyed` après le relevé et y écrire hors de toute suppression. Vérifié : avec la mutation et un processus orphelin qui vise `process.argv[1] + '.surveyed'`, le test échoue (« a process of the run recreated where it was run ») ; sans la mutation, il passe.",
+    "mutation": "src/adapters/sandbox/backends.ts:146 `(allow file-write* (prefix \"<réel>/\"))` → `(allow file-write* (subpath \"<réel>\"))` : test/v1-adapters/control-write-survey.test.ts reste vert (5/5)."
+   }
+  ],
+  "resume": "J'ai relu la story e40s03 au tour 1 (relecteur B), sur la tête 7303c125. Le verdict est `fail` : un contournement est bloquant et un test manque.\n\n**Contournement (B1-1, bloquant).** Une suite relevée qui pose `chflags uchg` sur un fichier de son double empêche sa suppression. `removeCopy` remet les modes en état mais pas les drapeaux, donc la suppression échoue. `deleteCopy` le signale puis continue. Le double reste alors dans `workspaces/` avec ce que la suite y a écrit, contre la garantie « supprimée après le relevé ». Je l'ai reproduit de bout en bout sous Seatbelt avec un test jetable, depuis le harnais du noyau (makeHarness, `sandbox: \"platform\"`), jusqu'à la question IH-04.\n\n**Test manquant (B1-2, à corriger).** Aucun test ne tient la règle `prefix` qui empêche de recréer `<copie>.surveyed`. La mutation `prefix` → `subpath` survit, parce que le processus orphelin du test lit son répertoire courant après que la copie a repris son nom d'origine. Avec un orphelin qui vise le bon chemin, le test échoue sous la mutation.\n\n**Promesses tenues par le code et par un test.** Chaque mutation ci-dessous fait échouer le test du scénario :\n- **Aucun `log stream`** sous Seatbelt : le test de sandbox.test.ts.\n- **Chemins rendus relatifs à la copie** : retirer la détection d'un fichier modifié est détecté.\n- **Écritures confinées** : le test vérifie que le dossier voisin reste vide, ni écrit directement ni par le lien. Donner le parent du double est détecté.\n- **Parcours sans suivre les liens** : `lstat` → `stat` est détecté.\n- **`tmp-run/x` relevé sous Seatbelt** : retirer `unremovable_paths` est détecté.\n- **Seule une préparation refusée est relevée** : relever même une préparation retenue est détecté.\n- **Rien n'est proposé sans chemin relevé.**\n- **Le parent de la copie n'est jamais proposé** : retirer le filtre `..` est détecté.\n- **Écriture de `config.json`** : réécrire le fichier sans ses autres réglages est détecté, de même qu'écrire sur une autre réponse que `grant_writable`.\n- **Préparation supplémentaire accordée** et **contrôle figé portant `test-output/`** : ne pas recharger la politique, ou ne pas compter `grant_writable`, est détecté.\n\n**Mutants survivants sans effet sur une promesse.** Deux mutants survivent sans changer le comportement : le garde sur une offre vide dans `writableOffer`, et le filtre des chemins absolus.\n\n**Tentatives de contournement repoussées sous Seatbelt** :\n- un lien dur vers un fichier de l'hôte ;\n- des chemins en `..` ;\n- un dossier voisin dont le nom prolonge celui de la copie ;\n- un lien vers le parent ;\n- un renommage, un `chmod` ou la suppression du double lui-même.\n\n**Non relu ici.** Les lignes propres à bubblewrap (dont les mutants listés) ne s'exécutent pas sous macOS : je ne les ai pas sondées. Le test du relevé qui tourne sous le confinement de la plateforme les couvre sous Linux."
+ }
+]

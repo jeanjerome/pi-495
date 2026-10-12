@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the directories of the copy a prepared suite could not write are offered to the owner
+    # Subtest: après des préparations refusées dont la suite crée test-output/run/a et tente d'écrire hors de la copie, la question IH-04 offre grant_writable pour test-output/ au contrôle unit avec les chemins relevés et rien pour le chemin hors de la copie ; quand la suite n'écrit rien, elle ne l'offre pas
+    ok 1 - après des préparations refusées dont la suite crée test-output/run/a et tente d'écrire hors de la copie, la question IH-04 offre grant_writable pour test-output/ au contrôle unit avec les chemins relevés et rien pour le chemin hors de la copie ; quand la suite n'écrit rien, elle ne l'offre pas
+      ---
+      duration_ms: 1222.141791
+      type: 'test'
+      ...
+    # Subtest: la réponse grant_writable écrit test-output/ sous policy.writable_paths.unit dans config.json en gardant suite_paths et le nom de la politique, accorde une préparation de plus, et le contrôle unit figé porte test-output/ ; la réponse préparer laisse config.json inchangé et aucun contrôle figé ne porte test-output/
+    ok 2 - la réponse grant_writable écrit test-output/ sous policy.writable_paths.unit dans config.json en gardant suite_paths et le nom de la politique, accorde une préparation de plus, et le contrôle unit figé porte test-output/ ; la réponse préparer laisse config.json inchangé et aucun contrôle figé ne porte test-output/
+      ---
+      duration_ms: 2262.3975
+      type: 'test'
+      ...
+    1..2
+ok 1 - the directories of the copy a prepared suite could not write are offered to the owner
+  ---
+  duration_ms: 3485.088167
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3744.538959

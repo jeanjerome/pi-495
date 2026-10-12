@@ -1,0 +1,86 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité — le double est une copie jetable, supprimée après le relevé",
+    "categorie": "bloquant",
+    "placement": "rendu_atteignable",
+    "fichier": "src/adapters/execution/write-survey.ts",
+    "ligne": 153,
+    "constat": "Le relevé donne à la suite tout le double en écriture, et donc file-write-mode : seule la suppression est refusée. Une suite qui crée locked/sub/f puis fait chmod 000 sur locked rend le double impossible à supprimer : closeWorkspace (rm récursif, force) échoue en EACCES, onPreparedCopy relance l'erreur et prepare lève l'exception. Résultat : le double reste sur le disque, aucun enregistrement de préparation n'est écrit, le changement reste en preparing et l'IH-04 n'est jamais posée. Sondé par le noyau (makeHarness, sandbox platform, racine de données hors des dossiers temporaires) : advance lève « EACCES: permission denied, scandir …/workspaces/ws_…_5/locked », et ws_…_5 reste avec locked en mode d---------. Avec le relevé neutralisé, la même suite mène à l'IH-04 avec 2 préparations enregistrées.",
+    "mutation": "prepare.ts : `!qualified && files.length > 0 && sensor` → `false && sensor` (relevé neutralisé) : le même changement arrive à l'IH-04 et le dossier verrouillé ne bloque plus rien",
+    "contournement": "« le double est une copie jetable de la référence et des fichiers préparés, supprimée après le relevé »"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Sécurité — le double est une copie jetable, supprimée après le relevé ; le droit d'écrire dans tout le double est borné au relevé",
+    "categorie": "bloquant",
+    "placement": "rendu_atteignable",
+    "fichier": "src/adapters/execution/write-survey.ts",
+    "ligne": 153,
+    "constat": "runProcess ne tue le groupe de processus qu'en cas de délai dépassé ou d'abandon. Un processus que la suite détache (spawn detached, stdio ignoré) survit donc au relevé sous le profil du relevé. Comme ce profil donne la racine même du double (subpath copy), ce processus recrée le double après sa suppression et y écrit. Sondé par GenericControlRunner + SeatbeltSandbox avec survey_writes : verdict PASS, written [] ; rm du double ; 3 s plus tard, le double existe de nouveau et contient test-output/after-delete. Rien n'y rejoint la préparation, la référence ni le candidat, car l'identifiant de l'espace de travail n'est pas réutilisé. Mais le double n'est pas supprimé après le relevé, et du code de l'agent continue d'y écrire après la fin du relevé. Avant la branche, le profil d'un contrôle ne donnait jamais la racine de la copie, donc rien ne pouvait la recréer.",
+    "contournement": "« le double est une copie jetable …, supprimée après le relevé » — le droit d'écrire dans tout le double survit au relevé"
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Sécurité — 495 parcourt le double sans suivre les liens",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/write-survey.ts",
+    "ligne": 120,
+    "constat": "Aucun test ne tient le parcours sans suivre les liens. Si on remplace lstat par stat dans listCopy, les trois tests de control-write-survey restent verts, parce que le lien out du test mène à un dossier vide. Je n'ai trouvé aucun contournement sous Seatbelt : renommer ou supprimer un dossier du double y est refusé (EPERM), donc on ne peut pas le remplacer par un lien pendant le parcours.",
+    "mutation": "write-survey.ts:120 `lstat(join(copy, path), …)` → `stat(join(copy, path), …)` : les 3 tests de test/v1-adapters/control-write-survey.test.ts passent"
+   },
+   {
+    "id": "A1-4",
+    "scenario": "Le relevé d'un contrôle rend les chemins qu'il écrit dans la copie",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/write-survey.ts",
+    "ligne": 29,
+    "constat": "Aucun test n'exécute le cas d'un dossier que le relevé laisse illisible (EACCES/EPERM → liste vide). La sonde montre qu'un tel dossier n'est relevé que par sa propre entrée : written vaut [\"locked\"], sans locked/sub/f. Aucune promesse de la story ne porte sur ce cas.",
+    "mutation": "mutants signalés par l'outil sur write-survey.ts:27 et :29, survivants parce que la ligne n'est pas exécutée"
+   }
+  ],
+  "fermes": [],
+  "resume": "Les dix promesses sont tenues par le code, et un test fait échouer chaque mutation essayée : P1 (log stream réintroduit dans SeatbeltSandbox.run → sandbox.test rouge) ; P2 (détection des modifications retirée, chemins rendus absolus → rouge) ; P3 (parent de la copie ajouté aux write_paths → rouge) ; P4 (unremovable_paths vidé → rouge) ; P5 (!qualified retiré, survey_writes:false → rouge) ; P6 (chemins retirés de l'effet → rouge) ; P8/P9 (écriture de config.json neutralisée ou faite pour toute issue → rouge) ; P10 (filtre de '..' retiré → rouge). P7 a deux gardes redondantes, decisions.ts:828 et verification-design. Parmi les mutants de l'outil, « (deny default) → \"\" » (Seatbelt refuse déjà par défaut), le filtre des chemins absolus (le split les élimine) et le repli [] de verification.ts:446 sont équivalents ou hors promesse. En attaquant la section Sécurité, j'ai trouvé deux contournements de la garantie « double supprimé après le relevé », tous deux rendus atteignables parce que le relevé donne toute la racine du double en écriture. (1) Un chmod 000 dans le double fait échouer sa suppression : le double reste sur le disque, prepare lève EACCES, aucun enregistrement n'est écrit et l'IH-04 n'est jamais posée. (2) Un processus détaché survit au relevé et recrée le double après sa suppression. Sous Seatbelt, le lien dur vers l'hôte et le remplacement d'un dossier par un lien sont refusés. Aucun test ne tient le parcours sans suivre les liens (lstat→stat survit). Verdict : fail."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le relevé reste confiné (Sécurité : 495 parcourt le double sans suivre les liens)",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/write-survey.ts",
+    "ligne": 34,
+    "constat": "The code holds the guarantee: the listing uses lstat and never walks through a link. No test holds it, though. The link in the existing test points at a directory the sandbox cannot write, so a listing that follows links still finds nothing there. A throwaway test (not committed) used a link to a place the control may write (a temp_path) and a suite that writes out/through-link.txt through it: at HEAD `written` is [], and under the mutation it is [\"out/through-link.txt\"], a file that lies outside the copy. This is outside the scenario's Given (the write through the link fails there), so it goes under à peser.",
+    "mutation": "import { lstat } → import { stat as lstat } in write-survey.ts: control-write-survey.test.ts stays green (3/3); the throwaway test fails"
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Sécurité : le double est une copie jetable, supprimée après le relevé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/application/phases/prepare.ts",
+    "ligne": 228,
+    "constat": "The code deletes the disposable copy in the finally of onPreparedCopy, for the judgement and for the survey. No test holds that deletion: with the closeWorkspace call removed, the tests stay green. The copy is separate from the preparation and the candidate either way, so nothing the suite writes there joins them even without the deletion.",
+    "mutation": "closeWorkspace(copy.workspace_id, \"delete\") → void 0: write-survey.test.ts, writable-proposal.test.ts (v2) and preparation.test.ts stay green (3/3, 23/23)"
+   },
+   {
+    "id": "B1-3",
+    "scenario": "Sécurité : un lien vers l'hôte ne fait rien lister au-delà de son nom",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/write-survey.ts",
+    "ligne": 27,
+    "constat": "The listing after the run calls lstat, then readdir on the same path. A process the suite leaves running (runProcess kills the group only on timeout or abort) could, between those two calls, atomically swap a directory of the copy for a link to the host, and readdir would then follow it. Under Seatbelt this is shut: the survey profile denies unlink in the copy, and I checked that rename and renamex_np(RENAME_SWAP) are refused (EPERM). Under bubblewrap, which ignores unremovable_paths and does not kill orphans (--die-with-parent without --unshare-pid), the path looks open through RENAME_EXCHANGE. I did not run it on Linux, so no bypass is demonstrated. Running this race under bwrap is what would change the answer."
+   }
+  ],
+  "fermes": [],
+  "resume": "The code keeps all ten promises, and a test that fails under mutation holds each of them. Scenario 1: no log stream is left in src/, and putting a `log stream` spawn back into SeatbeltSandbox.run fails the sandbox.test.ts test. Scenario 2: dropping the modification signature, writing write_paths back in place of the copy, or dropping `written` from the facts fails control-write-survey.test.ts. Scenario 4: removing unremovable_paths fails it too. Scenario 5: surveying without `!qualified` fails write-survey.test.ts. Scenarios 6 and 7: the path list and the offer are held by writable-proposal.test.ts (v2). Scenario 10: removing `d !== \"..\"` or `d !== \"\"` fails the v0 test. Scenarios 8 and 9 pass in the v2 test.\n\nThe surviving mutants the tool listed are either equivalent or touch no promise. Without `(deny default)`, Seatbelt still denies by default: checked, the write is refused. The double check `directories.length > 0` in decisions.ts makes the forced offer harmless. The `!startsWith(\"/\")` filter is redundant with the empty-first-segment filter. `?? []` → array adds a deny for a path that does not exist. The EACCES/EPERM catch and the `[]` fallback in surveyPreparedSuite belong to no scenario.\n\nSecurity, probed by attacking:\n- Hardlink from the copy to a host file under the survey profile: refused.\n- Rename or RENAME_SWAP of a directory of the copy: refused.\n- Write through a link: refused, with nothing listed beyond the link.\n- The grant only goes through ctx.ui.select with a human origin, and the effect showing the paths is printed before the answer.\n\nNo bypass found. Three à peser findings: two security guarantees no test holds (not following links, deleting the copy), and a race that is closed under Seatbelt but not probed under bubblewrap."
+ }
+]

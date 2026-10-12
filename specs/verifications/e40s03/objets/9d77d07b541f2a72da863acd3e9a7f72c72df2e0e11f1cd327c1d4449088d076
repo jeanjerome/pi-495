@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: the evidence of a control refused writes under Seatbelt
+    # Subtest: l'évidence d'un contrôle refusé en écriture sous Seatbelt porte test-output relatif à la copie et le fichier voisin par son chemin absolu, avec le processus et l'opération
+    ok 1 - l'évidence d'un contrôle refusé en écriture sous Seatbelt porte test-output relatif à la copie et le fichier voisin par son chemin absolu, avec le processus et l'opération
+      ---
+      duration_ms: 50.710459
+      type: 'test'
+      ...
+    # Subtest: un fichier de la copie dont le nom imite un second refus est lu comme le chemin que le code a tenté d'écrire, et seul ce nom est proposé, jamais un chemin hors de la copie
+    ok 2 - un fichier de la copie dont le nom imite un second refus est lu comme le chemin que le code a tenté d'écrire, et seul ce nom est proposé, jamais un chemin hors de la copie
+      ---
+      duration_ms: 51.285375
+      type: 'test'
+      ...
+    1..2
+ok 1 - the evidence of a control refused writes under Seatbelt
+  ---
+  duration_ms: 102.5105
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 363.545541

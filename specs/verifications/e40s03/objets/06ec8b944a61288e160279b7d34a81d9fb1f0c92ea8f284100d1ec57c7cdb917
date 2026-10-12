@@ -1,0 +1,56 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Le dossier accordé est écrit dans la configuration du contrôleur et porté par le protocole figé",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/extension/config.ts",
+    "ligne": 240,
+    "constat": "Le code garde les autres réglages, puisqu'il écrit `{ ...file, policy: … }`. Mais le test ne vérifie que `written.policy`. Le réglage `language: \"en\"`, que la configuration de la fixture porte hors de `policy`, n'est jamais relu après l'écriture. Une écriture qui perd tout réglage placé hors de `policy` laisse donc le test vert, et la partie « garde ses autres réglages » du Then n'est tenue par aucun test au-delà de la politique.",
+    "mutation": "`const written = { ...file, policy: {…} }` remplacé par `const written = { policy: {…} }` : test/v2-kernel/writable-proposal.test.ts reste vert (2 réussis sur 2)."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Sous Seatbelt, l'observation d'un lancement porte les écritures que le noyau lui a refusées, et seulement les siennes",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/seatbelt-refusals.ts",
+    "ligne": 42,
+    "constat": "Deux mécanismes fixent le moment de la lecture : l'attente du démarrage de `log`, et l'attente du refus témoin avant de fermer la lecture. Chacun peut être retiré sans faire échouer un test, car sur cette machine les refus arrivent de toute façon avant la fermeture. Sous charge, un refus pourrait manquer sans qu'aucun test ne le voie. La promesse elle-même est tenue : sans le filtre par repère, le test des deux lancements concurrents échoue.",
+    "mutation": "`if (witnessed()) resolve();` remplacé par `resolve();` : vert sur 3 passages. `await bounded(ready);` retiré : vert sur 2 passages. Le retrait du repère dans le prédicat de `log` et dans `refusedWriteOf` fait échouer le test des deux lancements concurrents."
+   },
+   {
+    "id": "A1-3",
+    "scenario": "L'évidence d'un contrôle nomme les écritures refusées",
+    "categorie": "a_peser",
+    "placement": "rendu_atteignable",
+    "fichier": "src/adapters/execution/runner.ts",
+    "ligne": 135,
+    "constat": "Le noyau rapporte le chemin réel, sous /private/var. `copyRelative` ne rend relatif à la copie un chemin écrit par le noyau que grâce à la racine résolue par `realpath`, que la branche réutilise. Or le test de l'évidence donne une copie dont le chemin est déjà réel. Le cas d'une copie passée par son chemin /var/folders, celui d'une copie de production, n'est donc exercé par aucun test.",
+    "mutation": "Non essayée. Retirer `realpath(...)` des racines laisserait vert test/v1-adapters/control-refused-writes.test.ts, dont la copie est déjà résolue par `realpathSync`."
+   }
+  ],
+  "resume": "Le code tient les six promesses. Cinq ont un test qui tue les mutations essayées : test des deux lancements concurrents (sans le repère, le test échoue), évidence (chemin relatif, témoin retiré), offre IH-04 (offre à null, écritures non transmises au relevé de préparation), écriture et comptage de l'accord (getters de policy statiques, grant_writable non compté, config non écrite, politique non adoptée), refus sans accord. Les mutants que l'outil a vus survivre dans seatbelt-refusals.ts sont tués ici : les tests Seatbelt y tournent réellement. Un constat à corriger (A1-1) : « garde ses autres réglages » n'est tenu par un test que pour les réglages de la politique ; supprimer `...file` laisse le test vert alors que la fixture porte `language`. Deux constats à peser : la synchronisation de la lecture des refus n'est tenue par aucun test (A1-2), et une copie au chemin non résolu n'est exercée par aucun test (A1-3). Sécurité, attaquée sans contournement trouvé. Un binaire nommé Sandbox forge bien une ligne d'expéditeur Sandbox hors confinement, mais sous le profil de 495 `log` refuse de tourner (« Cannot run while sandboxed ») et `launchctl submit` échoue, si bien que le repère reste inaccessible au processus confiné. La réponse grant_writable n'écrit qu'après la validation du domaine (décision en attente, provenance humaine), et seulement ce que la question a montré. presentDecisions n'y répond qu'avec une origine humaine et une interface. Sous Seatbelt, le fait refused_writes du runner écrase celui d'un lecteur, et aucun lecteur de 495 ne recopie de clé arbitraire. Un chemin hors de la copie n'est jamais proposé. Aucune sonde ni mutation n'est commitée ; l'arbre est propre.",
+  "fermes": []
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Le dossier accordé est écrit dans la configuration du contrôleur et porté par le protocole figé",
+    "categorie": "a_corriger",
+    "placement": "introduit",
+    "fichier": "src/extension/config.ts",
+    "ligne": 238,
+    "constat": "The code keeps every other setting when it rewrites config.json. No test checks this outside `policy`: the test writes a configuration that also carries `language: \"en\"` but asserts only `written.policy`. Directories the configuration already gives the `unit` control are never set up, so they are not checked either. The 'garde ses autres réglages' part of the Then is held only for the keys of `policy`.",
+    "mutation": "Line 238 `{ ...file, policy: … }` → `{ policy: … }`, which drops every top-level setting, `language` included: test/v2-kernel/writable-proposal.test.ts stays green. Line 235 `given` → `[]`, which drops the directories config.json already gave the control: it stays green as well."
+   }
+  ],
+  "resume": "The code keeps all six promises; one has a gap in its test.\n\n**S1, refused writes per launch:** `seatbelt-refused-writes.test.ts` holds it. Removing the marker from the `log` predicate alone survives, and so does removing the check on the message's last line alone, because each one covers for the other. Removing both makes the test fail: each launch then also carries the other's write. The surviving mutants on lines 45, 49 and 77 (witness exclusion, wait, de-duplication) leave none of the story's promises without a test. The test passed six runs in a row.\n\n**S2, a control's evidence:** `copyRelative` → `path` is killed.\n\n**S3, the offer after refused preparations:** removing `.filter(inCopy)` from `writableOffer` is killed; the outside path then shows in the option's text. An absolute path is also never offered as a directory, because its first segment is empty.\n\n**S4, no refused write, no offer:** held, and the code checks it in three places.\n\n**S5, the grant is written and frozen:** the count of granted preparations (M7) and the policy read back after the grant (M6) are both killed. The gap is B1-1: nothing tests that the settings outside `policy` survive, nor the directories the control already had.\n\n**S6, another answer grants nothing:** making the write fire on any option of a request that carries `grant_writable` is killed.\n\n**Security, attacked by hand, no bypass found:**\n- Only `conduct.ts` answers a decision, and only with a Pi UI and an owner origin.\n- The harness writes only `request.grant_writable` from the stored request, never what the answer carries.\n- Inside the sandbox, a nested `sandbox-exec` is refused (`sandbox_apply: Operation not permitted`) and `/bin/ps` cannot run. A confined process can therefore neither read another launch's marker nor emit a refusal under it.\n- The kernel reports `copy/sub/../evil` as the resolved path `copy/evil`, so no `..` reaches what is offered.\n- A path at the copy root or outside it stays absolute and is never offered.\n- The writable paths are applied literally and go through the e40s02 check of links and files.\n\nTests run: `seatbelt-refused-writes`, `control-refused-writes`, `v0-pure/writable-proposal` and `v2-kernel/writable-proposal`, plus about ten single-line mutations, each reverted. The tree is clean.",
+  "fermes": []
+ }
+]

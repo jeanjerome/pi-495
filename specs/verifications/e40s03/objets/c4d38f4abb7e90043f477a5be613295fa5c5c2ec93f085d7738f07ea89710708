@@ -1,0 +1,79 @@
+TAP version 13
+# Subtest: the evidence of a control refused writes under Seatbelt
+    # Subtest: l'évidence d'un contrôle refusé en écriture sous Seatbelt porte test-output relatif à la copie et le fichier voisin par son chemin absolu, avec le processus et l'opération
+    ok 1 - l'évidence d'un contrôle refusé en écriture sous Seatbelt porte test-output relatif à la copie et le fichier voisin par son chemin absolu, avec le processus et l'opération
+      ---
+      duration_ms: 52.538542
+      type: 'test'
+      ...
+    # Subtest: un fichier de la copie dont le nom imite un second refus est lu comme le chemin que le code a tenté d'écrire, et seul ce nom est proposé, jamais un chemin hors de la copie
+    not ok 2 - un fichier de la copie dont le nom imite un second refus est lu comme le chemin que le code a tenté d'écrire, et seul ce nom est proposé, jamais un chemin hors de la copie
+      ---
+      duration_ms: 47.53525
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-86WQNe/test/v1-adapters/control-refused-writes.test.ts:51:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          {
+            offered: [
+        +     '../'
+        -     'a(1) deny(1) file-write-create ../'
+            ],
+            writes: [
+              {
+                operation: 'file-write-create',
+        +       path: '..',
+        +       process: 'node(22369) deny(1) file-write-create /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-86WQNe/test-output/control-refused-6G9rxh/copy/a'
+        -       path: 'a(1) deny(1) file-write-create ..',
+        -       process: 'node'
+              }
+            ]
+          }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        writes:
+          0:
+            process: 'node'
+            operation: 'file-write-create'
+            path: 'a(1) deny(1) file-write-create ..'
+        offered:
+          0: 'a(1) deny(1) file-write-create ../'
+      actual:
+        writes:
+          0:
+            process: 'node(22369) deny(1) file-write-create /private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-86WQNe/test-output/control-refused-6G9rxh/copy/a'
+            operation: 'file-write-create'
+            path: '..'
+        offered:
+          0: '../'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-86WQNe/test/v1-adapters/control-refused-writes.test.ts:68:10)
+        process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - the evidence of a control refused writes under Seatbelt
+  ---
+  duration_ms: 100.818
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-86WQNe/test/v1-adapters/control-refused-writes.test.ts:19:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 360.693541

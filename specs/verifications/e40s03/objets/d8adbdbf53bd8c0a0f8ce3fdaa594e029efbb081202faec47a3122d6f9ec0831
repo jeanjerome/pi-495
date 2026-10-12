@@ -1,0 +1,31 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sous Seatbelt, l'observation d'un lancement porte les écritures que le noyau lui a refusées, et seulement les siennes",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/seatbelt-refusals.ts",
+    "ligne": 56,
+    "constat": "Le mutant qui retire l'appel initial `checkWitness()` dans `close` survit. Il ne change aucun résultat : quand le refus témoin est déjà lu avant `close`, la lecture attend la borne de 2 s au lieu de rendre la main tout de suite, puis rend les mêmes écritures. Aucune promesse ne porte sur ce délai. Les autres mutants listés sont équivalents ou déjà au registre : avec /s, le `$` et le `^` de REFUSAL ne changent rien, et `\\d` au lieu de `\\d+` est BUG-2026-10-12T120100. Le test `endsWith` de la ligne 75 double la clause `ENDSWITH` du prédicat : retirer les deux fait échouer le test des lancements concurrents.",
+    "mutation": "seatbelt-refusals.ts:56 `checkWitness();` → `;` : les tests restent verts. Contre-mutation : retirer la clause marqueur du prédicat ET le test endsWith de la ligne 75 fait échouer le test des deux lancements concurrents."
+   }
+  ],
+  "fermes": [
+   "A1-1",
+   "B1-1"
+  ],
+  "resume": "J'ai rejoué A1-1 et B1-1 sous Seatbelt réel, avec GenericControlRunner, à la tête 7519b3db. Noms essayés : `..\\n`, `..\\nx`, `..\\nSandbox: x`, `..\\r\\nx`, et des noms de 255 caractères. Chaque chemin est lu en entier (`..\\nx` et non plus `..`), et chaque dossier proposé reste un nom de la copie (`..\\nx/`, …). `../` n'est jamais proposé : les deux contournements sont fermés.\n\nLe code tient les six promesses, et chacune a un test qui échoue sous mutation :\n- **Scénario 1** : faire tomber le filtrage par repère (prédicat et `endsWith` ensemble), ou faire perdre le processus, fait échouer le test des deux lancements concurrents.\n- **Scénario 2** : rendre `copyRelative` identité, ou vider `refused_writes`, fait échouer les tests v1.\n- **Scénarios 3 et 4** : 11 mutants ont été tués dans les tests v2, v1 et v0. Parmi eux : la proposition retirée, le refus non consigné dans la préparation, `inCopy` toujours vrai, les écritures hors copie citées dans l'effet.\n- **Scénario 5** : ont aussi été tués la politique non relue, les autres réglages perdus dans `config.json`, l'accord non compté comme préparation, et le contrôle figé qui ignore le dossier accordé.\n- **Scénario 6** : l'écriture faite sur n'importe quelle réponse IH-04 est tuée.\n\nLe filtre `inCopy` dans `offeredWritableDirectories` est un mutant équivalent : un chemin absolu donne un premier segment vide, déjà écarté.\n\nSécurité :\n- L'accord ne s'écrit que sur l'option `grant_writable` de la requête enregistrée, et l'IH-04 n'a pas de recommandation.\n- Un chemin hors de la copie reste absolu et n'est jamais proposé.\n- La contrefaçon d'expéditeur Sandbox est déjà ouverte au registre (BUG-2026-10-12T120000). Je n'ai trouvé aucun nouveau chemin par lequel le code confiné apprendrait le repère.\n\nAucun constat bloquant ni à corriger. Le seul constat retenu est à peser : le mutant de la ligne 56 survit, mais il ne coûte qu'une attente de 2 s, sans changer le résultat."
+ },
+ {
+  "constats": [],
+  "fermes": [
+   "A1-1",
+   "B1-1"
+  ],
+  "verdict": "pass",
+  "resume": "Les six promesses de la story sont tenues par le code et par un test : les deux premières par les tests Seatbelt réels (seatbelt-refused-writes, control-refused-writes), les scénarios de proposition par grant-writable-option et writable-proposal, l'écriture dans config.json et le refus sans accord par writable-proposal — j'ai confirmé par mutation (retrait du writeFileSync de grantWritable) que le test v2 échoue, donc la promesse 5 est tenue. Les mutants survivants listés ne laissent aucune promesse sans test : la regex deny(\\\\d+) et ses ancres relèvent de BUG-2026-10-12T120100 (ouvert), le retrait de checkWitness() ligne 56 est une temporisation sans promesse de contenu, et la condition endsWith(end) ligne 75 est redondante avec le prédicat log stream ENDSWITH \\\"<marker>\\\", la séparation par repère étant tenue par le test concurrent. Côté sécurité, l'octroi passe strictement par decision.answer/grant_writable (dialogue humain) et grantWritable préserve le reste de la config ; la proposition reste bornée au premier niveau de la copie. Les failles connues (processus confiné émettant une ligne Sandbox, décompte d'octroi avant écriture) sont déjà au registre. Les deux contournements du tour précédent, A1-1 et B1-1 (saut de ligne réduisant un nom à `..` et faisant proposer `../`), ne passent plus sur la tête : le fix (flag s et lecture du chemin entier jusqu'au repère) donne `..\\\\nx/` et jamais le parent de la copie, vérifié par sonde directe (copyRelative + offeredWritableDirectories) et par le test dédié ; je les cite sous fermes. Aucun constat bloquant ou à corriger introduit ou rendu atteignable, aucun contournement exposé par la branche : verdict pass."
+ }
+]

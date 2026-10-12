@@ -1,0 +1,45 @@
+TAP version 13
+# Subtest: the survey of a control's writes
+    # Subtest: le relevé d'un contrôle sous le confinement de la plateforme rend test-output/run/a et src/a.txt relatifs à la copie, aucun chemin hors d'elle, et rien n'est écrit dans le dossier voisin, ni directement ni par le lien
+    ok 1 - le relevé d'un contrôle sous le confinement de la plateforme rend test-output/run/a et src/a.txt relatifs à la copie, aucun chemin hors d'elle, et rien n'est écrit dans le dossier voisin, ni directement ni par le lien
+      ---
+      duration_ms: 38.270958
+      type: 'test'
+      ...
+    # Subtest: sous Seatbelt, le relevé d'un contrôle qui crée tmp-run/x puis efface tmp-run rend tmp-run/x
+    not ok 2 - sous Seatbelt, le relevé d'un contrôle qui crée tmp-run/x puis efface tmp-run rend tmp-run/x
+      ---
+      duration_ms: 34.2325
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NmHuYn/test/v1-adapters/control-write-survey.test.ts:70:2'
+      failureType: 'testCodeFailure'
+      error: `written: []; {"exit_code":0,"command":["/opt/homebrew/Cellar/node@24/24.21.0/bin/node","-e","const fs = require('fs');\\nfs.mkdirSync('tmp-run'); fs.writeFileSync('tmp-run/x', '1');\\ntry { fs.rmSync('tmp-run', { recursive: true, force: true }) } catch {}"],"cwd":".","sandbox":"seatbelt","duration_ms":32,"written":[]}`
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NmHuYn/test/v1-adapters/control-write-survey.test.ts:93:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - the survey of a control's writes
+  ---
+  duration_ms: 73.187792
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-NmHuYn/test/v1-adapters/control-write-survey.test.ts:28:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 336.21275

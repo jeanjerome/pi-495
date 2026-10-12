@@ -1,0 +1,53 @@
+TAP version 13
+# Subtest: the survey of a control's writes
+    # Subtest: le relevé d'un contrôle sous le confinement de la plateforme rend test-output/run/a et src/a.txt relatifs à la copie, aucun chemin hors d'elle, et rien n'est écrit dans le dossier voisin, ni directement ni par le lien
+    ok 1 - le relevé d'un contrôle sous le confinement de la plateforme rend test-output/run/a et src/a.txt relatifs à la copie, aucun chemin hors d'elle, et rien n'est écrit dans le dossier voisin, ni directement ni par le lien
+      ---
+      duration_ms: 39.972458
+      type: 'test'
+      ...
+    # Subtest: sous Seatbelt, le relevé d'un contrôle qui crée tmp-run/x puis efface tmp-run rend tmp-run/x
+    ok 2 - sous Seatbelt, le relevé d'un contrôle qui crée tmp-run/x puis efface tmp-run rend tmp-run/x
+      ---
+      duration_ms: 34.441458
+      type: 'test'
+      ...
+    # Subtest: sous Seatbelt, le relevé d'un contrôle ne lui laisse dans la copie que créer et écrire des fichiers : changer les modes, les drapeaux, le propriétaire, les attributs étendus ou les ACL d'un fichier lui est refusé, même sous un temporaire, et la copie se supprime ensuite
+    ok 3 - sous Seatbelt, le relevé d'un contrôle ne lui laisse dans la copie que créer et écrire des fichiers : changer les modes, les drapeaux, le propriétaire, les attributs étendus ou les ACL d'un fichier lui est refusé, même sous un temporaire, et la copie se supprime ensuite
+      ---
+      duration_ms: 68.844292
+      type: 'test'
+      ...
+    # Subtest: le relevé d'un contrôle ne rend pas ce qu'il écrit sous un chemin qui lui est déjà donné
+    ok 4 - le relevé d'un contrôle ne rend pas ce qu'il écrit sous un chemin qui lui est déjà donné
+      ---
+      duration_ms: 35.514208
+      type: 'test'
+      ...
+    # Subtest: le relevé d'un contrôle liste sa copie sans suivre ses liens : un fichier écrit par un lien vers un dossier que le contrôle peut écrire n'est pas rendu
+    ok 5 - le relevé d'un contrôle liste sa copie sans suivre ses liens : un fichier écrit par un lien vers un dossier que le contrôle peut écrire n'est pas rendu
+      ---
+      duration_ms: 34.234792
+      type: 'test'
+      ...
+    # Subtest: après le relevé d'un contrôle sous le confinement de la plateforme, un processus qu'il a détaché n'écrit plus dans la copie, ni par son répertoire, ni par un chemin absolu, ni par celui de la copie, et ne la recrée pas une fois supprimée
+    ok 6 - après le relevé d'un contrôle sous le confinement de la plateforme, un processus qu'il a détaché n'écrit plus dans la copie, ni par son répertoire, ni par un chemin absolu, ni par celui de la copie, et ne la recrée pas une fois supprimée
+      ---
+      duration_ms: 2089.582917
+      type: 'test'
+      ...
+    1..6
+ok 1 - the survey of a control's writes
+  ---
+  duration_ms: 2303.358708
+  type: 'suite'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2569.089417

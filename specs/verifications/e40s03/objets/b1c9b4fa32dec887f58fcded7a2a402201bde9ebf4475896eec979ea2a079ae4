@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the survey of a refused preparation's suite
+    # Subtest: le relevé de la préparation refusée porte test-output/run/a pour le contrôle unit, et celui de la préparation retenue ne porte aucun chemin écrit
+    ok 1 - le relevé de la préparation refusée porte test-output/run/a pour le contrôle unit, et celui de la préparation retenue ne porte aucun chemin écrit
+      ---
+      duration_ms: 1246.816333
+      type: 'test'
+      ...
+    # Subtest: le double où la suite d'une préparation refusée est jugée et relevée est supprimé même quand elle y ferme un dossier, et la question IH-04 est posée avec le relevé de cette préparation
+    ok 2 - le double où la suite d'une préparation refusée est jugée et relevée est supprimé même quand elle y ferme un dossier, et la question IH-04 est posée avec le relevé de cette préparation
+      ---
+      duration_ms: 675.11725
+      type: 'test'
+      ...
+    # Subtest: une copie de préparation que le système refuse de supprimer ne fait perdre aucun relevé de préparation, la question IH-04 est posée, et l'échec est dit
+    ok 3 - une copie de préparation que le système refuse de supprimer ne fait perdre aucun relevé de préparation, la question IH-04 est posée, et l'échec est dit
+      ---
+      duration_ms: 619.977333
+      type: 'test'
+      ...
+    # Subtest: sous Seatbelt, le double où la suite d'une préparation refusée est relevée est supprimé sans rien laisser derrière lui, même quand elle tente d'y poser des drapeaux, une ACL ou un mode fermé
+    ok 4 - sous Seatbelt, le double où la suite d'une préparation refusée est relevée est supprimé sans rien laisser derrière lui, même quand elle tente d'y poser des drapeaux, une ACL ou un mode fermé
+      ---
+      duration_ms: 705.049833
+      type: 'test'
+      ...
+    1..4
+ok 1 - the survey of a refused preparation's suite
+  ---
+  duration_ms: 3247.585958
+  type: 'suite'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3512.652709

@@ -1,0 +1,37 @@
+TAP version 13
+# Subtest: the survey of a refused preparation's suite
+    # Subtest: le relevé de la préparation refusée porte test-output/run/a pour le contrôle unit, et celui de la préparation retenue ne porte aucun chemin écrit
+    ok 1 - le relevé de la préparation refusée porte test-output/run/a pour le contrôle unit, et celui de la préparation retenue ne porte aucun chemin écrit
+      ---
+      duration_ms: 1151.474166
+      type: 'test'
+      ...
+    # Subtest: le double où la suite d'une préparation refusée est jugée et relevée est supprimé même quand elle y ferme un dossier, et la question IH-04 est posée avec le relevé de cette préparation
+    not ok 2 - le double où la suite d'une préparation refusée est jugée et relevée est supprimé même quand elle y ferme un dossier, et la question IH-04 est posée avec le relevé de cette préparation
+      ---
+      duration_ms: 243.609625
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-waGPa0/test/v2-kernel/write-survey.test.ts:108:2'
+      failureType: 'testCodeFailure'
+      error: "EACCES: permission denied, scandir '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-waGPa0/test-output/harness-3tR5iJ/workspaces/ws_mv55aviz_l/locked'"
+      code: 'EACCES'
+      ...
+    1..2
+not ok 1 - the survey of a refused preparation's suite
+  ---
+  duration_ms: 1395.777125
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-waGPa0/test/v2-kernel/write-survey.test.ts:59:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1651.45775

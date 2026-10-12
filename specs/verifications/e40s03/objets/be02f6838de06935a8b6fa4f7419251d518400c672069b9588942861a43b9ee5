@@ -1,0 +1,42 @@
+TAP version 13
+# Subtest: the survey of a control's writes
+    # Subtest: le relevé d'un contrôle sous le confinement de la plateforme rend test-output/run/a et src/a.txt relatifs à la copie, aucun chemin hors d'elle, et rien n'est écrit dans le dossier voisin, ni directement ni par le lien
+    not ok 1 - le relevé d'un contrôle sous le confinement de la plateforme rend test-output/run/a et src/a.txt relatifs à la copie, aucun chemin hors d'elle, et rien n'est écrit dans le dossier voisin, ni directement ni par le lien
+      ---
+      duration_ms: 37.724959
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6LsmFz/test/v1-adapters/control-write-survey.test.ts:29:2'
+      failureType: 'testCodeFailure'
+      error: `the evidence carries no written paths: {"exit_code":0,"command":["/opt/homebrew/Cellar/node@24/24.21.0/bin/node","-e","const fs = require('fs');\\ntry { fs.mkdirSync('test-output/run', { recursive: true }); fs.writeFileSync('test-output/run/a', '1') } catch {}\\ntry { fs.writeFileSync('src/a.txt', 'after') } catch {}\\ntry { fs.writeFileSync(process.argv[1], 'x') } catch {}\\ntry { fs.writeFileSync('out/through-link.txt', 'x') } catch {}","/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6LsmFz/test-output/control-survey-khk0Tl/beside/direct.txt"],"cwd":".","sandbox":"seatbelt","duration_ms":34}`
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6LsmFz/test/v1-adapters/control-write-survey.test.ts:59:11)
+        process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the survey of a control's writes
+  ---
+  duration_ms: 38.334125
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-6LsmFz/test/v1-adapters/control-write-survey.test.ts:28:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 295.041042

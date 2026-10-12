@@ -1,0 +1,45 @@
+TAP version 13
+# Subtest: the directories of the copy a prepared suite could not write are offered to the owner
+    # Subtest: après des préparations dont la suite a été refusée en écriture sur test-output/run/a et hors de la copie, la question IH-04 offre grant_writable pour test-output/ au contrôle unit et rien pour le chemin hors de la copie ; sans écriture refusée, elle ne l'offre pas
+    not ok 1 - après des préparations dont la suite a été refusée en écriture sur test-output/run/a et hors de la copie, la question IH-04 offre grant_writable pour test-output/ au contrôle unit et rien pour le chemin hors de la copie ; sans écriture refusée, elle ne l'offre pas
+      ---
+      duration_ms: 459.328583
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-MooYfT/test/v2-kernel/writable-proposal.test.ts:70:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        options offered: prepare, assign_review, revise, adopt_complement
+        
+        0 !== 1
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1
+      actual: 0
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-MooYfT/test/v2-kernel/writable-proposal.test.ts:73:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the directories of the copy a prepared suite could not write are offered to the owner
+  ---
+  duration_ms: 459.973959
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-MooYfT/test/v2-kernel/writable-proposal.test.ts:69:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 727.209083

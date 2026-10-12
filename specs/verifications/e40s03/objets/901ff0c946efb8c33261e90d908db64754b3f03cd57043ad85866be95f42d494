@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: the directories of the copy offered from the paths a suite wrote
+    # Subtest: offers the first level under the copy of each write in the copy, once, and nothing for a write outside it
+    ok 1 - offers the first level under the copy of each write in the copy, once, and nothing for a write outside it
+      ---
+      duration_ms: 0.482458
+      type: 'test'
+      ...
+    # Subtest: offers no directory the policy already gives the control, written with or without its trailing slash
+    ok 2 - offers no directory the policy already gives the control, written with or without its trailing slash
+      ---
+      duration_ms: 0.083417
+      type: 'test'
+      ...
+    # Subtest: offers nothing without a written path, nor for the root of the copy itself
+    ok 3 - offers nothing without a written path, nor for the root of the copy itself
+      ---
+      duration_ms: 0.042334
+      type: 'test'
+      ...
+    # Subtest: never offers the parent of the copy, whatever path below it the write names
+    ok 4 - never offers the parent of the copy, whatever path below it the write names
+      ---
+      duration_ms: 0.042625
+      type: 'test'
+      ...
+    1..4
+ok 1 - the directories of the copy offered from the paths a suite wrote
+  ---
+  duration_ms: 1.070834
+  type: 'suite'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 68.519042

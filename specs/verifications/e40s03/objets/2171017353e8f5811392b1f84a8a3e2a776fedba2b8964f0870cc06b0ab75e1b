@@ -1,0 +1,47 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité — le double est une copie jetable, supprimée après le relevé",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/backends.ts",
+    "ligne": 151,
+    "constat": "Sous Seatbelt, la règle du relevé interdit de poser un drapeau, une ACL ou un mode dans le double. Elle y permet pourtant `file-write-create`, et le temporaire reste entièrement inscriptible. La suite peut donc préparer dans le temporaire un arbre portant un fichier `uchg` ou une ACL qui refuse la suppression, puis le renommer dans le double : seule la création est vérifiée côté double. `removeCopy` rend les modes mais n'enlève ni drapeau ni ACL, donc le double reste sur disque. Rejoué de bout en bout par le noyau (préparation refusée sous `sandbox: \"platform\"`, suite qui fait `renameSync(tmpdir()/X, \"planted\")` avec `X/Y/f` en `uchg`) : chaque double donne « the preparation copy … could not be deleted (EPERM … unlink …/planted/Y/f) » et `workspaces/` garde les `*.deleted`. Le même renommage réussit avec un double sous `$HOME`, hors du temporaire.",
+    "contournement": "Le double est une copie jetable de la référence et des fichiers préparés, supprimée après le relevé (le correctif 91066b2c annonce qu'aucun mode, drapeau, propriétaire, attribut étendu ni ACL posé par le relevé n'empêche plus de supprimer le double)",
+    "mutation": "Sonde jetable, non commitée : test noyau darwin dont la suite renomme dans le double un dossier du temporaire qui porte un fichier uchg ; les assertions « no could not be deleted » et « workspaces/ vide » échouent."
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Sous macOS, un dossier créé puis effacé est relevé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/execution/write-survey.ts",
+    "ligne": 68,
+    "constat": "Sous Seatbelt, retirer `unremovable_paths: [copy]` du profil du relevé laisse tous les tests verts. Le nouveau `(deny file-write* (subpath copie))`, suivi d'une permission limitée à `file-write-create file-write-data`, refuse déjà la suppression. Le mutant est équivalent sous Seatbelt : la promesse reste tenue par le test `tmp-run/x`, qui échoue dès qu'on ajoute `file-write-unlink` à la règle.",
+    "mutation": "Retrait de `unremovable_paths: [copy]` : survit. Ajout de `file-write-unlink` à l'allow du préfixe et retrait de la deny-unlink : le test tmp-run/x échoue."
+   }
+  ],
+  "resume": "Relecteur A, tour 1, story e40s03 : verdict `fail`, à cause d'un contournement bloquant (A1-1) et d'un constat à peser (A1-2).\n\n**A1-1 — un double relevé peut devenir impossible à supprimer (bloquant).** Sous Seatbelt, la nouvelle règle du relevé interdit de poser un drapeau, une ACL ou un mode dans le double, mais y permet la création d'entrées. Le temporaire reste entièrement inscriptible. La suite peut donc préparer dans le temporaire un fichier verrouillé (drapeau `uchg` ou ACL qui refuse la suppression), puis le renommer dans le double. `removeCopy` rend les modes mais n'enlève ni drapeau ni ACL.\n\nJe l'ai rejoué par le noyau avec un test jetable : préparation refusée sous le confinement de la plateforme, dont la suite renomme dans le double un dossier du temporaire portant un fichier `uchg`. Chaque double donne « could not be deleted (EPERM) » et reste dans `workspaces/`. Le même renommage réussit avec un double sous `$HOME`, hors du temporaire. Cela contourne la garantie « le double … supprimé après le relevé », que le correctif 91066b2c annonce justement tenir.\n\n**A1-2 — mutant équivalent (à peser).** Sous Seatbelt, retirer `unremovable_paths` du profil du relevé laisse tous les tests verts : la nouvelle règle refuse déjà la suppression. La promesse `tmp-run/x` reste tenue par son test, qui échoue dès qu'on autorise la suppression dans le double.\n\n**Le reste du confinement tient.** Mes sondes refusent un lien physique vers un fichier hors du double, une écriture par un lien symbolique sortant, un renommage hors du double et une écriture hors de lui. Aucun `log stream` ne reste dans `src/`.\n\n**Chaque promesse est tenue par un test.** J'ai muté une ligne par promesse et vu le test correspondant échouer :\n- relevé de `test-output/run/a` et d'un fichier modifié, chemins relatifs à la copie ;\n- confinement du relevé (portée élargie au parent de la copie) ;\n- relevé seulement pour une préparation refusée, jamais pour une retenue ;\n- offre de `test-output/` seulement quand la suite a écrit ;\n- écriture de `config.json` à la réponse du propriétaire, et conservation des autres réglages ;\n- exclusion du parent `..`.\n\nSeul le filtre des chemins absolus survit à sa mutation, mais le mutant est équivalent : un chemin absolu donne un premier segment vide, déjà écarté.\n\nLes mutations ont toutes été remises en place et les sondes supprimées ; seul `node_modules` (non suivi) reste dans l'arbre."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — le double est une copie jetable, supprimée après le relevé",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/backends.ts",
+    "ligne": 150,
+    "constat": "Le nouveau rule set refuse dans le double tout sauf file-write-create et file-write-data, mais un renommage vers le double ne demande que file-write-create sur sa destination, et la source se trouve dans un temporaire où le contrôle peut tout écrire. Une suite préparée refusée peut donc construire dans tmpdir() une arborescence avec un drapeau uchg et une ACL « deny delete,delete_child », puis la déplacer dans le double avec renameSync(stage, \"keep\"). removeCopy (src/adapters/workspace/git-workspace.ts:198) ne rend que les modes : il n'efface ni les drapeaux ni les ACL. Le double n'est donc jamais supprimé.",
+    "mutation": "Sonde jetable, non commitée. (1) sandbox-exec avec le profil surveyProfile + SeatbeltSandbox() par défaut, sur un double placé sous $HOME, donc hors de tout temporaire : `mv $TMPDIR/stage/D $C/D` passe, puis `rm -rf $C` échoue avec « Operation not permitted ». (2) Le même geste par le noyau, dans un test v2 calqué sur le nouveau test FLAGGING_TEST, avec le sandbox \"platform\" : IH-04 est posée, mais la progression dit « the preparation copy … could not be deleted (EACCES … keep/sub) » et workspaces/ garde les *.deleted. Note : la racine du test se trouvait elle-même sous TMPDIR, ce qui laisse aussi traîner les copies de jugement ; la sonde (1) montre que le double seul suffit. Pour le reste du diff, M1 (retirer la ligne deny), M2 (allow file-write*) et M3 (retirer file-write-data) sont tués par les tests v1 ; M4 (retirer unremovable_paths) survit mais est équivalent sous Seatbelt, puisque la ligne deny file-write* refuse déjà l'effacement.",
+    "contournement": "le double est une copie jetable de la référence et des fichiers préparés, supprimée après le relevé"
+   }
+  ],
+  "fermes": [],
+  "resume": "Les promesses de la story sont tenues par le code et chacune par au moins un test. Mutations tuées : la règle Seatbelt du relevé, sur trois de ses quatre lignes (la quatrième, unremovable_paths, est équivalente sous Seatbelt) ; le filtre `..` des dossiers proposés ; la condition option_id === grant_writable qui écrit config.json ; la garde !qualified qui ne relance la suite que pour une préparation refusée. Un lien physique d'un fichier hors du double vers le double est refusé par Seatbelt. En revanche, la garantie de sécurité « le double est supprimé après le relevé » se contourne : la suite construit dans le temporaire une arborescence portant un drapeau uchg et une ACL interdisant l'effacement, puis la renomme dans le double. Seatbelt n'exige que file-write-create sur la destination, et l'effacement de la copie ne rend que les modes. Le double reste donc sur le disque, ce que montrent à la fois la sonde sandbox-exec et le chemin du noyau. Verdict fail."
+ }
+]

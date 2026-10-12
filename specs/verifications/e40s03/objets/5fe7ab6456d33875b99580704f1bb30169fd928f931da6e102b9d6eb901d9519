@@ -1,0 +1,10 @@
+[32m13:56:35 (19594) INFO ProjectReader[39m Found 2 of 3366 file(s) to be mutated.
+[32m13:56:35 (19594) INFO Instrumenter[39m Instrumented 2 source file(s) with 5 mutant(s)
+[32m13:56:35 (19594) INFO ConcurrencyTokenProvider[39m Creating 15 test runner process(es).
+[32m13:56:35 (19594) INFO Sandbox[39m In place mode is enabled, Stryker will be overriding YOUR files. Find your backup at: ../../../../../../../var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-mutation-B9KHye/stryker-tmp/backup-nMKG6K
+[32m13:56:36 (19594) INFO DryRunExecutor[39m Starting initial test run (tap test runner with "perTest" coverage analysis). This may take a while.
+[91m13:56:44 (19594) ERROR DryRunExecutor[39m One or more tests failed in the initial test run:
+	test/v2-kernel/write-survey.test.ts
+		the survey of a refused preparation's suite > sous Seatbelt, le double où la suite d'une préparation refusée est relevée est supprimé sans rien laisser derrière lui, même quand elle tente d'y poser des drapeaux, une ACL ou un mode fermé: sous Seatbelt, le double où la suite d'une préparation refusée est relevée est supprimé sans rien laisser derrière lui, même quand elle tente d'y poser des drapeaux, une ACL ou un mode fermé
+[91m13:56:44 (19594) ERROR Stryker[39m There were failed tests in the initial test run.
+[32m13:56:44 (19594) INFO Sandbox[39m Resetting your original files from ../../../../../../../var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-mutation-B9KHye/stryker-tmp/backup-nMKG6K.

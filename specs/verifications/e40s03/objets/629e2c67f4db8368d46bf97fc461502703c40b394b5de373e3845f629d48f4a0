@@ -1,0 +1,9 @@
+[32m22:18:11 (48205) INFO ProjectReader[39m Found 17 of 3363 file(s) to be mutated.
+[32m22:18:11 (48205) INFO Instrumenter[39m Instrumented 17 source file(s) with 343 mutant(s)
+[32m22:18:11 (48205) INFO ConcurrencyTokenProvider[39m Creating 15 test runner process(es).
+[32m22:18:11 (48205) INFO Sandbox[39m In place mode is enabled, Stryker will be overriding YOUR files. Find your backup at: ../../../../../../../var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-mutation-z5vOh1/stryker-tmp/backup-JNA4lm
+[32m22:18:11 (48205) INFO DryRunExecutor[39m Starting initial test run (tap test runner with "perTest" coverage analysis). This may take a while.
+[32m22:18:15 (48205) INFO DryRunExecutor[39m Initial test run succeeded. Ran 3 tests in 3 seconds (net 2882.229624 ms, overhead 689.7703759999999 ms).
+[32m22:20:34 (48205) INFO JsonReporter[39m Your report can be found at: file:///var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-mutation-z5vOh1/mutation.json
+[32m22:20:34 (48205) INFO MutationTestExecutor[39m Done in 2 minutes and 25 seconds.
+[32m22:20:34 (48205) INFO Sandbox[39m Resetting your original files from ../../../../../../../var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-mutation-z5vOh1/stryker-tmp/backup-JNA4lm.

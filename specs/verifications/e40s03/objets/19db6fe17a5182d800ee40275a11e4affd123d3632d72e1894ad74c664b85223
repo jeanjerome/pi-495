@@ -1,0 +1,56 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité — le double est une copie jetable, supprimée après le relevé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/workspace/git-workspace.ts",
+    "ligne": 263,
+    "constat": "Under macOS, a copy is released before deletion. With the record of directories it could not read removed, the only test of that release, in workspace.test.ts, stays green: it puts no flag or ACL inside a closed directory, so nothing makes a second pass needed. A surveyed run under Seatbelt can set neither a flag nor an ACL, the run-scoped rule allowing only create and data writes, so the promise of deleting the double does not rest on this line; it serves the other copies, where a control holds file-write* on its granted paths.",
+    "mutation": "`unlisted.push(path);` → `;` : test/v2-kernel/workspace.test.ts « sous macOS, supprime la copie où le code a posé un dossier fermé portant une ACL… » stays green; the two other surviving mutants (line 268 → true, line 269 → true) make that test fail"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Sécurité — hors du double, rien ne change",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/workspace/git-workspace.ts",
+    "ligne": 227,
+    "constat": "The macOS release runs chflags, chmod -N and chmod u+rwx on every regular file the walk finds, so a hard link in the copy to a host file would have its modes, flags and ACL changed. A disposable probe, a surveyed run under the survey profile with no writable temporary path, showed that Seatbelt refuses `ln` from the copy to a file outside it (Operation not permitted), and the host file stays unchanged after closeWorkspace. No bypass exists by this path; the protection comes from the sandbox and not from the release.",
+    "mutation": "none (disposable hard-link probe, not committed)"
+   }
+  ],
+  "fermes": [],
+  "resume": "The diff reviewed (9105b116...3f2bc4c4) does three things. It removes `unremovable_paths`, leaving the run-scoped rule alone to refuse removal. It releases flags and ACLs before deleting a copy under macOS. It extends the detached-process test to the surveyed path. Checked promises: (1) Seatbelt launch without `log stream`: no occurrence in src/, sandbox.test green. (4) tmp-run/x created then deleted: allowing file-write-unlink in the run-scoped rule makes the matching test in control-write-survey.test fail, so dropping unremovable_paths weakens nothing. Detached process: granting `subpath` in place of `prefix` makes the extended test fail ('recreated where it was run'). (10) Parent of the copy: removing the `..` filter makes v0-pure/writable-proposal fail. Among the three surviving mutants on collectEntries, two (268 and 269, the link exclusion) are killed by the new workspace.test test. The third (263) stays alive without leaving a promise of the survey untested (A1-1, à peser). Security attack: a hard link from the double to a host file, which the release would have changed, is refused by Seatbelt (A1-2, à peser, no bypass). Not re-examined because outside this diff: the preparation, proposal and grant promises (scenarios 5 to 9), apart from the parent filter. Neither bubblewrap nor Linux could be exercised on this machine."
+ },
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — le double est une copie jetable, supprimée après le relevé",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/workspace/git-workspace.ts",
+    "ligne": 248,
+    "constat": "Aucun test ne tient les passes répétées de `releaseOnDarwin`. Trois mutants survivent aussi contre le test macOS de `test/v2-kernel/workspace.test.ts` : un retour après la première passe (l. 248), le retrait de `unlisted.push(path)` (l. 263) et celui de `chmod -h u+rwx` (l. 224). Le dossier fermé du test ne contient rien de verrouillé : la seconde passe n'y sert donc à rien. Sous Seatbelt, la règle de chemin propre au lancement interdit déjà à une suite relevée de poser un drapeau ou une ACL ; aucune promesse de la story ne dépend de ces passes, qui protègent les copies verrouillées par un autre code.",
+    "mutation": "l. 248 `if (failures === \"\" || outcome === previous) return;` → `return;` ; l. 263 `unlisted.push(path);` → `;` ; l. 224 ligne retirée — le test « sous macOS, supprime la copie où le code a posé un dossier fermé… » reste vert dans les trois cas"
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Sécurité — 495 parcourt le double sans suivre les liens",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/workspace/git-workspace.ts",
+    "ligne": 268,
+    "constat": "L'outil a vu survivre les mutants des lignes 268 et 269 parce qu'il ne lançait pas `test/v2-kernel/workspace.test.ts`. Ce fichier les tue : un lien parcouru, ou passé à `chmod -N`, retire l'ACL du dossier `beside/kept`, que l'assertion relit. La promesse est donc tenue par un test, simplement absent de la liste des tâches. La ligne 245 n'a qu'un message de repli, sans promesse.",
+    "mutation": "l. 268 `entry.isDirectory()` → `true` : test rouge ; l. 269 `!entry.isSymbolicLink()` → `true` : test rouge"
+   }
+  ],
+  "fermes": [],
+  "resume": "Verdict pass. Aucune promesse rompue, aucune promesse sans test, aucun contournement trouvé. Le delta 9105b116...3f2bc4c4 fait deux choses : il retire `unremovable_paths`, et, sous macOS, il libère drapeaux, ACL et modes avant de supprimer une copie.\n\n**Scénario « créé puis effacé ».** La règle de chemin propre au lancement le tient seule. Ajouter `file-write-unlink` à cette règle rend rouge le test tmp-run/x. Y ajouter flags et mode rend rouge le test des métadonnées.\n\n**Processus détaché.** Le test qui reçoit le chemin relevé est rouge quand la règle `prefix …/` devient `subpath` : ce point du registre est bien fermé.\n\n**Sondes de sécurité.** Elles ont été jouées par sandbox-exec, avec le profil que `surveyProfile` produit. Un lien physique d'un fichier de l'hôte vers le double est refusé, même avec un droit d'écriture plein sur la copie. Renommer ou effacer un dossier de la copie, ou le déplacer hors d'elle, est refusé aussi. `releaseOnDarwin` ne transmet que des chemins absolus non liens, sans injection d'option possible. La copie mise de côté reste hors de portée des processus confinés quand les copies sont rangées sous ~/.495.\n\n**Autres promesses rejouées à la tête.** Les 28 tests nommés sont verts, et deux mutations sont rouges : le retrait du filtre `..` dans `offeredWritableDirectories`, et `grant_writable` forcé dans `answerDecision`. Aucun `log stream` ne reste dans src/.\n\n**Constats à peser.** Les passes répétées de la libération ne sont tenues par aucun test (mutants l. 248, 263, 224), mais une suite relevée sous Seatbelt ne peut créer l'état qu'elles traitent. Les mutants l. 268 et 269 sont tués par `test/v2-kernel/workspace.test.ts`, absent de la liste de l'outil.\n\nRien n'a été commité, l'arbre est propre. Le dossier de sonde `/private/tmp/probeB1.7bBo` et les copies `/tmp/gw-orig.ts`, `bk-orig.ts`, `wp.ts`, `h.ts` restent à supprimer."
+ }
+]

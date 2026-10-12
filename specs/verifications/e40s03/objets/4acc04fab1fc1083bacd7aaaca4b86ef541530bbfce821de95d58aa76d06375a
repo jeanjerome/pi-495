@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: the survey of a refused preparation's suite
+    # Subtest: le relevé de la préparation refusée porte test-output/run/a pour le contrôle unit, et celui de la préparation retenue ne porte aucun chemin écrit
+    not ok 1 - le relevé de la préparation refusée porte test-output/run/a pour le contrôle unit, et celui de la préparation retenue ne porte aucun chemin écrit
+      ---
+      duration_ms: 1019.544375
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zra1vU/test/v2-kernel/write-survey.test.ts:55:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        {"allowed_paths":["test/","tests/"],"discriminant":false,"files":[{"digest":"sha256:3dd0336c93cae32d3b024e92aad17dda5ed34648505655fb9a5b4c5cf09ecddc","path":"test/shout.test.js","size_bytes":227}],"loadable":true,"modified_existing":[],"notes":["prepared suite passes on the reference: it does not detect the absent feature (recorded, not adopted as discriminant)","R1 asks for behaviour the reference does not have, and its cases pass there: \"R1 shout\" passed"],"objective":"Write automated tests for the adopted requirements in the target technology (node); only files under test/, tests/ are retained, and whatever you write elsewhere to check yourself is ignored. The controls already on this target cannot decide R1: for those, a test that passes on the tree as it stands proves nothing.","on_reference":"PASS","preparation_id":"prep_0021","qualified":false,"requirements":[{"cases":[{"name":"R1 shout","outcome":"passed"}],"category":"new_behaviour","control_id":"unit","expected":"failed_assertion","qualification":"contradicted","requirement_id":"R1"}]}
+        + actual - expected
+        
+        + undefined
+        - 'unit'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'unit'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zra1vU/test/v2-kernel/write-survey.test.ts:97:11)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the survey of a refused preparation's suite
+  ---
+  duration_ms: 1020.251666
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-zra1vU/test/v2-kernel/write-survey.test.ts:54:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1280.8365

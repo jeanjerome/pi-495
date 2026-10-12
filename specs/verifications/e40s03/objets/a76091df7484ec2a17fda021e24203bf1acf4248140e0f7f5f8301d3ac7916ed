@@ -1,0 +1,71 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité — ce qui peut s'accorder reste borné ; le chemin est celui que le code a tenté d'écrire",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/seatbelt-refusals.ts",
+    "ligne": 72,
+    "constat": "`refusedWriteOf` lit le chemin sur `lines[0]` d'un message découpé à chaque `\\n`. Un nom de fichier qui contient un saut de ligne est donc tronqué. La suite préparée tente de créer, à la racine de la copie, un fichier nommé `..\\nx`. Le noyau publie `…file-write-create /…/copy/..\\nx\\n<repère>`. 495 lit alors le chemin `/…/copy/..`, que `copyRelative` réduit à `..`, et `offeredWritableDirectories` propose `../`. Sondé sous Seatbelt réel avec GenericControlRunner : refused_writes = [{process:'node', operation:'file-write-create', path:'..'}] et dossiers proposés = ['../']. Les noms `..\\nx` et `..\\nSandbox: x` donnent le même résultat. `ControllerConfigFile.grantWritable('unit', ['../'])` écrit ensuite `../` sous `policy.writable_paths.unit` dans config.json, et la configuration se relit sans refus. Le correctif de B2-1 (6c28c978) ancre le chemin au premier `/`, mais il ne traite pas le saut de ligne. La lecture qui découpe ainsi le message vient de la story (a4741c6f).",
+    "contournement": "Seul un dossier de la copie, son premier niveau sous la copie, est proposé ; le chemin que voit le propriétaire est celui que le code a tenté d'écrire"
+   },
+   {
+    "id": "A1-2",
+    "scenario": "Sécurité — 495 ne lit que les lignes émises par l'extension Sandbox du noyau, qu'aucun processus confiné ne peut émettre à sa place",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/seatbelt-refusals.ts",
+    "ligne": 30,
+    "constat": "Le prédicat `sender == \"Sandbox\"` compare seulement le nom de l'image qui émet. Sondé : un exécutable nommé `Sandbox`, lancé sous sandbox-exec avec un profil de 495, émet par os_log `Sandbox: node(1) deny(1) file-write-create /forged/path\\n<repère>`. Le `log stream` de 495 reçoit ce message (senderImagePath=/private/tmp/…/Sandbox). Une ligne forgée par un processus confiné passe donc ce filtre. Le seul rempart restant est le repère : je n'ai trouvé aucun chemin pour que le code confiné l'apprenne (`ps` refusé, `log` refuse de tourner sous confinement). Pas de contournement montré de bout en bout. Le mutant qui retire `sender == \"Sandbox\" AND` survit aussi au test du scénario 1.",
+    "mutation": "`sender == \"Sandbox\" AND ` retiré du prédicat de `log stream` : seatbelt-refused-writes.test.ts reste vert"
+   },
+   {
+    "id": "A1-3",
+    "scenario": "Sous Seatbelt, l'observation d'un lancement porte les écritures que le noyau lui a refusées ; l'évidence d'un contrôle nomme les écritures refusées",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/seatbelt-refusals.ts",
+    "ligne": 13,
+    "constat": "Parmi les mutants de REFUSAL listés, deux sont équivalents en pratique : la ligne commence toujours par `Sandbox: `, et `.*` gourmand va jusqu'à la fin. Retirer `^` ou `$` ne change donc rien. Le mutant `deny\\(\\d\\)` laisse tomber un refus que le noyau publierait avec un compte de dix ou plus (`deny(12)`). Aucun test n'en exerce, mais aucune promesse ne nomme un refus répété.",
+    "mutation": "`deny\\(\\d+\\)` → `deny\\(\\d\\)` : survit (signalé par l'outil)"
+   }
+  ],
+  "fermes": [
+   "B2-1"
+  ],
+  "resume": "La porte est retenue par un contournement.\n\nB2-1 est rejoué sur la tête de la branche et ne passe plus. Le nom `a(1) deny(1) file-write-create ..` est lu comme le chemin écrit, et seul ce nom est proposé.\n\nUne variante passe encore (A1-1). Un fichier nommé `..\\nx` à la racine de la copie fait lire `..` à la lecture des refus, parce qu'elle tronque le message au premier saut de ligne. 495 propose alors `../`, que `grantWritable` écrit dans config.json. Sondé sous Seatbelt réel.\n\nDeux constats sont à peser :\n- A1-2 : le filtre d'expéditeur `Sandbox` se forge avec un binaire confiné nommé `Sandbox`. Le repère tient encore lieu de rempart, et aucun moyen de le lire depuis la confinement n'a été trouvé.\n- A1-3 : des trois mutants de la regex, deux sont équivalents. Le troisième ne touche que les refus répétés dix fois ou plus.\n\nLes six scénarios sont tenus par le code et par un test. Ces mutations ont fait échouer un test :\n- le repère du profil ;\n- les deux filtres de repère retirés ensemble ;\n- `copyRelative` et le fait `refused_writes` ;\n- le premier niveau proposé, les écritures montrées et le décompte des préparations ;\n- la condition de `grant_writable` dans le harnais ;\n- la conservation des autres réglages de config.json.\n\nLes deux filtres de repère sont redondants : chacun survit seul. Le mutant `directories.length === 0` survit lui aussi, mais seulement sur un cas qu'aucune promesse ne décrit : des écritures toutes hors de la copie."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Une suite préparée refusée en écriture dans la copie fait proposer le dossier au propriétaire",
+    "categorie": "bloquant",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/seatbelt-refusals.ts",
+    "ligne": 75,
+    "constat": "`refusedWriteOf` ne lit que `lines[0]` du message du noyau, découpé sur `\\n`. Le nom du fichier que le code confiné tente de créer peut contenir un retour à la ligne, donc tout ce qui suit est perdu. Une suite qui tente d'écrire, à la racine de la copie, un fichier nommé `..\\n` donne dans l'évidence le chemin `..` (copyRelative de `/…/copy/..`). `offeredWritableDirectories` propose alors `../`, et `grant_writable` écrit `../` sous `policy.writable_paths.unit` dans config.json. Sondé sous Seatbelt avec GenericControlRunner : refused_writes = [{process:'node', operation:'file-write-create', path:'..'}], dossiers proposés = ['../']. `ControllerConfigFile.grantWritable('unit', ['../'])` écrit bien `\"../\"` dans config.json. C'est le même débordement que B2-1, atteint par un autre nom. Il touche aussi un nom comme `src\\nx`, lu `src` : le propriétaire voit un chemin que le code n'a pas tenté d'écrire.",
+    "mutation": "Sonde jetable : writeFileSync('..\\n') depuis un contrôle confiné dans une copie, puis offeredWritableDirectories sur l'évidence.",
+    "contournement": "Ce qui peut s'accorder reste borné : seul un dossier de la copie, son premier niveau sous la copie, est proposé. Le chemin, lui, est celui que le code a tenté d'écrire."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Sous Seatbelt, l'observation d'un lancement porte les écritures que le noyau lui a refusées, et seulement les siennes",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/adapters/sandbox/seatbelt-refusals.ts",
+    "ligne": 13,
+    "constat": "Les trois mutants survivants de REFUSAL (sans `^`, `\\d` au lieu de `\\d+`, sans `$`) sont équivalents pour les promesses. Ils ne diffèrent que sur des lignes que les scénarios n'exercent pas : un compte de refus supérieur à 9, un message préfixé comme « N duplicate reports for Sandbox: … », un chemin qui contient `\\r` ou U+2028. Aucune promesse n'est laissée sans test. Avec `$`, un chemin qui contient `\\r` disparaît de l'évidence. Le contrôle gagne alors moins de droits, pas plus.",
+    "mutation": "Les trois mutants listés par l'outil, lus contre les lignes que le noyau publie."
+   }
+  ],
+  "fermes": [
+   "B2-1"
+  ],
+  "resume": "Les six promesses sont tenues par le code. Chacune est tenue par un test : retirer la relativisation à la copie, faire de inCopy une constante vraie, retirer l'appel grantWritable, rendre la condition sur l'option permissive ou fixer le repère du profil fait échouer le test de la story. Une mutation de verification-design survit, mais la vérification de longueur de buildDecisionRequest tient la même promesse. B2-1 rejoué à 0b682b76 ne passe plus : le fichier `a(1) deny(1) file-write-create ..` est lu comme son propre nom, et c'est ce nom qui est proposé. B2-1 est donc fermé. Le contournement revient par un autre nom (B1-1, bloquant, introduit). Un fichier `..\\n` à la racine de la copie est lu `..`, car seule la première ligne du message du noyau est lue. `../` est alors proposé et s'écrirait dans config.json, ce qui contourne la borne « premier niveau de la copie » et la promesse « le chemin que le code a tenté d'écrire ». Les trois mutants survivants de REFUSAL sont équivalents pour les promesses (B1-2, à peser). Les garanties sur le propriétaire tiennent : la seule réponse qui écrit config.json passe par ctx.ui.select avec une origine humaine. Les garanties sur l'expéditeur et le repère tiennent aussi : le prédicat porte sur l'expéditeur Sandbox et le repère est propre au lancement. Aucune sonde n'a trouvé de chemin qui les contourne."
+ }
+]

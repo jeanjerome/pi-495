@@ -1,0 +1,116 @@
+TAP version 13
+# Subtest: sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)
+    # Subtest: seatbelt qualifies on macOS and confines writes, sensitive reads, symlink escapes and network
+    ok 1 - seatbelt qualifies on macOS and confines writes, sensitive reads, symlink escapes and network
+      ---
+      duration_ms: 58.239
+      type: 'test'
+      ...
+    # Subtest: a directory to create behind a link is granted under its resolved path: the profile carries the resolved path followed by /new and not link/new
+    ok 2 - a directory to create behind a link is granted under its resolved path: the profile carries the resolved path followed by /new and not link/new
+      ---
+      duration_ms: 1.293125
+      type: 'test'
+      ...
+    # Subtest: a path that exists is granted under its resolved form
+    ok 3 - a path that exists is granted under its resolved form
+      ---
+      duration_ms: 1.087625
+      type: 'test'
+      ...
+    # Subtest: mkdir on link/new exits 0 and creates real/new, a write in real/other stays EPERM
+    ok 4 - mkdir on link/new exits 0 and creates real/new, a write in real/other stays EPERM
+      ---
+      duration_ms: 77.747792
+      type: 'test'
+      ...
+    # Subtest: seatbelt lets a loopback profile reach itself and no other host (VER-04)
+    ok 5 - seatbelt lets a loopback profile reach itself and no other host (VER-04)
+      ---
+      duration_ms: 53.475833
+      type: 'test'
+      ...
+    # Subtest: seatbelt allows network only when the mandate says so
+    ok 6 - seatbelt allows network only when the mandate says so
+      ---
+      duration_ms: 51.697
+      type: 'test'
+      ...
+    # Subtest: un lancement sous Seatbelt ne démarre aucune lecture du journal du système
+    not ok 7 - un lancement sous Seatbelt ne démarre aucune lecture du journal du système
+      ---
+      duration_ms: 1695.914333
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-vkJDcR/test/v1-adapters/sandbox.test.ts:178:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+        + [
+        +   '/usr/bin/log stream --style ndjson --predicate sender == "Sandbox" AND eventMessage ENDSWITH "495-de71b5b2-fa1b-4a26-a3a0-16edf1549e8d"',
+        +   '/usr/bin/log stream --style ndjson --predicate sender == "Sandbox" AND eventMessage ENDSWITH "495-cf43e285-2767-4f58-bdd4-c914514fe2d0"'
+        + ]
+        - []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual:
+        0: '/usr/bin/log stream --style ndjson --predicate sender == "Sandbox" AND eventMessage ENDSWITH "495-de71b5b2-fa1b-4a26-a3a0-16edf1549e8d"'
+        1: '/usr/bin/log stream --style ndjson --predicate sender == "Sandbox" AND eventMessage ENDSWITH "495-cf43e285-2767-4f58-bdd4-c914514fe2d0"'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-vkJDcR/test/v1-adapters/sandbox.test.ts:195:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    # Subtest: unconfined never qualifies and declares missing confinement capabilities
+    ok 8 - unconfined never qualifies and declares missing confinement capabilities
+      ---
+      duration_ms: 2.000208
+      type: 'test'
+      ...
+    # Subtest: bubblewrap is refused off Linux with the reason « bubblewrap requires Linux »
+    ok 9 - bubblewrap is refused off Linux with the reason « bubblewrap requires Linux »
+      ---
+      duration_ms: 1.3415
+      type: 'test'
+      ...
+    # Subtest: a confinement tool that could not start reports an incident, not a verdict on the target (RM-016)
+    ok 10 - a confinement tool that could not start reports an incident, not a verdict on the target (RM-016)
+      ---
+      duration_ms: 1.213834
+      type: 'test'
+      ...
+    # Subtest: the process runner enforces timeout, kills the process group and bounds output (NFR-04, §12.3)
+    ok 11 - the process runner enforces timeout, kills the process group and bounds output (NFR-04, §12.3)
+      ---
+      duration_ms: 553.461041
+      type: 'test'
+      ...
+    # Subtest: environment is built from the allowlist only, no shell is involved
+    ok 12 - environment is built from the allowlist only, no shell is involved
+      ---
+      duration_ms: 33.241291
+      type: 'test'
+      ...
+    1..12
+not ok 1 - sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)
+  ---
+  duration_ms: 2531.707083
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-vkJDcR/test/v1-adapters/sandbox.test.ts:61:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 12
+# suites 1
+# pass 11
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2609.012375

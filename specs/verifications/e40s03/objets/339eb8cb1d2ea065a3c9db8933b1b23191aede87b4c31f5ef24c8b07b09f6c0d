@@ -1,0 +1,89 @@
+TAP version 13
+# Subtest: sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)
+    # Subtest: seatbelt qualifies on macOS and confines writes, sensitive reads, symlink escapes and network
+    ok 1 - seatbelt qualifies on macOS and confines writes, sensitive reads, symlink escapes and network
+      ---
+      duration_ms: 40.195458
+      type: 'test'
+      ...
+    # Subtest: a directory to create behind a link is granted under its resolved path: the profile carries the resolved path followed by /new and not link/new
+    ok 2 - a directory to create behind a link is granted under its resolved path: the profile carries the resolved path followed by /new and not link/new
+      ---
+      duration_ms: 1.05925
+      type: 'test'
+      ...
+    # Subtest: a path that exists is granted under its resolved form
+    ok 3 - a path that exists is granted under its resolved form
+      ---
+      duration_ms: 1.188125
+      type: 'test'
+      ...
+    # Subtest: mkdir on link/new exits 0 and creates real/new, a write in real/other stays EPERM
+    ok 4 - mkdir on link/new exits 0 and creates real/new, a write in real/other stays EPERM
+      ---
+      duration_ms: 42.08075
+      type: 'test'
+      ...
+    # Subtest: seatbelt lets a loopback profile reach itself and no other host (VER-04)
+    ok 5 - seatbelt lets a loopback profile reach itself and no other host (VER-04)
+      ---
+      duration_ms: 45.412709
+      type: 'test'
+      ...
+    # Subtest: seatbelt allows network only when the mandate says so
+    ok 6 - seatbelt allows network only when the mandate says so
+      ---
+      duration_ms: 36.049834
+      type: 'test'
+      ...
+    # Subtest: un lancement sous Seatbelt ne démarre aucune lecture du journal du système
+    ok 7 - un lancement sous Seatbelt ne démarre aucune lecture du journal du système
+      ---
+      duration_ms: 1556.743375
+      type: 'test'
+      ...
+    # Subtest: unconfined never qualifies and declares missing confinement capabilities
+    ok 8 - unconfined never qualifies and declares missing confinement capabilities
+      ---
+      duration_ms: 1.193167
+      type: 'test'
+      ...
+    # Subtest: bubblewrap is refused off Linux with the reason « bubblewrap requires Linux »
+    ok 9 - bubblewrap is refused off Linux with the reason « bubblewrap requires Linux »
+      ---
+      duration_ms: 0.980916
+      type: 'test'
+      ...
+    # Subtest: a confinement tool that could not start reports an incident, not a verdict on the target (RM-016)
+    ok 10 - a confinement tool that could not start reports an incident, not a verdict on the target (RM-016)
+      ---
+      duration_ms: 1.056
+      type: 'test'
+      ...
+    # Subtest: the process runner enforces timeout, kills the process group and bounds output (NFR-04, §12.3)
+    ok 11 - the process runner enforces timeout, kills the process group and bounds output (NFR-04, §12.3)
+      ---
+      duration_ms: 565.250917
+      type: 'test'
+      ...
+    # Subtest: environment is built from the allowlist only, no shell is involved
+    ok 12 - environment is built from the allowlist only, no shell is involved
+      ---
+      duration_ms: 37.613958
+      type: 'test'
+      ...
+    1..12
+ok 1 - sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)
+  ---
+  duration_ms: 2329.790208
+  type: 'suite'
+  ...
+1..1
+# tests 12
+# suites 1
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2408.604458
