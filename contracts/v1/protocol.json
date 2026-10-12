@@ -871,6 +871,10 @@
             "items": {
               "type": "string"
             }
+          },
+          "unconfined": {
+            "type": "boolean",
+            "const": true
           }
         },
         "$id": "urn:495:contract:control-definition:1",

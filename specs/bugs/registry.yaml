@@ -3871,3 +3871,87 @@ bugs:
     follow_ups: >
       Fold once more to upper then lower case, or fold `ẞ` explicitly, with a test on a protected path containing `ss`.
     status: open
+  - bug_id: BUG-2026-10-12T222000
+    date: "2026-10-12"
+    title: "A declared control that fails on the reference passes G5 on the candidate as a tolerated preexisting finding"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      A control the owner declares in `policy.project_controls` is judged on the candidate against its run on the
+      reference (VER-08, `no_aggravation`). When its command fails on both for the same reason, the candidate's evidence
+      is PASS with the note "this control fails on nothing the reference does not already carry: 1 preexisting
+      finding(s) tolerated, none aggravated", and G5 accepts. A declared control that tests starting a sandbox of their
+      own fail confined, because Seatbelt refuses a second profile, therefore passes G5 without having judged anything;
+      the confinement failure is hidden as a preexisting finding.
+    what_expected: >
+      A declared control is required to pass on the candidate (README, `policy.project_controls`): a failure its
+      command shares with the reference does not stand for a pass, or at least the verdict says that the control never
+      passed on either side.
+    steps_to_reproduce:
+      - "Declare in config.json a control whose command writes outside the copy (~/x/marques.log) under Seatbelt, without `unconfined`."
+      - "Drive a change to G5 with the scripted agent (bench ~/.495-campagnes/scripts/e40s06-run.sh confine1 … confine)."
+      - "Read the record: sandbox-tests FAIL exit_code=1 on the reference, PASS exit_code=1 on the candidate with the tolerance note; G5 PASS."
+    root_cause: >
+      Declared controls are read through their exit code and go through the same differential reading as the detected
+      ones, where a failure shared with the reference is a preexisting finding.
+    evidence: >
+      Campaign e40s06-confine1 on 2026-10-12 (build at 024054d5); the behaviour predates e40s06, which neither changes
+      nor reaches it.
+    risk_level: medium
+    follow_ups: >
+      Decide with the owner whether a declared control is exempt from the tolerance of preexisting findings.
+    status: open
+  - bug_id: BUG-2026-10-12T222500
+    date: "2026-10-12"
+    title: "config.json refused for an unknown key inside a declared control gives an empty reason"
+    severity: low
+    priority: p3
+    scope: extension
+    what_happened: >
+      A `config.json` whose `policy.project_controls` item holds a key the schema does not name (`"unconfinedd": true`)
+      is refused with "config.json cannot be read: ; no change runs until …": the reason is empty. `unknownKeys`
+      (`src/extension/config.ts`) walks object properties and stops at arrays, and `wrongValues` drops the
+      `additionalProperties` violation, so nothing is left to name.
+    what_expected: >
+      The refusal names the place of the unknown key, as it does for an unknown key in an object section.
+    steps_to_reproduce:
+      - "Write config.json with policy.project_controls: [{ control_id: x, title: t, command: [true], timeout_ms: 1, protected_paths: [], unconfinedd: true }]."
+      - "Call loadConfig on its directory: the message reads 'config.json cannot be read: ; …'."
+    root_cause: >
+      The walk of unknown keys does not descend into list items.
+    evidence: >
+      Seen on 2026-10-12 in campaign e40s06-mainhors1 (main refusing `unconfined`), reproduced at 024054d5 with a
+      misspelt key; predates e40s06.
+    risk_level: low
+    follow_ups: >
+      Descend into list items in `unknownKeys`, naming `policy.project_controls.0.unconfinedd`.
+    status: open
+  - bug_id: BUG-2026-10-12T224500
+    date: "2026-10-12"
+    title: "A design G3 refuses stops the change on execution_error instead of going back to the model"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      In the Maven reference campaign, the model's plan had task t-1 write `src/test/java/registry/UserRegistryTest.java`,
+      which the frozen protocol protects. G3 refused it, as it should, and `design` (`src/application/phases/design.ts`)
+      threw `PRECONDITION_FAILED: design rejected at G3`: the change stopped `blocked` (`execution_error`) at the design
+      phase, with no correction asked of the model. The campaign reported "DEFECT the campaign did not reach the
+      verification of the candidate"; a second run of the same campaign, whose plan touched no protected file, went to
+      G5 PASS.
+    what_expected: >
+      A design G3 refuses is sent back to the model with the reasons, within the attempt budget, as a candidate G5
+      refuses is; the change stops only when that budget is spent.
+    steps_to_reproduce:
+      - "Run `npm run campagne -- maven` until the model's plan names a task that writes a test file under src/test/."
+      - "Read the record: G3 FAIL 'task t-1 writes … which the frozen protocol protects', status blocked, stop execution_error."
+    root_cause: >
+      `design` turns a G3 FAIL into an exception; no phase rewrites the design.
+    evidence: >
+      Campaign ~/.495/campagnes/maven-20261012T202609 at b18c523f on 2026-10-12; the code path dates from 8b375221 and
+      e40s06 neither changes nor reaches it.
+    risk_level: medium
+    follow_ups: >
+      Return a refused design to the specify role with G3's reasons, counted against the attempt budget.
+    status: open

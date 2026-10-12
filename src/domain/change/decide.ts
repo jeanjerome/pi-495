@@ -699,6 +699,7 @@ class Ctx {
 		});
 		if (result.verdict !== "PASS") return ok(this.events);
 		this.emit({ type: "artifact.adopted", ...this.base(), kind: "protocol", ref: c.protocol_ref, gate: "G2" });
+		const unconfined = c.protocol.controls.filter((k) => k.unconfined === true).map((k) => k.control_id);
 		this.emit({
 			type: "protocol.frozen",
 			...this.base(),
@@ -716,6 +717,7 @@ class Ctx {
 				environment_digest: c.protocol.environment_digest,
 				acceptance_recipe_control_id: c.protocol.acceptance?.recipe_control_id ?? null,
 				...(c.protocol.project_control_ids ? { project_control_ids: c.protocol.project_control_ids } : {}),
+				...(unconfined.length > 0 ? { unconfined_control_ids: unconfined } : {}),
 				formal: frozenFormalOf(c.protocol),
 			},
 		});

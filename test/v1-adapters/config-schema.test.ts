@@ -177,6 +177,18 @@ describe("the reading of config.json against its contract (SEC-05)", () => {
 		});
 	});
 
+	it("loads a declared control the owner declares unconfined, with that declaration", () => {
+		const declared = {
+			control_id: "sandbox-tests",
+			title: "t",
+			command: ["node", "-e", ""],
+			timeout_ms: 1000,
+			protected_paths: [],
+		};
+		const { config } = loadConfig(written({ policy: { project_controls: [{ ...declared, unconfined: true }] } }), {});
+		assert.deepEqual(config.policy.project_controls, [{ ...declared, unconfined: true }]);
+	});
+
 	it("merges a baseline written in part over the default comparison, which stays on (6e)", () => {
 		const { config } = loadConfig(written({ policy: { baseline: { tolerance: "block_any" } } }), {});
 		assert.deepEqual(config.policy.baseline, { ...DEFAULT_POLICY.baseline, tolerance: "block_any" });

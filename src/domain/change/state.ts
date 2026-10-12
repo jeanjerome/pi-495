@@ -287,6 +287,8 @@ export interface FrozenProtocol {
 	acceptance_recipe_control_id?: string | null;
 	/** The controls the profile declared, each required on the candidate; absent from a protocol that declared none. */
 	project_control_ids?: string[];
+	/** The declared controls that run outside any sandbox, by the owner's decision; absent from a protocol that has none. */
+	unconfined_control_ids?: string[];
 	/** The formal package G5 requires the exploration of; absent from a protocol that adopts none or was frozen before. */
 	formal?: FrozenFormalPackage | null;
 }

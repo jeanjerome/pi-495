@@ -26,6 +26,7 @@ export function projectControlsOf(policy: ActivePolicy): ControlDefinition[] {
 		network: declared.network ?? "denied",
 		writable_paths: withOwnerWritable(declared.control_id, declared.writable_paths ?? [], policy),
 		protected_paths: declared.protected_paths,
+		...(declared.unconfined === true ? { unconfined: true as const } : {}),
 	}));
 }
 

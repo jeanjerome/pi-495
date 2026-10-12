@@ -1274,4 +1274,53 @@ describe("the workspaces of a preparation, once a complement is adopted", () => 
 			"a key that names no control of the target adds nothing",
 		);
 	});
+
+	it("le contrôle que la configuration du contrôleur déclare hors confinement est figé ainsi, et lui seul : sandbox-tests porte unconfined, lint-own et les contrôles détectés non, et le protocole gelé nomme sandbox-tests", async () => {
+		const declared = (control_id: string) => ({
+			control_id,
+			title: control_id,
+			command: ["node", "-e", ""],
+			timeout_ms: 60_000,
+			protected_paths: [],
+		});
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: { prepare: { steps: [{ kind: "complete", output: report([]) }] } },
+			policy: { project_controls: [{ ...declared("sandbox-tests"), unconfined: true }, declared("lint-own")] },
+		});
+		const { change } = await t.harness.start({
+			project_path: trackedProject(fixtureTsWithoutTests),
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+		const changeId = change.change_id;
+		await t.harness.advance(changeId, { max_steps: 40 });
+		answerPending(t, changeId, "adopt_complement");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		t.agent.scripts.set("prepare", {
+			steps: [
+				{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+				{ kind: "complete", output: report(["test/shout.test.js"]) },
+			],
+		});
+		answerPending(t, changeId, "prepare");
+		await t.harness.advance(changeId, { max_steps: 40 });
+		const state = t.ledger.loadChange(changeId)!.state;
+		assert.ok(
+			state.adopted.protocol,
+			`the protocol is frozen: ${JSON.stringify({ phase: state.phase, status: state.status, stop: state.stop_detail, pending: state.pending_decisions })}`,
+		);
+		const protocol = await t.harness.artifacts.read<Protocol>(state.adopted.protocol.ref);
+		assert.deepEqual(
+			protocol.controls.filter((c) => c.unconfined === true).map((c) => c.control_id),
+			["sandbox-tests"],
+			`only the declared sandbox-tests is frozen unconfined: ${JSON.stringify(protocol.controls.map((c) => [c.control_id, c.unconfined]))}`,
+		);
+		assert.ok(
+			protocol.controls.some((c) => c.control_id === "lint-own") &&
+				protocol.controls.some((c) => !protocol.project_control_ids?.includes(c.control_id)),
+			"lint-own and the detected controls are frozen beside it",
+		);
+		assert.deepEqual(state.protocol?.unconfined_control_ids, ["sandbox-tests"], "the frozen protocol names it");
+	});
 });

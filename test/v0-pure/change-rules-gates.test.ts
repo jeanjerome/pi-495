@@ -218,6 +218,23 @@ describe("verification and G5 (SA-012, SA-013, SA-014, SA-032, RM-036, VER-03)",
 		assert.equal(r.s.evidence.length, 0);
 		assert.equal(r.events.filter((e) => e.type === "evidence.rejected").length, 3);
 	});
+	it("G5 PASS nomme dans ses raisons le contrôle que le protocole gelé dit hors confinement, sur décision du propriétaire", () => {
+		const c = candidate("c1");
+		const r = new Runner().toDeciding(c);
+		const g5 = evaluateG5(r.s, { ...r.s.protocol!, unconfined_control_ids: ["unit"] }, c, r.policy);
+		assert.equal(g5.verdict, "PASS", JSON.stringify(g5.reasons));
+		assert.deepEqual(g5.reasons, ["declared control unit ran outside confinement, by the owner's decision"]);
+	});
+	it("G5 FAIL nomme aussi dans ses raisons le contrôle que le protocole gelé dit hors confinement", () => {
+		const c = candidate("c1");
+		const r = new Runner().toDeciding(c, { unit: "FAIL", lint: "PASS" });
+		const g5 = evaluateG5(r.s, { ...r.s.protocol!, unconfined_control_ids: ["unit"] }, c, r.policy);
+		assert.equal(g5.verdict, "FAIL");
+		assert.ok(
+			g5.reasons.includes("declared control unit ran outside confinement, by the owner's decision"),
+			JSON.stringify(g5.reasons),
+		);
+	});
 	it("G5 ignores evidence that ran under an earlier revision of the frozen protocol", () => {
 		const c = candidate("c1");
 		const r = new Runner().toDeciding(c);

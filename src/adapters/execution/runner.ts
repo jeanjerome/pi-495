@@ -29,7 +29,7 @@ import type {
 } from "../../ports/execution.ts";
 import type { ObjectStorePort } from "../../ports/object-store.ts";
 import type { WorkspaceCapability } from "../../application/stacks/plugin.ts";
-import { realPathOf } from "../sandbox/backends.ts";
+import { realPathOf, UnconfinedSandbox } from "../sandbox/backends.ts";
 import { workspaceFiles } from "./workspace-files.ts";
 import { listCopy, onSurveyedPath, surveyedPathOf, surveyProfile, writtenSince } from "./write-survey.ts";
 
@@ -51,6 +51,12 @@ const GIT_WITHOUT_HOST_CONFIGURATION: Readonly<Record<string, string>> = {
  * neither declares one nor lets one through.
  */
 const isGitConfiguration = (name: string) => name.startsWith("GIT_CONFIG") || name === "GIT_TEMPLATE_DIR";
+
+/** What the evidence of a control the owner declared unconfined says of the way it ran. */
+const RAN_UNCONFINED = "ran outside confinement, by the owner's decision";
+
+/** Runs the one control whose frozen definition carries the owner's `unconfined`, and no other. */
+const UNCONFINED = new UnconfinedSandbox();
 
 export interface RunnerOptions {
 	max_output_bytes: number;
@@ -124,6 +130,7 @@ export class GenericControlRunner implements ControlExecutionPort {
 		const { control } = invocation;
 		const cwd = resolve(invocation.workspace_path, control.cwd);
 		const profile = this.profileFor(control, invocation.workspace_path);
+		const sandbox = control.unconfined === true ? UNCONFINED : this.sandbox;
 		const started = new Date().toISOString();
 		let observation: ProcessObservation | null = null;
 		let written: string[] | null = null;
@@ -187,9 +194,9 @@ export class GenericControlRunner implements ControlExecutionPort {
 				try {
 					observation =
 						before === null
-							? await this.sandbox.run(profile, request(invocation.workspace_path), signal)
+							? await sandbox.run(profile, request(invocation.workspace_path), signal)
 							: await onSurveyedPath(invocation.workspace_path, (surveyed) =>
-									this.sandbox.run(surveyProfile(profile, surveyed), request(surveyed), signal),
+									sandbox.run(surveyProfile(profile, surveyed), request(surveyed), signal),
 								);
 				} finally {
 					if (ruleset) await rm(ruleset.directory, { recursive: true, force: true });
@@ -280,7 +287,7 @@ export class GenericControlRunner implements ControlExecutionPort {
 				...report.facts,
 				command,
 				cwd: control.cwd,
-				sandbox: this.sandbox.backend,
+				sandbox: sandbox.backend,
 				duration_ms: observation?.duration_ms ?? null,
 				...(written === null ? {} : { written }),
 			},
@@ -292,7 +299,7 @@ export class GenericControlRunner implements ControlExecutionPort {
 				bytes_total: null,
 				exclusions: [],
 				unstable: false,
-				notes: report.notes,
+				notes: control.unconfined === true ? [...report.notes, RAN_UNCONFINED] : report.notes,
 			},
 			baseline: null,
 			producer: invocation.producer,

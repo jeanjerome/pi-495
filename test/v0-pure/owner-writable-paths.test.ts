@@ -73,3 +73,18 @@ describe("the directories the owner gives a declared control", () => {
 		);
 	});
 });
+
+describe("a control the owner declares unconfined", () => {
+	it("only the declared control carries the exception: a detected control under the same identifier stays confined", () => {
+		const policy = { ...DEFAULT_POLICY, project_controls: [{ ...declared("unit", []), unconfined: true }] };
+		const detection = withOwnerPaths(detectionOf([detected("unit", []), detected("lint", [])]), policy);
+		assert.deepEqual(
+			[...projectControlsOf(policy), ...detection.controls].map((c) => [c.control_id, c.unconfined ?? null]),
+			[
+				["unit", true],
+				["unit", null],
+				["lint", null],
+			],
+		);
+	});
+});

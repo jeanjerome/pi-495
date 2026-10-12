@@ -459,6 +459,11 @@ export const ControlDefinition = Type.Object(
 		requirement_refs: Type.Array(RequirementRef),
 		protected: Type.Boolean({ description: "the control definition files may not be modified by a producer" }),
 		protected_paths: Type.Array(Type.String()),
+		/**
+		 * Run outside any sandbox, by the owner's decision: carried only by a control the owner declares so in the
+		 * controller's configuration, absent from every other control.
+		 */
+		unconfined: Type.Optional(Type.Literal(true)),
 	},
 	{ $id: contractId("control-definition"), additionalProperties: false },
 );

@@ -73,6 +73,8 @@ export const ProjectControlDeclaration = Type.Object(
 		writable_paths: Type.Optional(Type.Array(Type.String())),
 		provides: Type.Optional(Type.Array(Type.String())),
 		requires: Type.Optional(Type.Array(Type.String())),
+		/** true runs this control outside any sandbox, by the owner's decision; absent or false keeps it confined. */
+		unconfined: Type.Optional(Type.Boolean()),
 	},
 	{ additionalProperties: false },
 );

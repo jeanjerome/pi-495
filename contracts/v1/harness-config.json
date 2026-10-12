@@ -511,6 +511,9 @@
                 "items": {
                   "type": "string"
                 }
+              },
+              "unconfined": {
+                "type": "boolean"
               }
             },
             "additionalProperties": false

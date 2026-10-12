@@ -193,12 +193,16 @@ export function evaluateG5(
 		} else retained.push(acceptance.human_decision_id);
 	}
 
+	// Whatever the verdict, it says which control ran with no sandbox: the owner declared it so, and nothing else did.
+	const unconfined = (protocol.unconfined_control_ids ?? []).map(
+		(cid) => `declared control ${cid} ran outside confinement, by the owner's decision`,
+	);
 	const failedList = [...failed];
 	const indeterminateList = [...indeterminate];
 	if (failedList.length === 0 && indeterminateList.length === 0)
 		return {
 			verdict: "PASS",
-			reasons: [],
+			reasons: unconfined,
 			retained: dedupe(retained),
 			ignored,
 			missing,
@@ -215,7 +219,7 @@ export function evaluateG5(
 	else next = "resolve_incident";
 	return {
 		verdict: failedList.length > 0 ? "FAIL" : "INDETERMINATE",
-		reasons,
+		reasons: [...reasons, ...unconfined],
 		retained: dedupe(retained),
 		ignored,
 		missing,
