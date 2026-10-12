@@ -4,7 +4,7 @@
  * replay a red in, and the one squashed commit a branch lands as.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, symlinkSync } from "node:fs";
+import { chmodSync, lstatSync, mkdtempSync, readdirSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -116,8 +116,26 @@ export function arbreDetache(cwd: string, sha: string): string {
 	return path;
 }
 
+/**
+ * Removes the detached tree at `path`, even when the run replayed in it left directories closed to their owner, as a
+ * test of a copy that cannot be deleted does on the code it was written against.
+ */
 export function retirerArbre(cwd: string, path: string): void {
-	git(cwd, ["worktree", "remove", "--force", path]);
+	try {
+		git(cwd, ["worktree", "remove", "--force", path]);
+	} catch {
+		rendreAuProprietaire(path);
+		rmSync(path, { recursive: true, force: true });
+		git(cwd, ["worktree", "prune"]);
+	}
+}
+
+/** Gives every directory under `path` back to its owner, without following a link out of the tree. */
+function rendreAuProprietaire(path: string): void {
+	const stat = lstatSync(path);
+	if (!stat.isDirectory()) return;
+	chmodSync(path, stat.mode | 0o700);
+	for (const nom of readdirSync(path)) rendreAuProprietaire(join(path, nom));
 }
 
 /** Stages `chemins` and commits them with `message`. */

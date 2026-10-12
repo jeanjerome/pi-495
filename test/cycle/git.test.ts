@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import { strict as assert } from "node:assert";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
 	arbreDetache,
@@ -70,6 +70,25 @@ describe("the git operations of the cycle", () => {
 		assert.equal(existsSync(join(tree, "node_modules", ".keep")), true);
 		retirerArbre(root, tree);
 		assert.equal(existsSync(tree), false);
+	});
+
+	it("removes a detached tree whose run left directories closed to their owner, without changing what a link of the tree leads to", () => {
+		const root = depot();
+		const tree = arbreDetache(root, revision(root));
+		const outside = join(root, "outside");
+		mkdirSync(outside);
+		chmodSync(outside, 0o500);
+		mkdirSync(join(tree, "test-output", "locked", "sub"), { recursive: true });
+		writeFileSync(join(tree, "test-output", "locked", "sub", "f"), "");
+		symlinkSync(outside, join(tree, "test-output", "out"));
+		chmodSync(join(tree, "test-output", "locked", "sub"), 0o000);
+		chmodSync(join(tree, "test-output", "locked"), 0o000);
+		retirerArbre(root, tree);
+		assert.deepEqual(
+			{ removed: !existsSync(tree), outside: statSync(outside).mode & 0o777 },
+			{ removed: true, outside: 0o500 },
+		);
+		chmodSync(outside, 0o700);
 	});
 
 	it("reads a file as a commit holds it, and null for a path the commit does not hold", () => {
