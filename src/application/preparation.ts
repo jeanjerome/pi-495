@@ -41,6 +41,11 @@ export interface PreparationRecord {
 	 * observations were kept per requirement: such a record stays readable and proves no requirement.
 	 */
 	requirements?: RequirementOracle[];
+	/**
+	 * What the suite of a refused preparation wrote when run once more on a disposable copy where it may write, the paths
+	 * relative to the copy, and its control; absent from a retained preparation, whose suite is not run again (D-92).
+	 */
+	suite_written?: { control_id: string; paths: string[] };
 }
 
 /**

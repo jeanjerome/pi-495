@@ -1,5 +1,17 @@
 import { strict as assert } from "node:assert";
-import { readFileSync, symlinkSync, unlinkSync, writeFileSync, chmodSync, existsSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import {
+	readFileSync,
+	symlinkSync,
+	unlinkSync,
+	writeFileSync,
+	chmodSync,
+	existsSync,
+	lstatSync,
+	mkdirSync,
+	readdirSync,
+	statSync,
+} from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY, inspectGit } from "../../src/adapters/workspace/git-workspace.ts";
@@ -17,6 +29,7 @@ import {
 	ESC,
 	removedAfterEach,
 	copyPolicyDeclaredBy,
+	darwinOnly,
 } from "../helpers/fixtures.ts";
 
 let root: string;
@@ -312,4 +325,87 @@ describe("workspace isolation and candidate manifest (GIT-02, RM-050, RM-049, AD
 		const info = await inspectGit(join(p, "sub"));
 		assert.equal(info.is_repo, false);
 	});
+});
+
+/** Gives back to its owner every directory under `path` that a test locked, so that its tree can be removed. */
+function unlocked(path: string): void {
+	if (!lstatSync(path, { throwIfNoEntry: false })?.isDirectory()) return;
+	chmodSync(path, 0o700);
+	for (const name of readdirSync(path)) unlocked(join(path, name));
+}
+
+describe("closing a workspace", () => {
+	it("deletes the copy whatever modes the code run in it left on its directories, and changes nothing a link of the copy leads to", async () => {
+		const p = join(root, "proj");
+		fixtureTs(p);
+		initRepo(p);
+		const ref = await ws.captureReference(p, DEFAULT_WORKSPACE_POLICY);
+		const handle = await ws.createWorkspace(ref, DEFAULT_WORKSPACE_POLICY);
+		const beside = join(root, "beside");
+		mkdirSync(join(beside, "inner"), { recursive: true });
+		chmodSync(join(beside, "inner"), 0o500);
+		symlinkSync(beside, join(handle.path, "out"));
+		mkdirSync(join(handle.path, "locked", "sub"), { recursive: true });
+		writeFileSync(join(handle.path, "locked", "sub", "f"), "1");
+		chmodSync(join(handle.path, "locked", "sub"), 0o000);
+		chmodSync(join(handle.path, "locked"), 0o000);
+		chmodSync(handle.path, 0o500);
+		try {
+			await ws.closeWorkspace(handle.workspace_id, "delete");
+			assert.equal(existsSync(handle.path), false);
+			assert.deepEqual(readdirSync(join(root, "workspaces")), []);
+			assert.equal(statSync(join(beside, "inner")).mode & 0o777, 0o500);
+			assert.deepEqual(readdirSync(beside), ["inner"]);
+		} finally {
+			unlocked(handle.path);
+			unlocked(beside);
+		}
+	});
+
+	it(
+		"sous macOS, supprime la copie où le code a posé un dossier fermé portant une ACL qui refuse l'effacement, un fichier au drapeau uchg, et dans le dossier fermé un sous-dossier portant la même ACL et un fichier au drapeau uchg, sans rien changer à ce qu'un lien de la copie désigne",
+		darwinOnly,
+		async () => {
+			const p = join(root, "proj");
+			fixtureTs(p);
+			initRepo(p);
+			const ref = await ws.captureReference(p, DEFAULT_WORKSPACE_POLICY);
+			const handle = await ws.createWorkspace(ref, DEFAULT_WORKSPACE_POLICY);
+			const beside = join(root, "beside");
+			mkdirSync(join(beside, "kept"), { recursive: true });
+			writeFileSync(join(beside, "frozen"), "1");
+			execFileSync("/usr/bin/chflags", ["uchg", join(beside, "frozen")]);
+			execFileSync("/bin/chmod", ["+a", "everyone deny delete,delete_child", join(beside, "kept")]);
+			symlinkSync(join(beside, "frozen"), join(handle.path, "to-frozen"));
+			symlinkSync(join(beside, "kept"), join(handle.path, "to-kept"));
+			const denied = join(handle.path, "denied");
+			mkdirSync(join(denied, "sub"), { recursive: true });
+			writeFileSync(join(denied, "sub", "f"), "1");
+			execFileSync("/usr/bin/chflags", ["uchg", join(denied, "sub", "f")]);
+			execFileSync("/bin/chmod", ["+a", "everyone deny delete,delete_child", join(denied, "sub")]);
+			writeFileSync(join(handle.path, "frozen.txt"), "1");
+			execFileSync("/usr/bin/chflags", ["uchg", join(handle.path, "frozen.txt")]);
+			execFileSync("/bin/chmod", ["+a", "everyone deny delete,delete_child", denied]);
+			chmodSync(denied, 0o000);
+			try {
+				await assert.doesNotReject(ws.closeWorkspace(handle.workspace_id, "delete"));
+				assert.equal(existsSync(handle.path), false);
+				assert.deepEqual(readdirSync(join(root, "workspaces")), []);
+				assert.match(execFileSync("/bin/ls", ["-lO", join(beside, "frozen")], { encoding: "utf8" }), /uchg/);
+				assert.match(
+					execFileSync("/bin/ls", ["-led", join(beside, "kept")], { encoding: "utf8" }),
+					/deny delete,delete_child/,
+				);
+			} finally {
+				// What the test closed is opened again so that its tree can be removed.
+				for (const target of [join(root, "workspaces"), beside])
+					for (const command of [
+						["/usr/bin/chflags", "-R", "0", target],
+						["/bin/chmod", "-R", "-N", target],
+						["/bin/chmod", "-R", "u+rwx", target],
+					])
+						spawnSync(command[0] ?? "", command.slice(1), { stdio: "ignore" });
+			}
+		},
+	);
 });

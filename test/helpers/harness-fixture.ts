@@ -1,4 +1,5 @@
 import { strict as assert } from "node:assert";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { CasObjectStore } from "../../src/adapters/object-store/cas.ts";
 import { GitIntegrator } from "../../src/adapters/git/integrator.ts";
@@ -7,6 +8,7 @@ import { GenericControlRunner } from "../../src/adapters/execution/runner.ts";
 import { ScriptedAgent, type AgentScript } from "../../src/adapters/pi-worker/scripted-agent.ts";
 import { UnconfinedSandbox, selectSandbox } from "../../src/adapters/sandbox/backends.ts";
 import { SqliteLedger } from "../../src/adapters/storage-sqlite/ledger.ts";
+import { ControllerConfigFile } from "../../src/extension/config.ts";
 import { GitWorkspace, DEFAULT_WORKSPACE_POLICY } from "../../src/adapters/workspace/git-workspace.ts";
 import { type AdvanceResult, Harness, type HarnessDeps } from "../../src/application/harness.ts";
 import type { StackRegistry } from "../../src/application/stacks/registry.ts";
@@ -15,6 +17,7 @@ import type {
 	ControlInvocation,
 	ModelSelection,
 	SandboxPort,
+	WorkspacePort,
 } from "../../src/ports/execution.ts";
 import { fixedSources, randomIds, type Clock, type IdSource } from "../../src/application/ids.ts";
 import { DEFAULT_POLICY, type ActivePolicy } from "../../src/domain/policy.ts";
@@ -191,6 +194,8 @@ export interface HarnessOptions {
 	/** Wraps the unconfined backend, e.g. with one that stands for the package repository an install reaches. */
 	backend?: (real: SandboxPort) => SandboxPort;
 	controls?: (real: ControlExecutionPort) => ControlExecutionPort;
+	/** Wraps the workspace adapter, e.g. with one that cannot delete some copies. */
+	workspace?: (real: WorkspacePort) => WorkspacePort;
 	/** The technologies handed to the kernel, and whose readers the runner is given: those of 495 by default. */
 	stacks?: StackRegistry["technologies"];
 	/** Reopen an existing data directory instead of creating one: a new session on the same ledger. */
@@ -263,12 +268,48 @@ export class ThrowsOnFirstCandidateRun implements ControlExecutionPort {
 	}
 }
 
+/**
+ * The workspace adapter, failing to delete a copy that holds `path` and leaving it in place, as a copy the system
+ * refuses to remove would be.
+ */
+export class UndeletableCopies implements WorkspacePort {
+	private readonly real: WorkspacePort;
+	private readonly path: string;
+	constructor(real: WorkspacePort, path: string) {
+		this.real = real;
+		this.path = path;
+	}
+	captureReference(
+		...args: Parameters<WorkspacePort["captureReference"]>
+	): ReturnType<WorkspacePort["captureReference"]> {
+		return this.real.captureReference(...args);
+	}
+	createWorkspace(...args: Parameters<WorkspacePort["createWorkspace"]>): ReturnType<WorkspacePort["createWorkspace"]> {
+		return this.real.createWorkspace(...args);
+	}
+	snapshotCandidate(
+		...args: Parameters<WorkspacePort["snapshotCandidate"]>
+	): ReturnType<WorkspacePort["snapshotCandidate"]> {
+		return this.real.snapshotCandidate(...args);
+	}
+	workspacePath(workspaceId: string): string {
+		return this.real.workspacePath(workspaceId);
+	}
+	async closeWorkspace(workspaceId: string, retention: "keep" | "delete"): Promise<void> {
+		const copy = this.real.workspacePath(workspaceId);
+		if (retention === "delete" && existsSync(join(copy, this.path)))
+			throw Object.assign(new Error(`EBUSY: resource busy or locked, rmdir '${copy}'`), { code: "EBUSY" });
+		await this.real.closeWorkspace(workspaceId, retention);
+	}
+}
+
 /** `controls` wraps the real runner, so a test can make one pass answer differently without rigging a shell script. */
 export function makeHarness(options: HarnessOptions = {}): TestHarness {
 	const root = options.root ?? outputDir("harness-", harnessRoots);
 	const ledger = (options.ledger ?? ((path: string) => new SqliteLedger(path)))(join(root, "state.sqlite"));
 	const objects = new CasObjectStore(join(root, "objects"));
-	const workspace = new GitWorkspace(join(root, "workspaces"));
+	const realWorkspace = new GitWorkspace(join(root, "workspaces"));
+	const workspace = options.workspace ? options.workspace(realWorkspace) : realWorkspace;
 	const sandbox =
 		options.sandbox === "platform"
 			? selectSandbox({ allow_unconfined: false })
@@ -320,6 +361,7 @@ export function makeHarness(options: HarnessOptions = {}): TestHarness {
 		clock: options.clock ?? sources.clock,
 		ids,
 		policy,
+		controllerConfig: new ControllerConfigFile(root, {}),
 		workspacePolicy: DEFAULT_WORKSPACE_POLICY,
 		environment: {
 			environment_id: "env_test",

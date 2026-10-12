@@ -194,6 +194,28 @@
             "fr",
             "en"
           ]
+        },
+        "grant_writable": {
+          "type": "object",
+          "required": [
+            "control_id",
+            "directories"
+          ],
+          "properties": {
+            "control_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "directories": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            }
+          },
+          "additionalProperties": false
         }
       },
       "$id": "urn:495:contract:decision-request:1",

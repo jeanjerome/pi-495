@@ -40,6 +40,7 @@ import {
 import { DomainError, type DomainErrorCode } from "../domain/errors.ts";
 import { unobservedEnd } from "../domain/imposed-layers.ts";
 import type { ActivePolicy } from "../domain/policy.ts";
+import type { ControllerConfigPort } from "../ports/controller-config.ts";
 import {
 	applyProgram,
 	decideProgram,
@@ -100,7 +101,12 @@ export interface HarnessDeps {
 	sandbox: SandboxSelection;
 	clock: Clock;
 	ids: IdSource;
+	/**
+	 * Replaced by the policy read back from the controller's configuration when the owner gives a control a directory.
+	 */
 	policy: ActivePolicy;
+	/** The controller's configuration, written only on the owner's answer that gives a control a directory. */
+	controllerConfig: ControllerConfigPort;
 	workspacePolicy: WorkspacePolicy;
 	environment: EnvironmentRef;
 	/** The Pi session this harness writes for: the holder of the changes it conducts. */
@@ -274,7 +280,9 @@ export class Harness {
 			objects: deps.objects,
 			ledger: deps.ledger,
 			environment: deps.environment,
-			policy: deps.policy,
+			get policy() {
+				return harness.deps.policy;
+			},
 			now: () => harness.now(),
 			id: (prefix: string) => harness.id(prefix),
 			readArtifact<T>(ref: { artifact_id: string; revision: number }): Promise<T> {
@@ -301,7 +309,9 @@ export class Harness {
 				const said = await askedOutsideDirectory(deps.sandbox.backend, install, copyPath);
 				return "path" in said ? said.path : null;
 			},
-			policy: deps.policy,
+			get policy() {
+				return harness.deps.policy;
+			},
 			get integrator() {
 				return harness.integrator;
 			},
@@ -317,7 +327,9 @@ export class Harness {
 		this.interventions = new InterventionSupervisor({
 			agent: deps.agent,
 			sandbox: deps.sandbox,
-			policy: deps.policy,
+			get policy() {
+				return harness.deps.policy;
+			},
 			now: () => harness.now(),
 			progress: (message: string) => harness.progress(message),
 			agentContext: (context: AgentContext | null) => harness.deps.onAgentContext?.(context),
@@ -1047,6 +1059,7 @@ export class Harness {
 			referential,
 			architecture_map,
 			alternatives,
+			writable,
 		}: DecisionOptions,
 	): Promise<Unit> {
 		const request = buildDecisionRequest({
@@ -1063,6 +1076,7 @@ export class Harness {
 			...(referential ? { referential } : {}),
 			...(architecture_map ? { architecture_map } : {}),
 			...(alternatives ? { alternatives } : {}),
+			...(writable ? { writable } : {}),
 			installers: (manager: string) => this.deps.stacks.installerOf(manager)?.install,
 			requested_at: this.now(),
 		});
@@ -1132,6 +1146,12 @@ export class Harness {
 				revoked: false,
 			};
 			this.deps.ledger.putHumanDecision(decision, changeId);
+			// Only this answer writes the controller's configuration, and it gives what the question showed the owner.
+			if (request.interaction === "IH-04" && response.option_id === "grant_writable" && request.grant_writable)
+				this.deps.policy = this.deps.controllerConfig.grantWritable(
+					request.grant_writable.control_id,
+					request.grant_writable.directories,
+				);
 			const effect = ANSWER_EFFECTS[request.interaction]?.(response, {
 				actor,
 				human_decision_id: humanDecisionId,

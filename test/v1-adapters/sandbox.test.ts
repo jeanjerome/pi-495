@@ -1,4 +1,5 @@
 import { strict as assert } from "node:assert";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -34,6 +35,27 @@ function profile(over: Partial<SandboxProfile> = {}): SandboxProfile {
 		env: { HARNESS495_TEST: "1" },
 		...over,
 	};
+}
+
+/**
+ * The command lines of the `/usr/bin/log stream` processes descending from `ancestor` whose filter names the sender
+ * `Sandbox`: the readings of the system log a launch from this process started, and none another session started.
+ */
+function systemLogReadingsOf(ancestor: number): string[] {
+	const rows = spawnSync("/bin/ps", ["-Ao", "pid=,ppid=,command="], { encoding: "utf8" })
+		.stdout.split("\n")
+		.map((line) => /^\s*(\d+)\s+(\d+)\s+(.*)$/.exec(line))
+		.filter((m) => m !== null)
+		.map((m) => ({ pid: Number(m[1]), ppid: Number(m[2]), command: m[3] ?? "" }));
+	const parentOf = new Map(rows.map((r) => [r.pid, r.ppid]));
+	const descends = (pid: number): boolean => {
+		for (let p = parentOf.get(pid); p !== undefined && p > 1; p = parentOf.get(p)) if (p === ancestor) return true;
+		return false;
+	};
+	return rows
+		.filter((r) => r.command.startsWith("/usr/bin/log stream") && r.command.includes('sender == "Sandbox"'))
+		.filter((r) => descends(r.pid))
+		.map((r) => r.command);
 }
 
 describe("sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)", () => {
@@ -152,6 +174,25 @@ describe("sandbox backends (SEC-01, SEC-02, ADR-013, C-SEC)", () => {
 			max_output_bytes: 4096,
 		});
 		assert.equal(new TextDecoder().decode(obs.stdout).trim(), "ECONNREFUSED");
+	});
+	it("un lancement sous Seatbelt ne démarre aucune lecture du journal du système", darwinOnly, async () => {
+		const run = new SeatbeltSandbox().run(profile(), {
+			command: [NODE, "-e", "setTimeout(()=>{},1500)"],
+			cwd: join(root, "ws"),
+			timeout_ms: 10000,
+			max_output_bytes: 4096,
+		});
+		let done = false;
+		void run.finally(() => {
+			done = true;
+		});
+		const readings = new Set<string>();
+		while (!done) {
+			for (const reading of systemLogReadingsOf(process.pid)) readings.add(reading);
+			await new Promise((resolve) => setTimeout(resolve, 100));
+		}
+		assert.equal((await run).exit_code, 0);
+		assert.deepEqual([...readings], []);
 	});
 	it("unconfined never qualifies and declares missing confinement capabilities", () => {
 		const q = new UnconfinedSandbox().qualify(profile());

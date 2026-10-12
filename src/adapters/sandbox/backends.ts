@@ -141,6 +141,15 @@ export class SeatbeltSandbox implements SandboxPort {
 			lines.push(`(deny file-read* (subpath ${sbplString(realPathOf(p))}))`);
 		for (const p of profile.write_paths) lines.push(`(allow file-write* (subpath ${sbplString(realPathOf(p))}))`);
 		for (const p of this.options.temp_paths) lines.push(`(allow file-write* (subpath ${sbplString(realPathOf(p))}))`);
+		// After the temporary paths, which may hold it: nothing in the directory but creating entries and writing files,
+		// so that the run removes nothing it created and sets no mode, flag, owner, extended attribute or ACL that keeps
+		// them from being removed afterwards; and what lies under the directory, not the directory: moved away, it is out
+		// of reach, and its path cannot be made again.
+		for (const p of profile.run_scoped_paths ?? [])
+			lines.push(
+				`(deny file-write* (subpath ${sbplString(realPathOf(p))}))`,
+				`(allow file-write-create file-write-data (prefix ${sbplString(`${realPathOf(p)}/`)}))`,
+			);
 		lines.push(
 			'(allow file-write* (literal "/dev/null") (literal "/dev/tty") (regex #"^/dev/ttys[0-9]+$") (literal "/dev/dtracehelper"))',
 		);
@@ -215,12 +224,17 @@ export class BubblewrapSandbox implements SandboxPort {
 	 * The mounts and namespaces of a confined command: the root read-only, the temporary and write paths
 	 * bound read-write, the denied paths masked.
 	 */
-	private confinement(profile: Pick<SandboxProfile, "write_paths" | "network">): string[] {
-		const args = ["--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--die-with-parent", "--new-session"];
+	private confinement(profile: Pick<SandboxProfile, "write_paths" | "run_scoped_paths" | "network">): string[] {
+		const scoped = profile.run_scoped_paths ?? [];
+		// A bind follows the directory wherever it is moved, so a right scoped to the run is ended by ending the run's
+		// processes: in a process namespace of its own, they all end when the command does. That namespace keeps the
+		// `/proc` the root bind carries, a new one being refused where a container masks part of its own.
+		const processes = scoped.length > 0 ? ["--unshare-pid"] : ["--proc", "/proc"];
+		const args = ["--ro-bind", "/", "/", "--dev", "/dev", ...processes, "--die-with-parent", "--new-session"];
 		// The temporary directories stay shared and writable, as under Seatbelt: what 495 writes there for a
 		// command, a ruleset, is read by it.
 		for (const p of this.options.temp_paths) if (existsSync(p)) args.push("--bind", p, p);
-		for (const p of profile.write_paths) args.push("--bind", p, p);
+		for (const p of [...profile.write_paths, ...scoped]) args.push("--bind", p, p);
 		// Masked after the write paths are bound, so a grant never uncovers one. A directory is hidden by an
 		// empty one; a file, which a tmpfs cannot be mounted on, by `/dev/null`, which a confined command
 		// cannot open (`EACCES`).

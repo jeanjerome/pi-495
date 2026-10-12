@@ -19,6 +19,7 @@ import { readerOf } from "../../domain/survey.ts";
 import type {
 	ControlExecutionPort,
 	ControlInvocation,
+	ExecutableRequest,
 	ParsedReport,
 	ProcessObservation,
 	ReaderPreparation,
@@ -30,6 +31,7 @@ import type { ObjectStorePort } from "../../ports/object-store.ts";
 import type { WorkspaceCapability } from "../../application/stacks/plugin.ts";
 import { realPathOf } from "../sandbox/backends.ts";
 import { workspaceFiles } from "./workspace-files.ts";
+import { listCopy, onSurveyedPath, surveyedPathOf, surveyProfile, writtenSince } from "./write-survey.ts";
 
 /**
  * What git is told in every control: no global and no system configuration, so that the host's signing, identity,
@@ -124,6 +126,7 @@ export class GenericControlRunner implements ControlExecutionPort {
 		const profile = this.profileFor(control, invocation.workspace_path);
 		const started = new Date().toISOString();
 		let observation: ProcessObservation | null = null;
+		let written: string[] | null = null;
 		let report: ParsedReport;
 		let command = control.command;
 		const artifacts: EvidenceCandidate["artifacts"] = [];
@@ -131,10 +134,8 @@ export class GenericControlRunner implements ControlExecutionPort {
 		// The workspace the run happened to use is stripped from every message: the reference and the
 		// candidate are two directories holding the same project, and a finding that keeps the path of
 		// its run can never be paired with the same finding observed on the other side (VER-08).
-		const roots = [
-			invocation.workspace_path,
-			await realpath(invocation.workspace_path).catch(() => invocation.workspace_path),
-		];
+		const real = await realpath(invocation.workspace_path).catch(() => invocation.workspace_path);
+		const roots = [invocation.workspace_path, real, surveyedPathOf(invocation.workspace_path), surveyedPathOf(real)];
 		try {
 			if (!cwd.startsWith(resolve(invocation.workspace_path)))
 				throw new Error(`control cwd escapes the workspace: ${control.cwd}`);
@@ -168,28 +169,32 @@ export class GenericControlRunner implements ControlExecutionPort {
 				);
 				await createWritableDirectories(profile);
 				const ruleset = await rulesetOf(control, reader);
+				const before = invocation.survey_writes ? await listCopy(invocation.workspace_path) : null;
+				const request = (copy: string): ExecutableRequest => ({
+					command: ruleset
+						? command.map((arg) =>
+								arg
+									.split(RULESET_PLACEHOLDER)
+									.join(ruleset.path)
+									.split(RULESET_DIRECTORY_PLACEHOLDER)
+									.join(ruleset.directory),
+							)
+						: command,
+					cwd: resolve(copy, control.cwd),
+					timeout_ms: control.timeout_ms,
+					max_output_bytes: this.options.max_output_bytes,
+				});
 				try {
-					observation = await this.sandbox.run(
-						profile,
-						{
-							command: ruleset
-								? command.map((arg) =>
-										arg
-											.split(RULESET_PLACEHOLDER)
-											.join(ruleset.path)
-											.split(RULESET_DIRECTORY_PLACEHOLDER)
-											.join(ruleset.directory),
-									)
-								: command,
-							cwd,
-							timeout_ms: control.timeout_ms,
-							max_output_bytes: this.options.max_output_bytes,
-						},
-						signal,
-					);
+					observation =
+						before === null
+							? await this.sandbox.run(profile, request(invocation.workspace_path), signal)
+							: await onSurveyedPath(invocation.workspace_path, (surveyed) =>
+									this.sandbox.run(surveyProfile(profile, surveyed), request(surveyed), signal),
+								);
 				} finally {
 					if (ruleset) await rm(ruleset.directory, { recursive: true, force: true });
 				}
+				written = await writtenSince(before, invocation.workspace_path, profile.write_paths);
 				if (observation.stdout.byteLength > 0)
 					artifacts.push({
 						name: "stdout",
@@ -277,6 +282,7 @@ export class GenericControlRunner implements ControlExecutionPort {
 				cwd: control.cwd,
 				sandbox: this.sandbox.backend,
 				duration_ms: observation?.duration_ms ?? null,
+				...(written === null ? {} : { written }),
 			},
 			findings,
 			artifacts,

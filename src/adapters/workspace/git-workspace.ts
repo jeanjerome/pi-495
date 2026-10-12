@@ -2,9 +2,11 @@
  * Workspace repository (CMP-WSP, §9.1, §9.2): captures the reference, creates the isolated copy the
  * producer writes in, freezes a candidate from it and closes the space. The project is never written.
  */
-import { existsSync, lstatSync, mkdirSync, realpathSync } from "node:fs";
-import { chmod, cp, mkdir, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { type Dirent, existsSync, lstatSync, mkdirSync, realpathSync } from "node:fs";
+import { chmod, cp, lstat, mkdir, readdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import { promisify } from "node:util";
 import { canonicalize } from "../../contracts/canonical.ts";
 import { digestBytes, digestValue } from "../../contracts/digest.ts";
 import type { CandidateManifest, ManifestEntry, ReferenceSnapshot } from "../../contracts/v1/candidate.ts";
@@ -186,8 +188,92 @@ export class GitWorkspace implements WorkspacePort {
 	}
 
 	async closeWorkspace(workspaceId: string, retention: "keep" | "delete"): Promise<void> {
-		if (retention === "delete") await rm(this.workspacePath(workspaceId), { recursive: true, force: true });
+		if (retention === "delete") await removeCopy(this.workspacePath(workspaceId));
 	}
+}
+
+/**
+ * Removes a copy whatever the code run in it left on its entries: closed modes, and under macOS user flags and ACLs
+ * that deny deletion. The copy is first moved aside, by a rename that follows no link, where no confined process is
+ * granted anything; what it holds is then released and each of its directories given back to its owner, a link being
+ * an entry of its own name whose target is left as it is, and the tree is removed.
+ */
+async function removeCopy(path: string): Promise<void> {
+	const aside = `${path}.${Date.now().toString(36)}.deleted`;
+	try {
+		await rename(path, aside);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+		throw error;
+	}
+	if (process.platform === "darwin" && (await lstat(aside)).isDirectory()) await releaseOnDarwin(aside);
+	await openToOwner(aside);
+	await rm(aside, { recursive: true, force: true });
+}
+
+const execFileAsync = promisify(execFile);
+
+/**
+ * The commands that, under macOS, clear the user flags of an entry, remove its ACL and open it to its owner. `chmod -N`
+ * follows a link whatever its options, and `-h` keeps it from removing a directory's ACL, so each is given only the
+ * entries a walk that follows no link found not to be links, in a tree no confined process is granted anything in.
+ */
+const DARWIN_RELEASE: readonly (readonly [string, ...string[]])[] = [
+	["/usr/bin/chflags", "-h", "nouchg,nouappnd"],
+	["/bin/chmod", "-N"],
+	["/bin/chmod", "-h", "u+rwx"],
+];
+
+/**
+ * Releases a tree under macOS, where a flag or an ACL keeps an entry from being deleted whatever its mode. Each pass
+ * releases every entry it can reach; a directory it cannot enter, closed or denied, is released by that pass and entered
+ * by the next, until a pass meets nothing it cannot list or change, or fails where the one before it did.
+ */
+async function releaseOnDarwin(path: string): Promise<void> {
+	let previous: string | null = null;
+	for (;;) {
+		const entries: string[] = [];
+		const unlisted: string[] = [];
+		await collectEntries(path, entries, unlisted);
+		let failures = unlisted.join("\n");
+		for (const [command, ...args] of DARWIN_RELEASE)
+			for (let i = 0; i < entries.length; i += 256)
+				failures += await execFileAsync(command, [...args, ...entries.slice(i, i + 256)], {
+					maxBuffer: 64 * 1024 * 1024,
+				}).then(
+					() => "",
+					(error: { stderr?: string }) => error.stderr ?? `${command} failed\n`,
+				);
+		const outcome = `${entries.length}\n${failures}`;
+		if (failures === "" || outcome === previous) return;
+		previous = outcome;
+	}
+}
+
+/**
+ * Adds to `entries` every entry of a tree that is not a link, `path` included, its walk following no link, and to
+ * `unlisted` the directories it could not read.
+ */
+async function collectEntries(path: string, entries: string[], unlisted: string[]): Promise<void> {
+	entries.push(path);
+	let names: Dirent[];
+	try {
+		names = await readdir(path, { withFileTypes: true });
+	} catch {
+		unlisted.push(path);
+		return;
+	}
+	for (const entry of names) {
+		const child = join(path, entry.name);
+		if (entry.isDirectory()) await collectEntries(child, entries, unlisted);
+		else if (!entry.isSymbolicLink()) entries.push(child);
+	}
+}
+
+async function openToOwner(path: string): Promise<void> {
+	if (!(await lstat(path)).isDirectory()) return;
+	await chmod(path, 0o700);
+	for (const name of await readdir(path)) await openToOwner(join(path, name));
 }
 
 /** The directories the reference records for installed dependencies, or those `policy` declares when it records none. */

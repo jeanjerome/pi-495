@@ -150,6 +150,15 @@ export interface FreezeInput {
 	architecture_map?: AdoptedArchitectureMap;
 }
 
+/** A prepared suite in a copy of the reference and its files: its control, the reference and the copy. */
+export interface PreparedSuiteInput {
+	control: ControlDefinition;
+	reference: ReferenceSnapshot;
+	manifest: CandidateManifest;
+	workspace_id: string;
+	workspace_path: string;
+}
+
 export interface RunInput {
 	change_id: string;
 	protocol: Protocol;
@@ -406,19 +415,40 @@ export class VerificationCoordinator {
 	 * which `cases` reports, and stays null when the reader of the control names no case. A suite
 	 * reporting no test at all did not load, whatever its exit code said.
 	 */
-	async judgePreparedSuite(input: {
-		control: ControlDefinition;
-		reference: ReferenceSnapshot;
-		manifest: CandidateManifest;
-		workspace_id: string;
-		workspace_path: string;
-	}): Promise<{
+	async judgePreparedSuite(input: PreparedSuiteInput): Promise<{
 		on_reference: PreparationRecord["on_reference"];
 		loadable: boolean;
 		cases: ObservedCase[] | null;
 		notes: string[];
 	}> {
-		const { evidence } = await this.deps.controls.runControl({
+		const { evidence } = await this.deps.controls.runControl(this.preparedSuiteRun(input));
+		const onReference = evidence.verdict;
+		const tests = Number(evidence.facts.tests ?? 0);
+		const cases = evidence.facts.cases;
+		return {
+			on_reference: onReference,
+			loadable: onReference === "PASS" || (onReference === "FAIL" && tests > 0),
+			cases: check(ObservedCases, cases) ? cases : null,
+			notes:
+				onReference === "INDETERMINATE"
+					? [`prepared suite is not loadable or produced no test: ${evidence.limits.notes.join("; ")}`]
+					: [],
+		};
+	}
+
+	/**
+	 * What a prepared suite writes in a copy of the reference and its files where it may write anywhere: the paths it
+	 * created or changed there, relative to the copy (D-92). The copy is the caller's, and disposable.
+	 */
+	async surveyPreparedSuite(input: PreparedSuiteInput): Promise<string[]> {
+		const { evidence } = await this.deps.controls.runControl({ ...this.preparedSuiteRun(input), survey_writes: true });
+		const written = evidence.facts.written;
+		return Array.isArray(written) ? written.filter((p): p is string => typeof p === "string") : [];
+	}
+
+	/** The run of a prepared suite in a copy of the reference and its files, which no protocol has frozen yet. */
+	private preparedSuiteRun(input: PreparedSuiteInput): ControlInvocation {
+		return {
 			control: input.control,
 			protocol: { protocol_id: "preparation", revision: 0, content_digest: digestValue("preparation") },
 			candidate: {
@@ -432,18 +462,6 @@ export class VerificationCoordinator {
 			environment: this.deps.environment,
 			requirement_refs: [],
 			producer: EXECUTOR_ACTOR,
-		});
-		const onReference = evidence.verdict;
-		const tests = Number(evidence.facts.tests ?? 0);
-		const cases = evidence.facts.cases;
-		return {
-			on_reference: onReference,
-			loadable: onReference === "PASS" || (onReference === "FAIL" && tests > 0),
-			cases: check(ObservedCases, cases) ? cases : null,
-			notes:
-				onReference === "INDETERMINATE"
-					? [`prepared suite is not loadable or produced no test: ${evidence.limits.notes.join("; ")}`]
-					: [],
 		};
 	}
 

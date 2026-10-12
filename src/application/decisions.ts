@@ -398,6 +398,36 @@ const ADOPT_COMPLEMENT = {
 } as const;
 
 /**
+ * What an IH-04 asked after refused preparations offers to give the control of their suite: the directories of the
+ * copy it wrote under when run on a disposable copy, and the paths it wrote there.
+ */
+export interface WritableOffer {
+	control_id: string;
+	directories: readonly string[];
+	paths: readonly string[];
+}
+
+/**
+ * The way out of IH-04 that gives the control of the prepared suite the directories of the copy it wrote under when run
+ * on a disposable copy. Only the owner's answer writes them into the controller's configuration, and the control has
+ * them from the next preparation on, in every target this controller judges (D-90).
+ */
+const GRANT_WRITABLE = {
+	fr: ({ control_id, directories, paths }: WritableOffer) => ({
+		id: "grant_writable",
+		label: `Donner ${directories.join(", ")} au contrôle ${control_id}`,
+		effect: `Relancée sur un double jetable de la copie, la suite préparée y a écrit : ${paths.join(", ")}. 495 ajoute ${directories.join(", ")} à policy.writable_paths.${control_id} dans config.json, sans toucher au reste ; le contrôle ${control_id} pourra y écrire dans toutes les cibles que ce contrôleur juge. Une préparation de plus est accordée et le protocole figé portera ce dossier. Le contrôleur crée le dossier avant le contrôle, et un lien ou un fichier posé à sa place fait refuser le contrôle. Pour retirer cet accord, modifiez config.json.`,
+		risky: true,
+	}),
+	en: ({ control_id, directories, paths }: WritableOffer) => ({
+		id: "grant_writable",
+		label: `Give ${directories.join(", ")} to the control ${control_id}`,
+		effect: `Run again on a disposable copy of the copy, the prepared suite wrote there: ${paths.join(", ")}. 495 adds ${directories.join(", ")} to policy.writable_paths.${control_id} in config.json, leaving the rest as it is; the control ${control_id} may write there in every target this controller judges. One more preparation is granted and the frozen protocol will carry this directory. The controller creates the directory before the control runs, and a link or a file put in its place has the control refused. To withdraw this grant, edit config.json.`,
+		risky: true,
+	}),
+} as const;
+
+/**
  * The frozen case an IH-04 asks about: its examination found that the objection is to the requirement itself, or
  * found wrong a case the owner kept.
  */
@@ -783,6 +813,8 @@ export function buildDecisionRequest(args: {
 	architecture_map?: MapVerificationOffer;
 	/** The alternatives of the architecture recommendation an IH-05 asked on a survey offers to choose from. */
 	alternatives?: readonly RecommendedAlternative[];
+	/** What an IH-04 asked after refused preparations offers to give the control of their suite. */
+	writable?: WritableOffer;
 	/** The install capability that runs a package manager, whose phrases say what adopting its packages does. */
 	installers?: Installers;
 	requested_at: string;
@@ -792,10 +824,15 @@ export function buildDecisionRequest(args: {
 	const surveyed = args.interaction === "IH-10" && args.subject.kind === "artifact";
 	const t = questionOf(args, surveyed, installers);
 	const adoptable = args.interaction === "IH-04" ? (args.adoptable ?? { files: [], installs: [] }) : null;
-	const options =
-		adoptable !== null && (adoptable.files.length > 0 || adoptable.installs.length > 0)
-			? [...t.options, ADOPT_COMPLEMENT[args.language](adoptable, installers)]
-			: t.options;
+	const writable =
+		args.interaction === "IH-04" && args.writable && args.writable.directories.length > 0 ? args.writable : null;
+	const options = [
+		...t.options,
+		...(adoptable !== null && (adoptable.files.length > 0 || adoptable.installs.length > 0)
+			? [ADOPT_COMPLEMENT[args.language](adoptable, installers)]
+			: []),
+		...(writable ? [GRANT_WRITABLE[args.language](writable)] : []),
+	];
 	return {
 		decision_id: args.decision_id,
 		change_id: args.change_id,
@@ -804,7 +841,7 @@ export function buildDecisionRequest(args: {
 		question: t.question,
 		facts: args.facts,
 		recommendation: args.recommendation,
-		options: [...options],
+		options,
 		required_authority: args.interaction === "IH-01" ? "requester" : "change_owner",
 		allow_free_text:
 			args.interaction === "IH-01" ||
@@ -816,5 +853,8 @@ export function buildDecisionRequest(args: {
 		requested_at: args.requested_at,
 		expires_at: null,
 		language: args.language,
+		...(writable
+			? { grant_writable: { control_id: writable.control_id, directories: [...writable.directories] } }
+			: {}),
 	};
 }

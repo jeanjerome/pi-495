@@ -34,8 +34,12 @@ export function projectControlsOf(policy: ActivePolicy): ControlDefinition[] {
  * from the controller's configuration, never from the copy, so a candidate neither adds one nor widens one.
  */
 function withOwnerWritable(controlId: string, writable: readonly string[], policy: ActivePolicy): string[] {
-	const given = Object.hasOwn(policy.writable_paths, controlId) ? (policy.writable_paths[controlId] ?? []) : [];
-	return [...new Set([...writable, ...given])];
+	return [...new Set([...writable, ...ownerWritableOf(controlId, policy)])];
+}
+
+/** The directories the owner gives the control `controlId` in the policy; none when it names no such key of its own. */
+export function ownerWritableOf(controlId: string, policy: ActivePolicy): string[] {
+	return Object.hasOwn(policy.writable_paths, controlId) ? (policy.writable_paths[controlId] ?? []) : [];
 }
 
 /**

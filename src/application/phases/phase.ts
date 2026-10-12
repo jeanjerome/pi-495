@@ -24,6 +24,7 @@ import type {
 	PhaseInteraction,
 	RecommendedAlternative,
 	ReferentialOffer,
+	WritableOffer,
 } from "../decisions.ts";
 import type { BundledSkill } from "../skills.ts";
 import type { InstallRun } from "../installation.ts";
@@ -75,6 +76,8 @@ export interface DecisionOptions {
 	architecture_map?: MapVerificationOffer;
 	/** The alternatives of the architecture recommendation an IH-05 asked on a survey offers to choose from. */
 	alternatives?: readonly RecommendedAlternative[];
+	/** What an IH-04 asked after refused preparations offers to give the control of their suite. */
+	writable?: WritableOffer;
 }
 
 export interface PhaseContext {

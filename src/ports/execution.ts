@@ -38,6 +38,14 @@ export interface SandboxProfile {
 	/** Those of `write_paths` that name a file, the report a control writes, rather than a directory. */
 	write_files?: string[];
 	/**
+	 * Absolute directories whose contents the run may write, a right that ends with the run: the directory itself is not
+	 * granted, so once it is moved away no process of the run can write under its former path nor create it again, and a
+	 * backend that can end every process of the run with it does. Where the backend can tell them apart, the run may only
+	 * create entries and write files there, never remove one nor change a mode, a flag, an owner, an extended attribute or
+	 * an ACL that could keep them from being removed: Seatbelt does, bubblewrap cannot (D-92).
+	 */
+	run_scoped_paths?: string[];
+	/**
 	 * `denied` grants no socket at all; `loopback` lets a process reach itself and nothing else, which
 	 * is what a tool that forks workers and talks to them over a socket needs; `allowed` is a mandate.
 	 */
@@ -139,6 +147,11 @@ export interface ControlInvocation {
 	introduced_lines?: IntroducedLines | null;
 	/** What the exploration of a formal model reads, which identifies its result instead of the candidate. */
 	formal_inputs?: FormalInputs;
+	/**
+	 * Whether the control runs with its whole copy writable, by its real path, so that the paths it writes there are
+	 * read back into its evidence under `written`: a survey, run only on a disposable copy (D-92).
+	 */
+	survey_writes?: boolean;
 }
 
 /**

@@ -16,15 +16,16 @@ import type {
 } from "../../contracts/v1/protocol.ts";
 import { surveysTheProject, type HumanDecisionEntry } from "../../domain/change/state.ts";
 import { DomainError } from "../../domain/errors.ts";
+import { offeredWritableDirectories } from "../../domain/writable-proposal.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { applyRecommendedEdits, editedFile } from "../complement.ts";
 import { withFormalControl } from "../formal-control.ts";
-import type { Adoptable } from "../decisions.ts";
+import type { Adoptable, WritableOffer } from "../decisions.ts";
 import { bringInstalls, filesOf, installableRecommendations, type FailedInstall } from "../installation.ts";
 import { preparationMandateObjective } from "../context.ts";
 import { diagnoseControlCapability, referenceTestFiles } from "../preparation.ts";
 import type { PreparationRecord, ReferenceSuiteObservation } from "../preparation.ts";
-import { withOwnerPaths } from "../project-controls.ts";
+import { ownerWritableOf, withOwnerPaths } from "../project-controls.ts";
 import type { DetectedTechnology } from "../stacks/stack.ts";
 import { failedInstalls, recordFailedInstall, recordResolution } from "./install-records.ts";
 import { settleArchitectureMap } from "./architecture-map.ts";
@@ -34,13 +35,14 @@ import type { PhaseContext, Unit } from "./phase.ts";
 import { reviseRequirements } from "./requirements-revision.ts";
 
 /**
- * How many preparations the owner granted beyond the two 495 spends by itself. A revision of the
- * requirements revokes the answers given before it, so only those that concern the requirements as
- * they stand are counted.
+ * How many preparations the owner granted beyond the two 495 spends by itself: one by answer that prepares again,
+ * whether or not it gives the suite a directory first. A revision of the requirements revokes the answers given before
+ * it, so only those that concern the requirements as they stand are counted.
  */
 function preparationsGranted(unit: Unit): number {
-	return unit.state.human_decisions.filter((d) => d.valid && d.interaction === "IH-04" && d.option_id === "prepare")
-		.length;
+	return unit.state.human_decisions.filter(
+		(d) => d.valid && d.interaction === "IH-04" && (d.option_id === "prepare" || d.option_id === "grant_writable"),
+	).length;
 }
 
 /**
@@ -106,6 +108,7 @@ function requestVerifiabilityArbitration(
 	diagnosis: ControlCapabilityDiagnosis,
 	recommendations: readonly RecommendedComplement[],
 	adoptable: Adoptable,
+	writable: WritableOffer | null,
 ): Promise<Unit> {
 	const named = diagnosis.undiscriminated_requirements.join(", ");
 	const subject = arbitrationSubject(requirements, diagnosis.undiscriminated_requirements);
@@ -118,7 +121,23 @@ function requestVerifiabilityArbitration(
 		arg: named,
 		language: ctx.language(unit.state),
 		adoptable,
+		...(writable ? { writable } : {}),
 	});
+}
+
+/**
+ * The directories of the copy the suite of the last preparation wrote under when run on a disposable copy, for the
+ * control of that suite, less those the policy already gives it; null when there are none.
+ */
+async function writableOffer(ctx: PhaseContext, unit: Unit): Promise<WritableOffer | null> {
+	const last = ctx.artifacts
+		.preparationsForCurrentRequirements(unit.state)
+		.findLast((ref) => ref.artifact_id.startsWith("prep_"));
+	const written = last ? (await ctx.artifacts.read<PreparationRecord>(last)).suite_written : undefined;
+	if (written === undefined) return null;
+	const { control_id, paths } = written;
+	const directories = offeredWritableDirectories(paths, ownerWritableOf(control_id, ctx.policy));
+	return directories.length === 0 ? null : { control_id, directories, paths };
 }
 
 /**
@@ -152,6 +171,7 @@ async function openPreparation(
 			diagnosis,
 			detection.recommendations,
 			adoptable,
+			await writableOffer(ctx, unit),
 		);
 	// A case an examination found wrong is still frozen until this preparation replaces it: it is named, so
 	// that the preparation does not carry it over as it stands.

@@ -3655,3 +3655,130 @@ bugs:
       Narrow the preparation's writable paths to the profile's `suite_paths` when it names some, or name those paths in
       the preparer's mandate; until then, a prepared test outside them leaves the prepared suite undecided.
     status: open
+  - bug_id: BUG-2026-10-11T221330
+    date: "2026-10-11"
+    title: "A grant_writable answer is recorded, and counts as one more preparation, before config.json is written, so a configuration that cannot be read or written leaves the grant counted and the directory not given"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `Harness.answerDecision` (`src/application/harness.ts`) commits `decision.answer` and stores the human decision
+      before it calls `ControllerConfigPort.grantWritable`. When `config.json` was made unreadable or invalid after the
+      session started, or cannot be written, `ControllerConfigFile.grantWritable` (`src/extension/config.ts`) throws
+      out of `answerDecision`: the answer stays recorded as `grant_writable`, `preparationsGranted`
+      (`src/application/phases/verification-design.ts`) counts it as one more preparation, and that preparation runs
+      without the directory the owner agreed to give.
+    what_expected: >
+      The owner's answer that gives a control a directory is recorded only once the directory is written into the
+      controller's configuration; when it cannot be written, the answer is refused, naming `config.json` and what is
+      wrong with it, and the question stays pending.
+    steps_to_reproduce:
+      - "Drive a change to the IH-04 that offers grant_writable (test/v2-kernel/writable-proposal.test.ts), with a data directory holding a valid config.json."
+      - "Before answering, write an unknown key into config.json, or make it read-only."
+      - "Answer grant_writable: answerDecision throws, yet pendingDecisions no longer lists the IH-04 and the next advance spends a third preparation whose frozen unit control does not carry test-output/."
+    root_cause: >
+      The write of the configuration is an effect of the answer placed after the answer is committed, with no
+      refusal path back to the owner when it fails.
+    evidence: >
+      Read during the self-review of the branch e40s03 from the order of the calls in `answerDecision`, then confirmed
+      by a throwaway probe on the harness of test/v2-kernel/writable-proposal.test.ts (not committed): with an unknown
+      key written into config.json before the answer, answerDecision threw "config.json cannot be read: bogus is not a
+      known setting", no decision was pending, three preparations ran, G2 passed and the frozen unit control carried no
+      writable path.
+    risk_level: low
+    follow_ups: >
+      Write the configuration before committing the answer and refuse the answer with a DomainError when the write
+      fails, or record the failure and re-ask; until then, a failed grant shows as an exception and the owner edits
+      config.json by hand.
+    status: open
+  - bug_id: BUG-2026-10-12T130349
+    date: "2026-10-12"
+    title: "A command the process runner starts outlives the process that started it when that process is killed"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      `runProcess` (`src/adapters/sandbox/process.ts`) spawns every command in a process group of its own and ends
+      that group only on its timeout or on an abort. When the process that called it is killed, by `SIGKILL` or by a
+      runner that stops a test file, neither happens: the command goes on running, adopted by `launchd`, under
+      Seatbelt or unconfined. Under bubblewrap, `--die-with-parent` ends it. On 2026-10-12, six processes of the test
+      "the process runner enforces timeout, kills the process group and bounds output" of
+      test/v1-adapters/sandbox.test.ts, three outer `node -e` and their children, were found still running an hour
+      after three test runs that started them at 12:03:34-35 had ended, and were stopped by their pid.
+    what_expected: >
+      A command the process runner starts ends with the process that started it, even when that process is killed,
+      on every backend, as bubblewrap's `--die-with-parent` already gives.
+    steps_to_reproduce:
+      - "Write a script that calls `runProcess` with `node -e \"setInterval(()=>{},1000)\"` and a 60 s timeout, then kills itself with SIGKILL after 300 ms."
+      - "Run it with `node`: once it is killed, `ps -Ao pid,ppid,command` shows the `node -e setInterval` process with parent 1, running until it is stopped by its pid."
+    root_cause: >
+      The group is detached so that a timeout can end it as a whole, and only the runner's own timer or abort signal
+      ends it; nothing ties the group's life to the runner's, outside bubblewrap.
+    evidence: >
+      Reproduced on 2026-10-12 on macOS with the script above (not committed): the command, pid 85454, ran with parent 1
+      after its caller was killed, and was stopped by its pid. Run alone to its end, test/v1-adapters/sandbox.test.ts
+      leaves no process behind. The defect predates the branch e40s03, which neither introduces nor changes
+      `runProcess`.
+    risk_level: medium
+    follow_ups: >
+      Tie the process group to the runner on every backend, for instance behind a parent that ends the group once its
+      input from the runner closes, and hold it with a test that kills the runner and finds the command gone.
+    status: open
+  - bug_id: BUG-2026-10-12T132853
+    date: "2026-10-12"
+    title: "The bubblewrap path of a control's write survey runs on no macOS machine, so the mutation of the cycle sees its process namespace survive"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `BubblewrapSandbox.confinement` (`src/adapters/sandbox/backends.ts`) binds the run-scoped paths and takes a
+      process namespace of its own (`--unshare-pid`) instead of `--proc /proc` when a profile carries
+      `run_scoped_paths`. The tests of test/v1-adapters/control-write-survey.test.ts that exercise it are skipped
+      where bubblewrap is not qualified, so on macOS, where the cycle runs its mutation, no test executes these lines,
+      and the mutants of `scoped.length > 0` (to `true`, to `false`) survive. Whether the Linux run of those tests
+      kills both mutants was not replayed: `true`, which gives every confined command its own process namespace,
+      plausibly survives there too.
+    what_expected: >
+      The choice between `--unshare-pid` and `--proc /proc` is held by a test that a one-line mutation of the
+      condition makes fail, on a machine where the cycle runs it.
+    steps_to_reproduce:
+      - "On macOS, mutate `scoped.length > 0` in `BubblewrapSandbox.confinement` to `true` or `false`."
+      - "Run `node --test test/v1-adapters/control-write-survey.test.ts`: the confined tests run under Seatbelt and pass; the bubblewrap lines are not executed."
+    root_cause: >
+      The bubblewrap backend is qualified only on Linux, and the arguments it builds are read by no test that runs
+      without bwrap.
+    evidence: >
+      Reported by the review of the branch e40s03 from the mutation report of the cycle, run on macOS. Introduced by
+      the branch e40s03, which added the condition.
+    risk_level: low
+    follow_ups: >
+      Replay the confined tests of the survey under bubblewrap, in a Linux machine, and hold the
+      argument list for a profile with and without `run_scoped_paths` by a test that reads it without running bwrap.
+    status: open
+  - bug_id: BUG-2026-10-12T150500
+    date: "2026-10-12"
+    title: "A preparation copy that cannot be deleted is said under the path it had, while it is left under the path it was moved aside to"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `removeCopy` (`src/adapters/workspace/git-workspace.ts`) first renames the copy to `<path>.<time>.deleted`, then
+      releases and removes it there. When that removal fails, `deleteCopy` (`src/application/phases/prepare.ts`) says
+      "the preparation copy <path> could not be deleted (…); … it can be removed by hand", naming the path the copy no
+      longer has. The aside path shows only inside the error message of the failed call, when that message names it.
+    what_expected: >
+      The progress message names the directory that is left, so the owner who removes it by hand finds it.
+    steps_to_reproduce:
+      - "Make the removal of a moved-aside copy fail, as test/v2-kernel/write-survey.test.ts does for a copy the system refuses to delete."
+      - "Read the progress message: it names the copy's original path, where nothing is left."
+    root_cause: >
+      `WorkspacePort.closeWorkspace` returns nothing and its failure carries no path of its own, so the phase can only
+      name the path it gave.
+    evidence: >
+      Read during the self-review of the branch e40s03 from `removeCopy` and `deleteCopy`; not replayed. Introduced by
+      the branch e40s03, which added both.
+    risk_level: low
+    follow_ups: >
+      Have the failure of `closeWorkspace` name the directory left, as an `Error` whose message carries it, and say that
+      path in the progress message.
+    status: open

@@ -2,8 +2,15 @@
  * Preparing: a bounded intervention writes the tests no existing control can replace, and the kernel
  * judges them on the bare reference before adopting any of them.
  */
-import type { AdoptedComplement, RequirementOracle, RequirementsDocument } from "../../contracts/v1/protocol.ts";
-import { DomainError } from "../../domain/errors.ts";
+import type { ReferenceSnapshot } from "../../contracts/v1/candidate.ts";
+import type {
+	AdoptedComplement,
+	ControlDefinition,
+	RequirementOracle,
+	RequirementsDocument,
+} from "../../contracts/v1/protocol.ts";
+import { DomainError, messageOf } from "../../domain/errors.ts";
+import type { WorkspaceHandle } from "../../ports/execution.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
 import { preparationObjective } from "../context.ts";
 import {
@@ -15,6 +22,7 @@ import {
 } from "../preparation.ts";
 import type { PreparationRecord } from "../preparation.ts";
 import { withOwnerPaths } from "../project-controls.ts";
+import type { PreparedSuiteInput } from "../verification.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
 
 /** Preparation intervention, then kernel qualification of the proposed tests (SA-008, SA-009, PRE-03). */
@@ -116,27 +124,17 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		let oracles: RequirementOracle[] = [];
 		const sensor = detected.controls[0];
 		if (files.length > 0 && sensor) {
-			const bare = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
-			try {
-				await ctx.artifacts.materializePrepared({ files: [...complements, ...files] }, bare.path);
-				const judged = await ctx.verification.judgePreparedSuite({
-					control: sensor,
-					reference,
-					manifest: await ctx.workspace.snapshotCandidate(bare, reference, ctx.workspacePolicy),
-					workspace_id: bare.workspace_id,
-					workspace_path: bare.path,
-				});
-				onReference = judged.on_reference;
-				loadable = judged.loadable;
-				notes.push(...judged.notes);
-				oracles = requirementOracles(
-					await mandatedRequirements(ctx, unit, mandate.requirement_ids),
-					sensor.control_id,
-					judged.cases,
-				);
-			} finally {
-				await ctx.workspace.closeWorkspace(bare.workspace_id, "delete");
-			}
+			const judged = await onPreparedCopy(ctx, reference, [...complements, ...files], sensor, (suite) =>
+				ctx.verification.judgePreparedSuite(suite),
+			);
+			onReference = judged.on_reference;
+			loadable = judged.loadable;
+			notes.push(...judged.notes);
+			oracles = requirementOracles(
+				await mandatedRequirements(ctx, unit, mandate.requirement_ids),
+				sensor.control_id,
+				judged.cases,
+			);
 		}
 		// Each requirement is judged on its own cases: the red of one case proves the requirement it names
 		// and no other, and a suite red as a whole proves none.
@@ -148,6 +146,10 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		for (const o of oracles) if (o.qualification !== "proved") notes.push(oracleNote(o));
 		const proves = oracles.some((o) => o.qualification === "proved");
 		const qualified = refused.length === 0 && files.length > 0 && loadable && proves;
+		const surveyed =
+			!qualified && files.length > 0 && sensor
+				? await surveyedSuite(ctx, reference, [...complements, ...files], sensor)
+				: {};
 		const record: PreparationRecord = {
 			preparation_id: ctx.id("prep"),
 			objective: mandate.objective,
@@ -160,6 +162,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 			qualified,
 			notes,
 			requirements: oracles,
+			...surveyed,
 		};
 		const ref = await ctx.artifacts.store(
 			"preparation",
@@ -186,7 +189,7 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 			cor,
 		);
 	} finally {
-		await ctx.workspace.closeWorkspace(handle.workspace_id, "delete");
+		await deleteCopy(ctx, handle);
 	}
 }
 
@@ -199,4 +202,60 @@ async function mandatedRequirements(
 	const requirements = await ctx.artifacts.latest<RequirementsDocument>(unit.state, "requirements");
 	if (!requirements) throw new DomainError("EVIDENCE_MISSING", "requirements missing");
 	return requirements.content.requirements.filter((r) => ids.includes(r.requirement_id));
+}
+
+/**
+ * Runs `use` on the suite of `control` in a disposable copy of the reference and `files`, deleted after, so that
+ * nothing the suite writes there reaches the preparation, the reference or a candidate.
+ */
+async function onPreparedCopy<T>(
+	ctx: PhaseContext,
+	reference: ReferenceSnapshot,
+	files: readonly { path: string; digest: string }[],
+	control: ControlDefinition,
+	use: (suite: PreparedSuiteInput) => Promise<T>,
+): Promise<T> {
+	const copy = await ctx.workspace.createWorkspace(reference, ctx.workspacePolicy);
+	try {
+		await ctx.artifacts.materializePrepared({ files }, copy.path);
+		return await use({
+			control,
+			reference,
+			manifest: await ctx.workspace.snapshotCandidate(copy, reference, ctx.workspacePolicy),
+			workspace_id: copy.workspace_id,
+			workspace_path: copy.path,
+		});
+	} finally {
+		await deleteCopy(ctx, copy);
+	}
+}
+
+/**
+ * Deletes a copy of the preparation. A copy the system refuses to remove is said and left where it is: nothing in it
+ * reaches the preparation, the reference or a candidate, so its failure neither loses the record nor stops the change.
+ */
+async function deleteCopy(ctx: PhaseContext, copy: WorkspaceHandle): Promise<void> {
+	try {
+		await ctx.workspace.closeWorkspace(copy.workspace_id, "delete");
+	} catch (error) {
+		ctx.progress(
+			`the preparation copy ${copy.path} could not be deleted (${messageOf(error)}); nothing reads it again, and it can be removed by hand`,
+		);
+	}
+}
+
+/**
+ * Runs the suite of a refused preparation once more, on a disposable copy of the reference and its files where it may
+ * write, and returns what it wrote there, for the record (D-92).
+ */
+async function surveyedSuite(
+	ctx: PhaseContext,
+	reference: ReferenceSnapshot,
+	files: readonly { path: string; digest: string }[],
+	sensor: ControlDefinition,
+): Promise<Pick<PreparationRecord, "suite_written">> {
+	const paths = await onPreparedCopy(ctx, reference, files, sensor, (suite) =>
+		ctx.verification.surveyPreparedSuite(suite),
+	);
+	return { suite_written: { control_id: sensor.control_id, paths } };
 }

@@ -2114,3 +2114,325 @@ bugs:
       tool's back stays outside the guarantees of a security section while the cycle's sessions run unconfined.
     status: fixed
     fixed_in: 9a2ec19
+  - bug_id: BUG-2026-10-11T225052
+    date: "2026-10-11"
+    title: "No test holds that the reading of the writes the kernel refuses a Seatbelt launch waits for log to start before the launch runs"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `startKernelRefusalReading` (`src/adapters/sandbox/seatbelt-refusals.ts`) resolves only once `log stream` has
+      printed its first line (`await bounded(ready)`), so that a refusal published as soon as the launch starts is
+      already read. Removing that wait leaves both tests of `test/v1-adapters/seatbelt-refused-writes.test.ts` green,
+      three runs out of three: the wait for the witness at `close` catches the refusals that `log` publishes once it
+      has started, and nothing observes a refusal published before it has.
+    what_expected: >
+      A test fails when the reading returns before `log` has started, so that a write refused at the very start of a
+      launch is missing from its observation.
+    steps_to_reproduce:
+      - "In `src/adapters/sandbox/seatbelt-refusals.ts`, remove `await bounded(ready);`."
+      - "Run `node --test test/v1-adapters/seatbelt-refused-writes.test.ts` on macOS: both tests pass."
+    root_cause: >
+      The start of `log stream` takes less time on this machine than the launch the tests run takes to reach its
+      first write, so the race the wait guards against is not produced by the tests. Introduced by the branch e40s03.
+    evidence: >
+      Mutation run by the round-2 reviewers of the branch e40s03: without `await bounded(ready)` both tests stay
+      green (three runs); replacing `if (witnessed()) resolve();` with `resolve();` fails the second test (three
+      runs), so the wait for the witness is held and the wait for the start is not. The promise of the story holds.
+    risk_level: low
+    follow_ups: >
+      Write a refused write before the reading has started on the clock of the test, for instance by starting the
+      confined command and the reading in the same tick, and assert that the observation carries it.
+    status: fixed
+    fixed_in: eaa40b7
+  - bug_id: BUG-2026-10-12T001500
+    date: "2026-10-12"
+    title: "A reading of the writes the kernel refuses a Seatbelt launch outlives the process that started it, so a test run killed during a launch leaves a log stream running for ever"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      `startKernelRefusalReading` (`src/adapters/sandbox/seatbelt-refusals.ts`) spawns `/usr/bin/log stream` and stops it
+      only in `close()`, which `SeatbeltSandbox.run` (`src/adapters/sandbox/backends.ts`) calls once the confined command
+      and the witness refusal have run. Nothing ties `log` to the life of the process that spawned it: when that process
+      dies during a launch (a test file killed at its timeout, a mutation run stopped, Pi quit), `log` is reparented to
+      launchd and keeps running, and since its predicate matches only the launch's marker it never writes, so no broken
+      pipe ever stops it. Each such reader costs about 11 % of a core and loads `diagnosticd`.
+    what_expected: >
+      A reading of kernel refusals never outlives the process that started it: when that process dies, its `log stream`
+      stops with it.
+    steps_to_reproduce:
+      - "On macOS, start a process that calls `SeatbeltSandbox.run` on a command that sleeps, and kill that process with SIGKILL while the command runs."
+      - "List `ps -Ao pid,ppid,command | grep 'log stream'`: a reader whose predicate carries a `495-` marker remains, with ppid 1, until it is killed by hand."
+    root_cause: >
+      `log` is spawned as a plain child, neither bound to its parent's end nor ever writing to a pipe its parent holds,
+      and its only stop is a call the dead parent can no longer make. Introduced by the branch e40s03.
+    evidence: >
+      Observed on 2026-10-11 during the review of the branch e40s03: eleven `/usr/bin/log stream --predicate sender ==
+      "Sandbox" AND eventMessage ENDSWITH "495-<uuid>"` processes with ppid 1, all started within ten seconds while the
+      reviewers ran the tests, still alive hours later, with `diagnosticd` at about 85 % of a core; the formal-control
+      tests of `npm run test:v2` then timed out on their 2 s TLC stand-in budget until those budgets were raised.
+    risk_level: medium
+    follow_ups: >
+      Tie the reader to its parent: run `log` through a stand-in that exits when the pipe from its parent closes, or
+      have the reader watch its parent and stop when it is gone; then assert in a test that killing the launching
+      process leaves no reader carrying its marker.
+    status: fixed
+    fixed_in: eaa40b7
+  - bug_id: BUG-2026-10-12T120000
+    date: "2026-10-12"
+    title: "The reading of kernel refusals tells the Sandbox kernel extension apart only by the name of the image that logs, so a confined process named Sandbox emits lines it reads, and only the launch marker keeps them out"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      `startKernelRefusalReading` (`src/adapters/sandbox/seatbelt-refusals.ts`) runs `log stream` under the predicate
+      `sender == "Sandbox" AND eventMessage ENDSWITH "<marker>"`. `sender` is the base name of the image that logs, so an
+      executable named `Sandbox`, run under `sandbox-exec` with a 495 profile, emits through os_log a message
+      `Sandbox: node(1) deny(1) file-write-create /forged/path\n<marker>` that the stream receives, with
+      `senderImagePath` its own path. The story's security section says 495 reads only the lines the kernel extension
+      emits, which no confined process can emit in its place; the sender clause does not keep that, and the guarantee
+      that a proposed refusal comes from the kernel rests on the marker alone, which no path was found for the confined
+      code to learn.
+    what_expected: >
+      Only a line the kernel publishes is read: a message logged by a confined process, whatever its name and whatever
+      it carries, never reaches the reading, marker or not.
+    steps_to_reproduce:
+      - "Build an executable named `Sandbox` that logs `Sandbox: node(1) deny(1) file-write-create /forged/path\\n<marker>` through os_log, and run it under `sandbox-exec` with a profile of 495."
+      - "Read `log show --style ndjson --predicate 'sender == \"Sandbox\"'`: the forged line is there with `processID` the probe's pid and `senderImagePath` the probe's path; the kernel's own refusals carry `processID` 0, `processImagePath` `/kernel` and `senderImagePath` `/System/Library/Extensions/Sandbox.kext/Contents/MacOS/Sandbox`."
+      - "Remove `sender == \"Sandbox\" AND` from the predicate: `test/v1-adapters/seatbelt-refused-writes.test.ts` stays green."
+    root_cause: >
+      The predicate names the sender by its image name rather than by what only the kernel has (`processID == 0`, or the
+      kext's `senderImagePath`), and no test sends a line from another image. Introduced by the branch e40s03.
+    evidence: >
+      Probed during the review of the branch e40s03 by a reviewer: the forged line reached a `log stream` under the
+      predicate 495 uses, `senderImagePath=/private/tmp/…/Sandbox`. Read again on 2026-10-12 with `log show`: the forged
+      line carries `processID` 78795 and `/private/tmp/a1probe/Sandbox`, a kernel refusal `processID` 0 and `/kernel`.
+      No forged line was carried into an evidence end to end, the marker not being found from inside the confinement
+      (`ps` refused, `log` refuses to run confined).
+    risk_level: medium
+    follow_ups: >
+      Add `processID == 0` (or `senderImagePath` of the kext) to the predicate, and hold it with a test that logs, under
+      `sandbox-exec`, a line carrying the launch's marker from an image named `Sandbox` and asserts the reading does not
+      carry it.
+    status: fixed
+    fixed_in: eaa40b7
+  - bug_id: BUG-2026-10-12T120100
+    date: "2026-10-12"
+    title: "No test holds the reading of a kernel refusal whose count is ten or more"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `REFUSAL` (`src/adapters/sandbox/seatbelt-refusals.ts`) reads `deny\(\d+\)`; the mutant `deny\(\d\)` survives the
+      tests of the story, so nothing holds the reading of a refusal the kernel would publish with a count of ten or more.
+      The mutants that drop `^` or `$` survive as equivalent on the lines the tests exercise. A refused path holding a
+      line terminator, first left out of `refused_writes`, is read whole since `REFUSAL` carries the `s` flag, held by
+      `test/v1-adapters/control-refused-writes.test.ts` for a newline.
+    what_expected: >
+      A refusal published with any count is read, and a test holds it.
+    steps_to_reproduce:
+      - "Replace `deny\\(\\d+\\)` with `deny\\(\\d\\)` in `REFUSAL`: `test/v1-adapters/seatbelt-refused-writes.test.ts` and `test/v1-adapters/control-refused-writes.test.ts` stay green."
+    root_cause: >
+      The pattern is held only by lines of count 1, the only ones the tests make. Introduced by the branch e40s03; a
+      loss would narrow what is proposed, it grants nothing.
+    evidence: >
+      Mutants listed by the mutation run during the review of the branch e40s03 and read by both reviewers against the
+      lines the kernel publishes; on 2026-10-12, six hours of the machine's log carried only `deny(1)`.
+    risk_level: low
+    follow_ups: >
+      Feed `refusedWriteOf` a line `deny(12)` in a test of `seatbelt-refusals.ts`.
+    status: fixed
+    fixed_in: eaa40b7
+  - bug_id: BUG-2026-10-12T101310
+    date: "2026-10-12"
+    title: "No test runs the survey on a directory its run left unreadable"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `listCopy` (`src/adapters/execution/write-survey.ts`) answers EACCES or EPERM on `readdir` with an empty list,
+      so a directory the run left unreadable is listed by its own entry only. No test executes that branch, and the
+      mutants on it survive. A probe shows a directory `locked` holding `sub/f` surveyed as [\"locked\"], without
+      `locked/sub/f`; no promise of the story bears on that case.
+    what_expected: >
+      A test where the suite creates a directory, writes in it and takes away its read permission, and the survey
+      names that directory.
+    steps_to_reproduce:
+      - "Run the mutation tool on write-survey.ts: the mutants of the `catch` at lines 27 and 29 survive, the branch being executed by no test."
+    root_cause: >
+      The tests of the survey only write readable entries.
+    evidence: >
+      Introduced by the branch e40s03, which adds the survey. Found in the round-1 review from the surviving mutants,
+      with a probe (not committed) of a directory left unreadable.
+    risk_level: low
+    follow_ups: >
+      Add to control-write-survey.test.ts a suite that leaves a directory it created unreadable, and assert the
+      survey names it.
+    status: fixed
+    fixed_in: ad017656
+  - bug_id: BUG-2026-10-12T101320
+    date: "2026-10-12"
+    title: "No test holds that the disposable copy where a prepared suite is judged or surveyed is deleted afterwards"
+    severity: low
+    priority: p3
+    scope: application
+    what_happened: >
+      `onPreparedCopy` (`src/application/phases/prepare.ts`) deletes the copy of the reference in its `finally`, for
+      the judgement and for the survey of a prepared suite. With the `closeWorkspace(copy.workspace_id, "delete")` call
+      removed, test/v2-kernel/write-survey.test.ts, writable-proposal.test.ts and preparation.test.ts stay green. The
+      copy is apart from the preparation and the candidate either way, so nothing the suite writes there joins them
+      even without the deletion.
+    what_expected: >
+      A test that the copy no longer exists once the prepared suite has been judged, and once it has been surveyed.
+    steps_to_reproduce:
+      - "In prepare.ts, replace `await ctx.workspace.closeWorkspace(copy.workspace_id, \"delete\")` by `void 0`: the three test files named above stay green."
+    root_cause: >
+      The tests assert what the suite wrote and what reached the preparation, never what is left in the workspaces.
+    evidence: >
+      Introduced by the branch e40s03, which adds `onPreparedCopy`. Found in the round-1 review by the mutation above.
+    risk_level: low
+    follow_ups: >
+      Assert in write-survey.test.ts (v2) that the workspace of the copy is gone after the judgement and after the
+      survey.
+    status: fixed
+    fixed_in: ad017656
+  - bug_id: BUG-2026-10-12T101330
+    date: "2026-10-12"
+    title: "Under bubblewrap, a process the surveyed suite leaves running might swap a directory of the copy for a link to the host between the lstat and the readdir of the survey"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      `listCopy` (`src/adapters/execution/write-survey.ts`) reads an entry with `lstat`, then, when it is a directory,
+      calls `readdir` on the same path, which follows a link. A process the suite leaves running (the process group is
+      killed only on timeout or abort) could, between those two calls, swap a directory of the copy for a link to the
+      host, and the survey would then list the host's entries as written in the copy. Under Seatbelt the path is shut:
+      the survey profile denies removal in the copy, and rename and `renamex_np(RENAME_SWAP)` are refused (EPERM).
+      Under bubblewrap, the backend (`src/adapters/sandbox/backends.ts`) ignores `unremovable_paths` and runs with
+      `--die-with-parent --new-session` but no `--unshare-pid`, so an orphan outlives the run and `RENAME_EXCHANGE`
+      looks open.
+    what_expected: >
+      The survey lists only what lies in the copy whatever a leftover process does there, on every backend: no
+      process of the run outlives it, or the walk opens each directory without following a link.
+    steps_to_reproduce:
+      - "Not run. On Linux under bwrap, a suite that forks a process which loops `renameat2(RENAME_EXCHANGE)` between a directory of the copy and a link to a host directory, then exits; compare the survey with what the suite wrote."
+    root_cause: >
+      The survey checks the kind of an entry and then opens it by path, two calls a concurrent writer may separate,
+      and only the Seatbelt profile keeps the run's processes from changing the copy afterwards.
+    evidence: >
+      Introduced by the branch e40s03, which adds the survey. Found in the round-1 review by reading and by probes
+      under Seatbelt, where the swap is refused; the race was not run under bubblewrap, so no bypass is demonstrated.
+      Reading the bwrap arguments confirms they carry no `--unshare-pid` and that `unremovable_paths` is read only by
+      the Seatbelt backend.
+    risk_level: medium
+    follow_ups: >
+      Run the race under bwrap in the Linux VM; if it holds, add `--unshare-pid` to the bwrap arguments so no process of
+      the run outlives it, or walk the copy through directory descriptors opened with O_NOFOLLOW.
+    status: fixed
+    fixed_in: ae322692
+  - bug_id: BUG-2026-10-12T101300
+    date: "2026-10-12"
+    title: "No test holds that the survey of a control's writes lists its copy without following links"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `listCopy` (`src/adapters/execution/write-survey.ts`) reads each entry with `lstat`, so a link in the copy is
+      listed by its own name and nothing beyond it is walked. No test fails when `lstat` is replaced by `stat`: the link
+      of `test/v1-adapters/control-write-survey.test.ts` leads to a directory the sandbox cannot write, so a listing that
+      follows it finds nothing new there either.
+    what_expected: >
+      A test where the suite writes through a link of the copy to a place the control may write, and the survey names
+      only the link, not the file written beyond it.
+    steps_to_reproduce:
+      - "In `write-survey.ts`, replace `lstat(join(copy, path), …)` by `stat(join(copy, path), …)`: the three tests of test/v1-adapters/control-write-survey.test.ts stay green."
+      - "Give the control a temp path, put in the copy a link `out` to it and run a suite that writes `out/through-link.txt`: `written` is [] at the head of the branch and [\"out/through-link.txt\"] under the mutation, a file that lies outside the copy."
+    root_cause: >
+      The only link the tests put in the copy leads where no write can land, so following it and not following it
+      list the same entries.
+    evidence: >
+      Introduced by the branch e40s03, which adds the survey. Found in the round-1 review by both reviewers, each by
+      the mutation above; one confirmed it with a throwaway test (not committed) whose link leads to a temp path.
+      Neither found a way past the guarantee under Seatbelt, where renaming or removing a directory of the copy is
+      refused (EPERM).
+    risk_level: low
+    follow_ups: >
+      Add the throwaway test to control-write-survey.test.ts: a link to a writable temp path, a write through it, and
+      a survey that does not name the file written beyond the link. Held since by "le relevé d'un contrôle liste sa
+      copie sans suivre ses liens : un fichier écrit par un lien vers un dossier que le contrôle peut écrire n'est pas
+      rendu", green at 8d9a8830 and red under the mutation of `lstat` into `stat`, which returns
+      ["out/through-link.txt"].
+    status: fixed
+    fixed_in: 8d9a8830
+  - bug_id: BUG-2026-10-12T140148
+    date: "2026-10-12"
+    title: "The survey profile's unremovable paths are read only by Seatbelt, where its run-scoped rule already denies removal, so the field and its rule are dead"
+    severity: low
+    priority: p3
+    scope: adapters
+    what_happened: >
+      `surveyProfile` (`src/adapters/execution/write-survey.ts`) gives the surveyed copy both as `run_scoped_paths` and
+      as `unremovable_paths`. Only `SeatbeltSandbox.profileText` (`src/adapters/sandbox/backends.ts`) reads
+      `unremovable_paths`, as `(deny file-write-unlink (subpath "<copy>"))`; bubblewrap ignores it. Under Seatbelt the
+      run-scoped rule already writes `(deny file-write* (subpath "<copy>"))` then allows only
+      `file-write-create file-write-data` under the copy, so removal is refused without the unlink rule. Removing
+      `unremovable_paths: [copy]` from `surveyProfile` leaves every test green: the mutant is equivalent, and no other
+      caller sets the field.
+    what_expected: >
+      A profile field and the backend rule it produces each deny something no other rule denies, or are removed: here
+      `unremovable_paths` in `SandboxProfile` (`src/ports/execution.ts`), its Seatbelt rule and its use in
+      `surveyProfile`, with the doc comments that cite it.
+    steps_to_reproduce:
+      - "In `src/adapters/execution/write-survey.ts`, drop `unremovable_paths: [copy]` from the profile `surveyProfile` returns."
+      - "Run `npm run build` then `node --test test/v1-adapters/control-write-survey.test.ts` and the sandbox tests on macOS: all pass."
+      - "Add `file-write-unlink` to the run-scoped allow rule instead: the test whose surveyed run creates then removes `tmp-run/x` fails, so the run-scoped rule alone holds the promise."
+    root_cause: >
+      The run-scoped rule, narrowed to creating entries and writing files after the unlink rule was written, took over
+      the denial of removal that `unremovable_paths` was introduced for, and the field was kept.
+    evidence: >
+      Reported by the review of the branch e40s03, which introduced both rules, with the mutation replayed on macOS by
+      the reviewer. Introduced by the branch e40s03.
+    risk_level: low
+    follow_ups: >
+      Remove `unremovable_paths` from `SandboxProfile`, from `SeatbeltSandbox.profileText` and from `surveyProfile`, and
+      say in the doc comment of `run_scoped_paths` that it is what keeps the run from removing what it created. Done at
+      e115f907: the field, its Seatbelt rule and its use in `surveyProfile` are gone, and "sous Seatbelt, le relevé d'un
+      contrôle qui crée tmp-run/x puis efface tmp-run rend tmp-run/x" stays green on the run-scoped rule alone.
+    status: fixed
+    fixed_in: e115f907
+  - bug_id: BUG-2026-10-12T132852
+    date: "2026-10-12"
+    title: "No test holds that the Seatbelt rule of a control's write survey leaves the surveyed directory itself out of reach, so a detached process could make its path again"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      `SeatbeltSandbox.profileText` (`src/adapters/sandbox/backends.ts`) grants a run-scoped path as
+      `(allow file-write* (prefix "<real path>/"))`, what lies under the directory and not the directory, so that once
+      the surveyed copy has taken its name back, a process the run detached cannot create `<copy>.surveyed` again and
+      write there out of reach of any deletion. Turned into `(allow file-write* (subpath "<real path>"))`, the rule
+      leaves test/v1-adapters/control-write-survey.test.ts green (5/5): the detached process of its last test reads
+      `process.cwd()` when it starts, after the copy has taken its original name back, so it never tries to make
+      `<copy>.surveyed` again, and the assertion `existsSync(started.cwd) === false` holds whatever the rule.
+    what_expected: >
+      A test of the survey fails when the Seatbelt rule gives the surveyed directory itself: a process detached by the
+      surveyed run that aims at `<copy>.surveyed` by its path finds it not made again after the survey.
+    steps_to_reproduce:
+      - "In `src/adapters/sandbox/backends.ts`, replace the `prefix \"<real path>/\"` rule of `run_scoped_paths` by `subpath \"<real path>\"`."
+      - "Run `node --test test/v1-adapters/control-write-survey.test.ts` on macOS: 5/5 pass."
+      - "Let the orphan of the last test aim at `process.argv[1] + '.surveyed'`: the test fails with \"a process of the run recreated where it was run\"; without the mutation it passes."
+    root_cause: >
+      The orphan of the test takes the path it attacks from its working directory, which no longer names the
+      surveyed path when it reads it, instead of from the path the survey gave the run.
+    evidence: >
+      Reported by the review of the branch e40s03, which introduced the rule and the test, with the mutation and the
+      modified orphan replayed on macOS by the reviewer. Introduced by the branch e40s03.
+    risk_level: medium
+    follow_ups: >
+      Give the orphan of the test the surveyed path explicitly (the copy's path with `.surveyed` appended) among the
+      writes it attempts, and keep the assertion that the path is not made again. Done at a19079ef: the orphan is handed the
+      directory the surveyed run was given and makes it again, then writes in it, among its attempts; the test is green,
+      and red under the mutation of the rule into `subpath`, with "a process of the run recreated where it was run".
+    status: fixed
+    fixed_in: a19079ef

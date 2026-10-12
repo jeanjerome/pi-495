@@ -1,0 +1,440 @@
+{
+  "version": 1,
+  "story": "e40s03",
+  "promesses": [
+    {
+      "id": "P1",
+      "scenario": "Un lancement sous Seatbelt ne lit pas le journal du système",
+      "categorie": "nouveau-comportement",
+      "observation": "les processus log stream de la machine pendant qu'un lancement tourne",
+      "oracles": [
+        {
+          "tache": 1,
+          "cas": "test/v1-adapters/sandbox.test.ts",
+          "assertion": "un lancement sous Seatbelt ne démarre aucune lecture du journal du système"
+        }
+      ],
+      "dependances": [],
+      "interactions": [
+        {
+          "genre": "effet-externe",
+          "description": "log stream est un processus de la machine, visible par tous pendant qu'il tourne"
+        }
+      ],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "un lancement qui dure laisse le temps de chercher le processus"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "aucune entrée à faire varier"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "un lancement, sans état"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    },
+    {
+      "id": "P2",
+      "scenario": "Le relevé d'un contrôle rend les chemins qu'il écrit dans la copie",
+      "categorie": "nouveau-comportement",
+      "observation": "les faits written de l'évidence du relevé",
+      "oracles": [
+        {
+          "tache": 2,
+          "cas": "test/v1-adapters/control-write-survey.test.ts",
+          "assertion": "le relevé d'un contrôle sous le confinement de la plateforme rend test-output/run/a et src/a.txt relatifs à la copie, aucun chemin hors d'elle, et rien n'est écrit dans le dossier voisin, ni directement ni par le lien"
+        }
+      ],
+      "dependances": [],
+      "interactions": [
+        {
+          "genre": "effet-externe",
+          "description": "le relevé lit l'arborescence de la copie avant et après le contrôle, sous le bac à sable réel de la plateforme"
+        }
+      ],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "une création et une modification sont les deux manières d'écrire un chemin existant ou non"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "deux classes de chemins, écrites en cas"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "deux listes et une comparaison, sans état gardé"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    },
+    {
+      "id": "P3",
+      "scenario": "Le relevé reste confiné",
+      "categorie": "nouveau-comportement",
+      "observation": "l'existence des fichiers visés hors de la copie, et les chemins du relevé",
+      "oracles": [
+        {
+          "tache": 2,
+          "cas": "test/v1-adapters/control-write-survey.test.ts",
+          "assertion": "le relevé d'un contrôle sous le confinement de la plateforme rend test-output/run/a et src/a.txt relatifs à la copie, aucun chemin hors d'elle, et rien n'est écrit dans le dossier voisin, ni directement ni par le lien"
+        }
+      ],
+      "dependances": [
+        "P2"
+      ],
+      "interactions": [
+        {
+          "genre": "effet-externe",
+          "description": "le bac à sable accorde le double par son chemin réel ; un lien de la copie mène hors de lui"
+        }
+      ],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "une écriture directe hors de la copie et une écriture par un lien sont les deux voies de sortie"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "deux voies, écrites en cas"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "un lancement, sans état"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    },
+    {
+      "id": "P4",
+      "scenario": "Sous macOS, un dossier créé puis effacé est relevé",
+      "categorie": "nouveau-comportement",
+      "observation": "les faits written de l'évidence du relevé sous Seatbelt",
+      "oracles": [
+        {
+          "tache": 3,
+          "cas": "test/v1-adapters/control-write-survey.test.ts",
+          "assertion": "sous Seatbelt, le relevé d'un contrôle qui crée tmp-run/x puis efface tmp-run rend tmp-run/x"
+        }
+      ],
+      "dependances": [
+        "P2"
+      ],
+      "interactions": [
+        {
+          "genre": "ordre-des-evenements",
+          "description": "la suite crée puis efface avant la seconde liste"
+        }
+      ],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "une création suivie d'un effacement est le cas qu'une comparaison seule manque"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "un seul enchaînement à montrer"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "un lancement, sans état"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    },
+    {
+      "id": "P5",
+      "scenario": "Seule une préparation refusée relance sa suite sur un double de la copie",
+      "categorie": "nouveau-comportement",
+      "observation": "le champ suite_written des relevés de préparation",
+      "oracles": [
+        {
+          "tache": 4,
+          "cas": "test/v2-kernel/write-survey.test.ts",
+          "assertion": "le relevé de la préparation refusée porte test-output/run/a pour le contrôle unit, et celui de la préparation retenue ne porte aucun chemin écrit"
+        }
+      ],
+      "dependances": [
+        "P2"
+      ],
+      "interactions": [
+        {
+          "genre": "ordre-des-evenements",
+          "description": "le relevé suit le jugement sur la référence et n'a lieu que si la préparation n'est pas retenue"
+        },
+        {
+          "genre": "effet-externe",
+          "description": "un second espace de la référence est créé puis supprimé"
+        }
+      ],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "une préparation refusée et une retenue, sur le parcours réel du noyau"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "deux issues d'une préparation, écrites en cas"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "le relevé s'ajoute à la préparation sans état nouveau"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    },
+    {
+      "id": "P6",
+      "scenario": "Une suite préparée refusée qui écrit dans la copie fait proposer le dossier au propriétaire",
+      "categorie": "nouveau-comportement",
+      "observation": "les issues et les faits de la question IH-04",
+      "oracles": [
+        {
+          "tache": 5,
+          "cas": "test/v2-kernel/writable-proposal.test.ts",
+          "assertion": "après des préparations refusées dont la suite crée test-output/run/a et tente d'écrire hors de la copie, la question IH-04 offre grant_writable pour test-output/ au contrôle unit avec les chemins relevés et rien pour le chemin hors de la copie ; quand la suite n'écrit rien, elle ne l'offre pas"
+        }
+      ],
+      "dependances": [
+        "P5"
+      ],
+      "interactions": [
+        {
+          "genre": "ordre-des-evenements",
+          "description": "la question vient après les préparations refusées, dont les relevés portent les chemins écrits"
+        }
+      ],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "un chemin écrit dans la copie et une écriture tentée hors d'elle, sur le parcours réel du noyau"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "la dérivation du premier niveau est un cas simple, écrit en exemples"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "la question s'ajoute au parcours existant sans état nouveau"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    },
+    {
+      "id": "P7",
+      "scenario": "Sans chemin relevé, rien n'est proposé",
+      "categorie": "comportement-conserve",
+      "observation": "les issues de la question IH-04",
+      "oracles": [
+        {
+          "tache": 5,
+          "cas": "test/v2-kernel/writable-proposal.test.ts",
+          "assertion": "après des préparations refusées dont la suite crée test-output/run/a et tente d'écrire hors de la copie, la question IH-04 offre grant_writable pour test-output/ au contrôle unit avec les chemins relevés et rien pour le chemin hors de la copie ; quand la suite n'écrit rien, elle ne l'offre pas"
+        }
+      ],
+      "dependances": [
+        "P6"
+      ],
+      "interactions": [],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "le même parcours avec une suite qui n'écrit rien"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "un seul cas : la liste vide"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "aucun état nouveau"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    },
+    {
+      "id": "P8",
+      "scenario": "Le dossier accordé est écrit dans la configuration du contrôleur et porté par le protocole figé",
+      "categorie": "nouveau-comportement",
+      "observation": "le contenu de config.json après la réponse, et les chemins inscriptibles du contrôle unit dans le protocole figé",
+      "oracles": [
+        {
+          "tache": 6,
+          "cas": "test/v2-kernel/writable-proposal.test.ts",
+          "assertion": "la réponse grant_writable écrit test-output/ sous policy.writable_paths.unit dans config.json en gardant suite_paths et le nom de la politique, accorde une préparation de plus, et le contrôle unit figé porte test-output/ ; la réponse préparer laisse config.json inchangé et aucun contrôle figé ne porte test-output/"
+        }
+      ],
+      "dependances": [
+        "P6"
+      ],
+      "interactions": [
+        {
+          "genre": "effet-externe",
+          "description": "config.json, fichier du propriétaire hors de la copie, est réécrit"
+        },
+        {
+          "genre": "revision",
+          "description": "une révision des exigences retire la réponse IH-04, pas le dossier inscrit dans la configuration"
+        }
+      ],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "une configuration qui porte d'autres réglages, menée jusqu'au gel"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "l'ajout sans doublon se montre sur un cas"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "une réponse, un effet, puis le parcours existant"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    },
+    {
+      "id": "P9",
+      "scenario": "Sans l'accord du propriétaire, rien n'est accordé",
+      "categorie": "comportement-conserve",
+      "observation": "config.json inchangé et les chemins inscriptibles du protocole figé",
+      "oracles": [
+        {
+          "tache": 6,
+          "cas": "test/v2-kernel/writable-proposal.test.ts",
+          "assertion": "la réponse grant_writable écrit test-output/ sous policy.writable_paths.unit dans config.json en gardant suite_paths et le nom de la politique, accorde une préparation de plus, et le contrôle unit figé porte test-output/ ; la réponse préparer laisse config.json inchangé et aucun contrôle figé ne porte test-output/"
+        }
+      ],
+      "dependances": [
+        "P8"
+      ],
+      "interactions": [
+        {
+          "genre": "effet-externe",
+          "description": "config.json n'est réécrit que sur la réponse grant_writable"
+        }
+      ],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "une autre issue de la même question, menée jusqu'au gel"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "les autres issues n'écrivent rien, une suffit à le montrer"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "aucun état nouveau"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    },
+    {
+      "id": "P10",
+      "scenario": "Le parent de la copie n'est jamais proposé",
+      "categorie": "nouveau-comportement",
+      "observation": "les dossiers que offeredWritableDirectories propose",
+      "oracles": [
+        {
+          "tache": 7,
+          "cas": "test/v0-pure/writable-proposal.test.ts",
+          "assertion": "never offers the parent of the copy, whatever path below it the write names"
+        }
+      ],
+      "dependances": [
+        "P6"
+      ],
+      "interactions": [],
+      "moyens": [
+        {
+          "moyen": "exemples",
+          "retenu": true,
+          "raison": "`..` seul et deux chemins qui commencent par lui"
+        },
+        {
+          "moyen": "proprietes",
+          "retenu": false,
+          "raison": "le premier segment est la seule chose lue, et trois cas le couvrent"
+        },
+        {
+          "moyen": "modele-d-etats",
+          "retenu": false,
+          "raison": "fonction pure"
+        },
+        {
+          "moyen": "preuve-lean",
+          "retenu": false,
+          "raison": "aucune règle de décision à prouver"
+        }
+      ]
+    }
+  ]
+}

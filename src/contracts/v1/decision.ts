@@ -31,6 +31,19 @@ export const DecisionRequest = Type.Object(
 		requested_at: IsoDateTime,
 		expires_at: Type.Union([IsoDateTime, Type.Null()]),
 		language: Closed(["fr", "en"] as const),
+		/**
+		 * What the option `grant_writable` gives, as the owner was shown it: the directories of the copy, and the control
+		 * they are given to. Absent from a request that does not offer that option.
+		 */
+		grant_writable: Type.Optional(
+			Type.Object(
+				{
+					control_id: Type.String({ minLength: 1 }),
+					directories: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
+				},
+				{ additionalProperties: false },
+			),
+		),
 	},
 	{ $id: contractId("decision-request"), additionalProperties: false },
 );

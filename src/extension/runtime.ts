@@ -24,7 +24,7 @@ import { describeEnvironment } from "../application/environment.ts";
 import { Harness } from "../application/harness.ts";
 import { randomIds, systemClock } from "../application/ids.ts";
 import { StackRegistry } from "../application/stacks/registry.ts";
-import { loadConfig, type HarnessConfig } from "./config.ts";
+import { ControllerConfigFile, loadConfig, type HarnessConfig } from "./config.ts";
 
 /**
  * The technologies of 495, in the order they claim a project: a Maven project that also carries a
@@ -139,6 +139,7 @@ export function createRuntime(inputs: RuntimeInputs): HarnessRuntime {
 		clock: systemClock,
 		ids: randomIds,
 		policy: config.policy,
+		controllerConfig: new ControllerConfigFile(dataDir, env),
 		workspacePolicy: { ...DEFAULT_WORKSPACE_POLICY, exclusions: config.workspace_exclusions },
 		environment: environment.ref,
 		session: randomIds.next("ses"),

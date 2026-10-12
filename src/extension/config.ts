@@ -1,4 +1,4 @@
-import { lstatSync, readFileSync, statSync } from "node:fs";
+import { lstatSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { TSchema } from "typebox";
 import { DEFAULT_WORKSPACE_POLICY } from "../adapters/workspace/git-workspace.ts";
@@ -6,6 +6,7 @@ import { HarnessConfigFile } from "../contracts/v1/config.ts";
 import { check, type ContractViolation, violations } from "../contracts/validate.ts";
 import { DomainError } from "../domain/errors.ts";
 import { DEFAULT_POLICY, type ActivePolicy } from "../domain/policy.ts";
+import type { ControllerConfigPort } from "../ports/controller-config.ts";
 
 /**
  * Harness configuration, read from `<data dir>/config.json`. A project file cannot widen it
@@ -211,4 +212,32 @@ export function loadConfig(
 	if (env.HARNESS495_HUMAN_ACCEPTANCE === "1") config.policy = { ...config.policy, g5_human_acceptance: true };
 	if (env.HARNESS495_LANGUAGE === "en") config.language = "en";
 	return { config, diagnostics };
+}
+
+/**
+ * `config.json` as the owner's answer that gives a control a directory writes it: the file is read and checked as at
+ * the start of a session, the directories join those it gives the control, and the rest of the file is written back as
+ * it was read. A file that cannot be read is refused, as at the start of a session, and left as it is.
+ */
+export class ControllerConfigFile implements ControllerConfigPort {
+	private readonly dataDir: string;
+	private readonly env: NodeJS.ProcessEnv;
+	constructor(dataDir: string, env: NodeJS.ProcessEnv) {
+		this.dataDir = dataDir;
+		this.env = env;
+	}
+	grantWritable(controlId: string, directories: readonly string[]): ActivePolicy {
+		const path = join(this.dataDir, "config.json");
+		const file = present(path) ? parseFile(path) : {};
+		if (!check(HarnessConfigFile, file)) throw unreadable(deviations(file));
+		const policy = file.policy ?? {};
+		const writable = policy.writable_paths ?? {};
+		const given = Object.hasOwn(writable, controlId) ? (writable[controlId] ?? []) : [];
+		const granted = [...new Set([...given, ...directories])];
+		if (granted.length > given.length) {
+			const written = { ...file, policy: { ...policy, writable_paths: { ...writable, [controlId]: granted } } };
+			writeFileSync(path, `${JSON.stringify(written, null, 2)}\n`);
+		}
+		return loadConfig(this.dataDir, this.env).config.policy;
+	}
 }
