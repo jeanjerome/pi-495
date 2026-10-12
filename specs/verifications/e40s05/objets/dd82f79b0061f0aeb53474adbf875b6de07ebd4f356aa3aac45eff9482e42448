@@ -1,0 +1,3 @@
+exports nothing outside the module reads:
+  src/domain/gates/g4.ts: matchesProtected — used 3× in its own module, so the export is what is unread
+Drop the `export` keyword when the module still uses it, drop the definition when nothing does.

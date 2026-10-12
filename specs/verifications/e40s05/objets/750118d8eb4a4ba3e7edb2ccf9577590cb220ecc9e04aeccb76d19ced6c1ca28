@@ -1,0 +1,43 @@
+[
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "A2-1",
+    "scenario": "Sécurité — les fichiers de configuration de Stryker restent protégés",
+    "categorie": "bloquant",
+    "placement": "anterieur",
+    "fichier": "src/adapters/stacks/node/mutation/mutation-control.ts",
+    "ligne": 138,
+    "constat": "Les quatre motifs protégés sont comparés à la casse près (`matchesScope`, regex sans drapeau `i`). Or Stryker cherche sa configuration avec `fs.promises.access('stryker.conf.json')`, et le volume par défaut de macOS ignore la casse : un candidat qui ajoute `Stryker.conf.json`, `STRYKER.CONF.JSON` ou `.Stryker.Config.mjs` n'altère aucun chemin protégé, alors que Stryker lit ce fichier comme sa configuration. Sondé par un test jetable non commité, sur une vraie cible Stryker 10.0.0 et TypeScript 7.0.2 sous Seatbelt. `protectedPathsChanged` sur ces quatre noms ajoutés ne relève que `[\".stryker.conf.json\"]`. Avec `Stryker.conf.json` = `{\"mutator\":{\"excludedMutations\":[...]}}` posé dans la copie du témoin négatif, ce témoin rend PASS au lieu de FAIL, avec la note « 6 mutant(s) of the introduced lines are ignored by the target's own configuration: counted, never a finding ». C'est le même contournement que A1-1/B1-1, sous un autre nom de fichier.",
+    "contournement": "Le candidat ne resserre pas la borne : les fichiers de configuration de Stryker restent protégés. Ici, un fichier de configuration que Stryker lit échappe à la protection, et le contrôle de mutation passe sur moins.",
+    "mutation": "Sonde, sans mutation de code : un candidat ajoute `Stryker.conf.json` à la copie du témoin négatif, et le témoin rend PASS au lieu de FAIL."
+   }
+  ],
+  "fermes": [
+   "A1-1",
+   "B1-1"
+  ],
+  "resume": "J'ai rejoué A1-1 et B1-1 sur ef285e62. Un `.stryker.conf.json` ajouté est désormais compté comme chemin protégé altéré (`protectedPathsChanged` le relève), donc le chemin exact de ces deux constats ne passe plus : ils sont fermés. La même attaque passe encore sous une variante de casse. Sur macOS, dont le volume ignore la casse, Stryker lit `Stryker.conf.json` à la place de `stryker.conf.json`, alors que les motifs protégés sont comparés à la casse près. Avec ce fichier et une liste `excludedMutations`, le témoin négatif rend PASS au lieu de FAIL : je l'ai vu sur une vraie cible Stryker 10.0.0 et TypeScript 7.0.2 sous Seatbelt. C'est un contournement de la garantie « les fichiers de configuration de Stryker restent protégés », bloquant quel que soit son placement (A2-1). Je l'ai placé en antérieur : les motifs sans point qui le portent précèdent la branche. Pour les autres promesses, les tests v4 des scénarios 1 à 3 sont en place. La mutation qui retire la borne de la commande de Stryker fait échouer le test de gel de `preparation.test.ts` (scénario 4). Les tests du dogfooding se trouvent dans `test/cycle/dogfood.test.ts` et `test/v4-platform/dogfood-process.test.ts`. Rien n'est commité, l'arbre est revenu à son état."
+ },
+ {
+  "verdict": "fail",
+  "constats": [
+   {
+    "id": "B2-1",
+    "scenario": "Sécurité — les fichiers de configuration de Stryker restent protégés",
+    "categorie": "bloquant",
+    "placement": "anterieur",
+    "fichier": "src/adapters/stacks/node/mutation/mutation-control.ts",
+    "ligne": 138,
+    "constat": "Les motifs protégés (`stryker.conf.*`, `stryker.config.*`, `.stryker.conf.*`, `.stryker.config.*`) sont comparés par `matchesScope` (src/domain/gates/g4.ts:41), une regex sensible à la casse. Or Stryker cherche sa configuration par `fs.promises.access(\"stryker.conf.json\")` relatif à la copie, et sur le volume APFS de macOS, insensible à la casse, cet appel trouve aussi `Stryker.conf.json`, `STRYKER.CONFIG.MJS`, etc. Un candidat qui ajoute `Stryker.conf.json` (ou `.Stryker.Conf.json`) ne touche donc aucun chemin protégé, et Stryker lit pourtant ce fichier. J'ai sondé ce chemin par un test jetable non commité, sur une vraie cible Stryker 10.0.0 sous Seatbelt. `protectedPathsChanged` rend `altered: []` pour `Stryker.conf.json`, et un `Stryker.conf.json` qui contient `mutator.excludedMutations` fait passer le témoin négatif à PASS au lieu de FAIL : 6 mutants sont IGNORED, avec la note « ignored by the target's own configuration ». C'est vrai sans borne comme sous la borne `test/*.test.js`, `test/*.test.mjs`. En `.mjs` sous une autre casse, le candidat ferait exécuter son code dans le processus de Stryker.",
+    "contournement": "Sécurité : « le candidat ne la resserre pas et ne l'élargit pas : les fichiers de configuration de Stryker restent protégés ». Sur macOS, un candidat écrit sa configuration sous un nom dont seule la casse diffère (`Stryker.conf.json`). G4 ne le voit pas, Stryker le lit, et le contrôle de mutation rend PASS sur des lignes que les tests n'assertent pas."
+   }
+  ],
+  "fermes": [
+   "A1-1",
+   "B1-1"
+  ],
+  "resume": "Rejoué sur ef285e62 : A1-1 et B1-1 ne passent plus. `protectedPathsChanged` range maintenant `.stryker.conf.json` parmi les chemins altérés, donc G4 refuse le candidat. Le test de node-stack.test.ts tient ce correctif : quand je retire le motif `.stryker.conf.*`, il échoue sur l'assertion qui nomme `.stryker.conf.json`, et j'ai remis la ligne ensuite. Le même contournement passe encore par la casse sur macOS (B2-1, bloquant, antérieur). La comparaison des motifs est sensible à la casse, mais le système de fichiers ne l'est pas. Stryker lit donc un `Stryker.conf.json` ajouté par le candidat, que G4 ne voit pas. Je l'ai sondé sur une vraie cible Stryker 10.0.0 sous Seatbelt : le témoin négatif rend PASS au lieu de FAIL, avec ou sans borne. Le diff de ce tour ne touche pas les autres promesses, et je n'y ai relevé aucun constat."
+ }
+]

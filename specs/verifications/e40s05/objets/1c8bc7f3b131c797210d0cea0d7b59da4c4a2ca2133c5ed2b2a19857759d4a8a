@@ -1,0 +1,48 @@
+TAP version 13
+# Subtest: the stable controller judges a change of pi-495 by the controls of npm run check
+    # Subtest: un échec du contrôle de couches bloque la story même si les tests unitaires passent
+    ok 1 - un échec du contrôle de couches bloque la story même si les tests unitaires passent
+      ---
+      duration_ms: 1049.898416
+      type: 'test'
+      ...
+    # Subtest: a producer that rewrites the layer script beside a layer violation is refused, the script being protected
+    ok 2 - a producer that rewrites the layer script beside a layer violation is refused, the script being protected
+      ---
+      duration_ms: 633.643167
+      type: 'test'
+      ...
+    # Subtest: the stable controller declares every control npm run check chains, the suite included
+    ok 3 - the stable controller declares every control npm run check chains, the suite included
+      ---
+      duration_ms: 1.182875
+      type: 'test'
+      ...
+    1..3
+ok 1 - the stable controller judges a change of pi-495 by the controls of npm run check
+  ---
+  duration_ms: 1685.247
+  type: 'suite'
+  ...
+# Subtest: the stable controller's configuration of the suite of pi-495
+    # Subtest: la configuration du dogfooding donne test-output/ au contrôle unit, et chaque fichier de test que la technologie Node écrit comme témoin d'une suite node --test correspond à un motif de suite_paths
+    ok 1 - la configuration du dogfooding donne test-output/ au contrôle unit, et chaque fichier de test que la technologie Node écrit comme témoin d'une suite node --test correspond à un motif de suite_paths
+      ---
+      duration_ms: 3.628333
+      type: 'test'
+      ...
+    1..1
+ok 2 - the stable controller's configuration of the suite of pi-495
+  ---
+  duration_ms: 3.692667
+  type: 'suite'
+  ...
+1..2
+# tests 4
+# suites 2
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1957.146792

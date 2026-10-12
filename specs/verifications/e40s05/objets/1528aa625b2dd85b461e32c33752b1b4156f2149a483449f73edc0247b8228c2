@@ -1,0 +1,54 @@
+TAP version 13
+# Subtest: the mutation control of a Node target that installed Stryker 10.0.0
+    # Subtest: sur une cible qui porte TypeScript 7.0.2 et un tsconfig.json, le contrôle de mutation est qualifié : témoin positif PASS, témoin négatif FAIL, et aucune sortie ne nomme parseConfigFileTextToJson
+    not ok 1 - sur une cible qui porte TypeScript 7.0.2 et un tsconfig.json, le contrôle de mutation est qualifié : témoin positif PASS, témoin négatif FAIL, et aucune sortie ne nomme parseConfigFileTextToJson
+      ---
+      duration_ms: 4749.217208
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-RA9uYb/test/v4-platform/node-mutation.test.ts:107:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        ["positive witness gave FAIL: Stryker exited with 1 before writing a report: the initial test run fails in the frozen copy; ERROR Stryker Unexpected error occurred while running Stryker TypeError: ts.parseConfigFileTextToJson is not a function"]
+        + actual - expected
+        
+          [
+        -   'PASS',
+            'FAIL',
+        +   'FAIL'
+          ]
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        0: 'PASS'
+        1: 'FAIL'
+      actual:
+        0: 'FAIL'
+        1: 'FAIL'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-RA9uYb/test/v4-platform/node-mutation.test.ts:114:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1905:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+      ...
+    1..1
+not ok 1 - the mutation control of a Node target that installed Stryker 10.0.0
+  ---
+  duration_ms: 6297.504041
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-RA9uYb/test/v4-platform/node-mutation.test.ts:92:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6554.832334

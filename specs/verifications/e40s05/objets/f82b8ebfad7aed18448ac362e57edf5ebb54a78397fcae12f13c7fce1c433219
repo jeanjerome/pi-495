@@ -1,0 +1,52 @@
+[
+ {
+  "verdict": "pass",
+  "constats": [
+   {
+    "id": "A1-1",
+    "scenario": "Sécurité — les fichiers de configuration de Stryker restent protégés",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/gates/g4.ts",
+    "ligne": 145,
+    "constat": "Les mutants signalés sur les lignes 143-144 sont tués par `test/v1-adapters/node-stack.test.ts`, que l'outil n'a pas lancé. Remplacer `false`/`true` à 143 ou `true` à 144 fait échouer 2 ou 3 tests. Seul survit le retour à `matchesScope` à la ligne 145. Ce mutant fait refuser comme altéré un nouveau test ajouté sous `Test/` au lieu de l'accepter comme nouveau test : il refuse davantage, n'affaiblit aucune garantie et ne touche aucune promesse de la story. Retirer `normalize(\"NFKD\")` de `foldName` survit aussi. D'après un sondage de tous les points de code sur le volume APFS de la machine, ce retrait n'ouvre pourtant aucun nom que le volume confond avec une lettre ASCII : seuls U+017F et U+212A y sont repliés, et `toUpperCase().toLowerCase()` les couvre déjà.",
+    "mutation": "g4.ts:145 matchesProtected→matchesScope (survit) ; g4.ts:143 pattern.endsWith(\"/\")→false ou true (tué par node-stack.test.ts) ; g4.ts:144 !inInstalledDependencies(...)→true (tué) ; foldName sans normalize(\"NFKD\") (survit)"
+   }
+  ],
+  "fermes": [
+   "A2-1",
+   "B2-1"
+  ],
+  "resume": "Verdict : pass. Les deux contournements rouverts, A2-1 et B2-1, sont fermés, et chaque promesse vérifiable par un test est tenue.\n\n**A2-1 et B2-1 (configuration de Stryker sous une autre casse).** Rejoués sur adc053a3 par un test jetable, non commité, avec les chemins protégés du vrai contrôle `mutation`, sans borne puis sous la borne `test/*.test.js`, `test/*.test.mjs`. `protectedPathsChanged` relève maintenant comme altérés : `Stryker.conf.json`, `STRYKER.CONF.JSON`, `.Stryker.Config.mjs`, `.Stryker.Conf.json`, `STRYKER.CONFIG.MJS`, `ſtryker.conf.json`, `stryKer.conf.json` et `Stryker.Config.cjs`. `evaluateG4` replie aussi la casse avant de comparer.\n- J'ai sondé tous les points de code sur le volume temporaire de la machine (APFS). Le volume ne confond avec une lettre ASCII que U+017F et U+212A, et n'ignore aucun caractère invisible. `foldName` ne laisse donc passer aucun nom que Stryker ouvrirait.\n- Stryker 10.0.0 ne cherche que les 16 noms de `SUPPORTED_CONFIG_FILE_NAMES`, tous à la racine, et tous couverts par les quatre motifs repliés.\n- Le test de `node-stack` qui nomme ces variantes échoue si `foldName` rend son entrée telle quelle, et celui de `change-rules-gates` échoue si `evaluateG4` revient à `matchesScope`.\n\n**Scénarios 1 à 3 (TypeScript 7, `.stryker-tmp`, borne de suite).** `test/v4-platform/node-mutation.test.ts` passe, avec Stryker 10.0.0 et TypeScript 7.0.2 sous Seatbelt. Chaque promesse échoue sous mutation :\n- retirer `cleanTempDir: \\\"always\\\"` fait échouer le test de `.stryker-tmp` ;\n- retirer `tsconfigFile = \\\"/dev/null\\\"` fait échouer le test TypeScript 7 ;\n- ignorer la borne fait échouer le test de `test/nested/sandbox.test.js`.\n\n**Scénario 4 (borne figée à G2).** Passer `[]` au lieu de `ctx.policy.suite_paths` dans `verification-design.ts:386` fait échouer le test de `preparation.test.ts` qui vérifie que la commande figée nomme la borne.\n\n**Scénario 5 (configuration du dogfooding).** Retirer `test-output/` ou les motifs `.mjs` de la configuration fait échouer le test de `dogfood-controls.test.ts`.\n\n**Scénario 6 (campagne réelle).** Le relevé `specs/verifications/e40s05/releve-dogfood-20261012T163907.json` dit G2, G5 et G6 PASS, nomme l'arbre intégré `6304baf2` et dit la construction inchangée. Il a été fait à a3ffcb2f, avant le repli de casse de G4 : c'est à la recette de le rejouer à la tête.\n\nLe seul constat (A1-1) est à peser : un mutant survivant sur la ligne 145 fait refuser davantage, sans toucher aucune promesse. Toutes les mutations ont été remises en place, l'arbre est propre et rien n'est commité."
+ },
+ {
+  "verdict": "pass",
+  "fermes": [
+   "A2-1",
+   "B2-1"
+  ],
+  "constats": [
+   {
+    "id": "B1-1",
+    "scenario": "Sécurité — les fichiers de configuration de Stryker restent protégés",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/gates/g4.ts",
+    "ligne": 66,
+    "constat": "`foldName` (NFKD, upper, lower) misses one equivalence that the APFS volume makes: `ẞ` (U+1E9E) opens as `ss`. I checked every BMP character plus planes 1 and 1E9xx against each ASCII letter, digit, `-`, `_` and `.`, and against the ligature pairs; no other equivalence is missed. No protected path whose absence a tool probes (the Stryker, vitest, vite, mocha and jest configs, `test/`, `package.json`) contains `ss`, so this opens no bypass today.",
+    "mutation": "Not a mutation: a probe of `existsSync` on the volume, compared with `foldName`."
+   },
+   {
+    "id": "B1-2",
+    "scenario": "Sécurité — les fichiers de configuration de Stryker restent protégés",
+    "categorie": "a_peser",
+    "placement": "introduit",
+    "fichier": "src/domain/gates/g4.ts",
+    "ligne": 145,
+    "constat": "The tool reported eight mutants on lines 143-144 that survived the task-named tests. Every one is killed by `test/v1-adapters/node-stack.test.ts` and `test/v0-pure/change-rules-gates.test.ts`, the tests the branch added: 2 to 4 failures each. Swapping `matchesProtected` back to `matchesScope` on line 145, the allowance for a file added under a protected directory, fails no test. That mutant only refuses more (an added `Test/x.test.js`), and no promise covers it. The NFKD, upper and lower mutants of `foldName` survive but are equivalent on every APFS equivalence of an ASCII letter.",
+    "mutation": "Line 145 `matchesProtected(p, pattern)` → `matchesScope(p, pattern)`: 0 failures. Line 158: 2 failures. Line 31: 1 failure. Line 143 `endsWith(\"/\")` → true/false/startsWith/\"\": 2 failures each. Line 143 `&&` → `||`: 4 failures. Line 144 negation removed: 4 failures."
+   }
+  ],
+  "resume": "The reopened bypasses A2-1 and B2-1 no longer pass at adc053a3. With the Node mutation control's protected paths, `protectedPathsChanged` now reports as altered every name the APFS volume opens as a Stryker config. Replayed by a throwaway test, not committed, on nine names: Stryker.conf.json, STRYKER.CONF.JSON, .Stryker.Config.mjs, STRYKER.CONFIG.MJS, ſtryker.conf.json, a Kelvin-sign K, ﬆryker.conf.json, .ﬅryker.conﬁg.mjs and Stryker.Conf.CJS. G4 then names each one through the wiring that was already there.\n\nAn exhaustive probe of the volume found only one equivalence the fold misses, ẞ ↔ ss, and no protected path contains ss. The mutants the tool reported on lines 143-144 are all killed by the v0/v1 tests the branch added. The one surviving mutant (line 145) only refuses more. Stryker disable comments are already caught by a pre-existing silencing rule.\n\nEach scenario keeps its test at the head; the dogfooding run is in specs/verifications/e40s05. No blocking or must-fix finding, no bypass."
+ }
+]

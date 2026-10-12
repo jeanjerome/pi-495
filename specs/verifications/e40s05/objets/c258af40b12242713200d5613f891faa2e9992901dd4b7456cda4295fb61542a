@@ -1,0 +1,54 @@
+TAP version 13
+# Subtest: the mutation control of a Node target that installed Stryker 10.0.0
+    # Subtest: sur une cible qui porte TypeScript 7.0.2 et un tsconfig.json, le contrôle de mutation est qualifié : témoin positif PASS, témoin négatif FAIL, et aucune sortie ne nomme parseConfigFileTextToJson
+    ok 1 - sur une cible qui porte TypeScript 7.0.2 et un tsconfig.json, le contrôle de mutation est qualifié : témoin positif PASS, témoin négatif FAIL, et aucune sortie ne nomme parseConfigFileTextToJson
+      ---
+      duration_ms: 6775.790458
+      type: 'test'
+      ...
+    # Subtest: un test en échec dans la copie du témoin positif fait le témoin FAIL, et ne laisse aucun dossier sous .stryker-tmp dans cette copie
+    not ok 2 - un test en échec dans la copie du témoin positif fait le témoin FAIL, et ne laisse aucun dossier sous .stryker-tmp dans cette copie
+      ---
+      duration_ms: 6195.835667
+      type: 'test'
+      location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-sZaeW0/test/v4-platform/node-mutation.test.ts:118:2'
+      failureType: 'testCodeFailure'
+      error: |-
+        no working copy of Stryker is left
+        + actual - expected
+        
+        + [
+        +   'sandbox-J8Wv5q'
+        + ]
+        - []
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual:
+        0: 'sandbox-J8Wv5q'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-sZaeW0/test/v4-platform/node-mutation.test.ts:129:10)
+        async Test.run (node:internal/test_runner/test:1409:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+      ...
+    1..2
+not ok 1 - the mutation control of a Node target that installed Stryker 10.0.0
+  ---
+  duration_ms: 14516.452167
+  type: 'suite'
+  location: '/private/var/folders/j9/bnfyqnns4tzccm9jnvrxzx100000gn/T/cycle-arbre-sZaeW0/test/v4-platform/node-mutation.test.ts:92:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 14776.587291

@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: the mutation control of a Node target that installed Stryker 10.0.0
+    # Subtest: sur une cible qui porte TypeScript 7.0.2 et un tsconfig.json, le contrôle de mutation est qualifié : témoin positif PASS, témoin négatif FAIL, et aucune sortie ne nomme parseConfigFileTextToJson
+    ok 1 - sur une cible qui porte TypeScript 7.0.2 et un tsconfig.json, le contrôle de mutation est qualifié : témoin positif PASS, témoin négatif FAIL, et aucune sortie ne nomme parseConfigFileTextToJson
+      ---
+      duration_ms: 6365.726167
+      type: 'test'
+      ...
+    # Subtest: un test en échec dans la copie du témoin positif fait le témoin FAIL, et ne laisse aucun dossier sous .stryker-tmp dans cette copie
+    ok 2 - un test en échec dans la copie du témoin positif fait le témoin FAIL, et ne laisse aucun dossier sous .stryker-tmp dans cette copie
+      ---
+      duration_ms: 5870.416917
+      type: 'test'
+      ...
+    # Subtest: sous une borne qui écarte test/nested/sandbox.test.js, en échec, le témoin positif de la mutation est PASS et la sortie de Stryker ne nomme pas test/nested/sandbox.test.js
+    ok 3 - sous une borne qui écarte test/nested/sandbox.test.js, en échec, le témoin positif de la mutation est PASS et la sortie de Stryker ne nomme pas test/nested/sandbox.test.js
+      ---
+      duration_ms: 5569.372208
+      type: 'test'
+      ...
+    1..3
+ok 1 - the mutation control of a Node target that installed Stryker 10.0.0
+  ---
+  duration_ms: 24212.592166
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 24470.495125
