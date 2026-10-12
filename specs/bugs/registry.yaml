@@ -3782,3 +3782,62 @@ bugs:
       Have the failure of `closeWorkspace` name the directory left, as an `Error` whose message carries it, and say that
       path in the progress message.
     status: open
+  - bug_id: BUG-2026-10-12T171000
+    date: "2026-10-12"
+    title: "A frozen prepared test that reads the text of its module fails under Stryker's instrumentation, and the mutation finding does not name it"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      In the dogfooding campaign `dogfood-20261012T140626`, the preparation froze
+      `test/v0-pure/request-title.test.ts`, whose case "r-pure-helper-architecture" reads the text of
+      `src/domain/request-title.ts` and refuses any global access in it. The case passes under `unit` on every
+      candidate. The mutation control runs it on the module Stryker instrumented, whose text carries Stryker's own
+      globals: the initial test run fails on the three candidates, and G5 fails until the three attempts are spent.
+      The finding the producer receives says only "One or more tests failed in the initial test run"; the name of the
+      case is in the raw output alone. The test is frozen since G2, so the producer can neither see nor change it.
+    what_expected: >
+      A frozen test that the mutation control alone makes fail is named to the producer and to the owner, and does not
+      leave the change without any way forward.
+    steps_to_reproduce:
+      - "Run the dogfooding campaign of pi-495 with the request of 2026-10-11 until a preparation writes an architecture case that reads the source text of the helper."
+      - "Read the mutation evidence of the candidate: FAIL, finding 'One or more tests failed in the initial test run', no test named; read its raw output: the case fails on 'no side-effecting access in the helper'."
+    root_cause: >
+      Stryker runs the suite on instrumented sources, which a test that reads source text sees; the Stryker reader
+      keeps the error lines of the log and not the failing cases the runner printed before them.
+    evidence: >
+      Observed on 2026-10-12 in `~/.495/campagnes/dogfood-20261012T140626` (evidence `evc_mv5c8l9p81ca2ccfb5`, raw
+      output `sha256:1e8b1f62…`), at main `cf8f1a7c` with a Stryker setting of the target. Set outside e40s05 by the
+      owner.
+    risk_level: medium
+    follow_ups: >
+      Name the failing cases of the initial run in the mutation finding, and let a producer contest a frozen case that
+      only the mutation control fails, or tell a preparation that its cases run on instrumented sources.
+    status: open
+  - bug_id: BUG-2026-10-12T171500
+    date: "2026-10-12"
+    title: "The owner the dogfooding campaign stands in for answers no question but adoption, acceptance and integration"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `repondeur(["adopt", "accept", "integrate"])` in `cycle/src/dogfood-controleur.ts` answers "later" to any other
+      question. When the agent writes a characterization of the reference that the reference contradicts, 495 asks
+      IH-04 after the second preparation, as it should: a later preparation does not give the declaration its weight
+      back. The campaign stops there, `decision_pending`, in `dogfood-20261011T090517` and in
+      `dogfood-20261012T135303`.
+    what_expected: >
+      A dogfooding campaign either answers IH-04 as an owner would, with the answer written in its record, or says in
+      its record that it stopped on a question its owner does not answer.
+    steps_to_reproduce:
+      - "Run the dogfooding campaign until the first preparation writes characterization cases that call a function the reference does not have."
+      - "Read the record: status decision_pending on IH-04, 'Aucun test ne peut juger r-short-unchanged'; the log shows 'dialog … -> later'."
+    root_cause: >
+      The driver of the campaign was written for a change whose questions are the adoption of the mandate, the
+      acceptance and the integration.
+    evidence: >
+      Observed on 2026-10-11 and 2026-10-12, one campaign in three on 2026-10-12. Set outside e40s05 by the owner.
+    risk_level: low
+    follow_ups: >
+      Decide what the stand-in owner answers to IH-04, and write it in the record of the campaign.
+    status: open

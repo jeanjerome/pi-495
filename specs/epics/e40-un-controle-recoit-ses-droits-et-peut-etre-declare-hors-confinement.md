@@ -69,7 +69,7 @@ Essais du 11 octobre sur cette machine (macOS 27, Apple Silicon), décrits dans 
 | e40s01 | git, dans un contrôle, ne lit ni la configuration globale ni la configuration système de l'hôte | Aucun |
 | e40s02 | Le propriétaire donne à un contrôle, détecté ou déclaré, un dossier inscriptible de la copie dans la configuration du contrôleur. Le contrôleur crée ce dossier avant l'exécution. Un lien ou un fichier que le candidat y a mis fait refuser, et aucun droit ne s'accorde par la cible d'un lien | Aucun |
 | e40s03 | Après une préparation refusée, la suite est relancée une fois sur un double jetable de la copie où elle peut écrire, sous macOS comme sous Linux, et les dossiers qu'elle y crée sont proposés au propriétaire : chemins, contrôle. Adoptée, la proposition s'inscrit dans la configuration du contrôleur. Sans le propriétaire, rien n'est accordé | e40s02 |
-| e40s05 | Le dogfooding de pi-495 atteint G2, construit le candidat et l'intègre sous le contrôleur identifié au départ, avec `suite_paths` tel que `e38s13` l'a laissé | e40s01, e40s02 |
+| e40s05 | Le dogfooding de pi-495 atteint G2, construit le candidat et l'intègre sous le contrôleur identifié au départ, avec `suite_paths` tel que `e38s13` l'a laissé, augmenté des témoins `.mjs` de la technologie. La mutation d'une cible Node tourne en TypeScript 7, suit la borne de suite du propriétaire et ne laisse pas sa copie de travail : les campagnes du 12 octobre ont montré qu'elle bloquait G2 puis G5 | e40s01, e40s02 |
 
 ## Partie 2 — Le propriétaire peut déclarer un contrôle hors confinement
 

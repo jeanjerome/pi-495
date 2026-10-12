@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "story": "e40s05",
+  "promesses": [
+    {
+      "id": "P1",
+      "scenario": "Le contrôle de mutation d'une cible en TypeScript 7 est qualifié",
+      "categorie": "nouveau-comportement",
+      "observation": "les verdicts des témoins positif et négatif de la mutation et la sortie de Stryker, sur une cible qui porte TypeScript 7.0.2 et un tsconfig.json",
+      "oracles": [
+        {
+          "tache": 1,
+          "cas": "test/v4-platform/node-mutation.test.ts",
+          "assertion": "sur une cible qui porte TypeScript 7.0.2 et un tsconfig.json, le contrôle de mutation est qualifié : témoin positif PASS, témoin négatif FAIL, et aucune sortie ne nomme parseConfigFileTextToJson"
+        }
+      ],
+      "dependances": [],
+      "interactions": [
+        { "genre": "effet-externe", "description": "Stryker et TypeScript réels, installés dans la cible, sous le bac à sable de la plateforme" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "une cible réelle en TypeScript 7 montre le plantage et sa levée" },
+        { "moyen": "proprietes", "retenu": false, "raison": "la seule variation, la version majeure de TypeScript, a deux issues" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "un lancement d'outil, sans état du changement touché" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P2",
+      "scenario": "Une mutation dont le passage initial échoue ne laisse pas sa copie de travail",
+      "categorie": "nouveau-comportement",
+      "observation": "le contenu de .stryker-tmp dans la copie du témoin positif après la qualification",
+      "oracles": [
+        {
+          "tache": 2,
+          "cas": "test/v4-platform/node-mutation.test.ts",
+          "assertion": "un test en échec dans la copie du témoin positif fait le témoin FAIL, et ne laisse aucun dossier sous .stryker-tmp dans cette copie"
+        }
+      ],
+      "dependances": ["P1"],
+      "interactions": [
+        { "genre": "ordre-des-evenements", "description": "un contrôle lancé après la mutation dans la même copie ne doit rien lire de sa copie de travail" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "un passage initial en échec suffit à montrer la copie laissée" },
+        { "moyen": "proprietes", "retenu": false, "raison": "aucune entrée à faire varier" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "l'ordre des contrôles n'est pas changé par la story" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P3",
+      "scenario": "La borne de suite du propriétaire borne aussi la mutation",
+      "categorie": "nouveau-comportement",
+      "observation": "le verdict du témoin positif de la mutation et la sortie de Stryker sous une borne qui écarte un test en échec",
+      "oracles": [
+        {
+          "tache": 3,
+          "cas": "test/v4-platform/node-mutation.test.ts",
+          "assertion": "sous une borne qui écarte test/nested/sandbox.test.js, en échec, le témoin positif de la mutation est PASS et la sortie de Stryker ne nomme pas test/nested/sandbox.test.js"
+        }
+      ],
+      "dependances": ["P1"],
+      "interactions": [
+        { "genre": "effet-externe", "description": "Stryker réel lance la commande bornée par son lanceur de tests command" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "un test hors de la borne, en échec, distingue la suite bornée de la suite entière" },
+        { "moyen": "proprietes", "retenu": false, "raison": "la borne est reprise telle quelle ; aucune entrée à faire varier au-delà d'une borne vide ou non" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "un lancement d'outil" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P4",
+      "scenario": "La borne de la configuration du contrôleur est figée dans le contrôle de mutation",
+      "categorie": "nouveau-comportement",
+      "observation": "la commande des définitions figées de mutation et de unit dans le protocole",
+      "oracles": [
+        {
+          "tache": 4,
+          "cas": "test/v2-kernel/preparation.test.ts",
+          "assertion": "sous une politique qui borne la suite, la commande figée de mutation nomme chaque motif de la borne, comme celle de unit"
+        }
+      ],
+      "dependances": ["P3"],
+      "interactions": [
+        { "genre": "revision", "description": "la borne se lit dans la configuration au gel du protocole ; une configuration changée après G2 ne modifie pas la mutation figée" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "une politique bornée et une cible qui a installé Stryker couvrent le passage de la borne jusqu'au protocole" },
+        { "moyen": "proprietes", "retenu": false, "raison": "un passage de valeur, sans entrée à faire varier" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "le gel est une étape existante que la story ne change pas" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P5",
+      "scenario": "La configuration du dogfooding donne `test-output/` au contrôle de tests détecté et couvre les témoins de la technologie",
+      "categorie": "nouveau-comportement",
+      "observation": "writable_paths et suite_paths de la configuration du dogfooding, lus contre les témoins de la technologie Node",
+      "oracles": [
+        {
+          "tache": 5,
+          "cas": "test/v4-platform/dogfood-controls.test.ts",
+          "assertion": "la configuration du dogfooding donne test-output/ au contrôle unit, et chaque fichier de test que la technologie Node écrit comme témoin d'une suite node --test correspond à un motif de suite_paths"
+        }
+      ],
+      "dependances": [],
+      "interactions": [],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "la configuration réelle lue contre les témoins réels de la technologie" },
+        { "moyen": "proprietes", "retenu": false, "raison": "une seule configuration à lire" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "aucun état" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    },
+    {
+      "id": "P6",
+      "scenario": "Le contrôleur stable intègre un changement réel de pi-495",
+      "categorie": "jugement",
+      "observation": "le relevé et le dossier d'une campagne de dogfooding réelle qui intègre, et le relevé du témoin négatif",
+      "oracles": [
+        {
+          "tache": 6,
+          "cas": "specs/verifications/e40s05/",
+          "assertion": "une campagne dit G2, G5 et G6 PASS, nomme l'arbre intégré et dit la construction du contrôleur inchangée ; le témoin négatif s'arrête au plus tard à G2"
+        }
+      ],
+      "dependances": ["P1", "P2", "P3", "P4", "P5"],
+      "interactions": [
+        { "genre": "effet-externe", "description": "un vrai Pi et un vrai modèle conduisent le changement ; leurs fautes inscrites au registre comptent comme des essais" }
+      ],
+      "moyens": [
+        { "moyen": "exemples", "retenu": true, "raison": "une campagne réelle jusqu'à l'intégration, et son témoin négatif" },
+        { "moyen": "proprietes", "retenu": false, "raison": "le modèle n'est pas une entrée qu'on fait varier" },
+        { "moyen": "modele-d-etats", "retenu": false, "raison": "les phases du changement ne sont pas modifiées par la story" },
+        { "moyen": "preuve-lean", "retenu": false, "raison": "aucune règle de décision à prouver" }
+      ]
+    }
+  ]
+}
