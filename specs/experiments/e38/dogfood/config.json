@@ -3,10 +3,16 @@
     "policy_id": "pi-495-dogfood",
     "suite_paths": [
       "test/*.test.js",
+      "test/*.test.mjs",
       "test/*.test.ts",
       "test/v0-pure/**/*.test.ts",
       "test/cycle/**/*.test.ts"
     ],
+    "writable_paths": {
+      "unit": [
+        "test-output/"
+      ]
+    },
     "project_controls": [
       {
         "control_id": "build",

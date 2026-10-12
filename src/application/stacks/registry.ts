@@ -126,7 +126,7 @@ export class StackRegistry {
 	 * names the path that was not read. `referentialPackages` are the packages the adopted install of the
 	 * quality referential put in the copy, as its lock names them; empty anywhere else, so a manifest alone
 	 * never stands for that install. `architectureMap` is the map the owner adopted, whose rules the controls
-	 * verify; it is never read from the copy.
+	 * verify, and `suitePaths` the test files the owner bounds the suite to; neither is ever read from the copy.
 	 */
 	recognise(
 		projectPath: string,
@@ -134,6 +134,7 @@ export class StackRegistry {
 		nodeBinary = process.execPath,
 		referentialPackages: readonly InstalledPackage[] = [],
 		architectureMap?: ArchitectureMap,
+		suitePaths: readonly string[] = [],
 	): DetectedTechnology {
 		const view = this.#openView(projectPath);
 		let stack = "unknown";
@@ -149,6 +150,7 @@ export class StackRegistry {
 					node_binary: nodeBinary,
 					referential_packages: referentialPackages,
 					...(architectureMap ? { architecture_map: architectureMap } : {}),
+					suite_paths: suitePaths,
 				};
 				return assembleDetection(technology, question, this.#readers);
 			}

@@ -184,7 +184,7 @@ describe("Node stack: what the unit controls protect among the installed depende
 		assert.deepEqual(added.altered, ["node_modules/vitest/node_modules/tinyrainbow/index.js"]);
 		assert.deepEqual(added.allowed, []);
 	});
-	it("given a target that installed Stryker, then a candidate that modifies stryker.config.mjs or adds stryker.conf.json is refused naming each file, and one that modifies src/agenda.ts is not", () => {
+	it("given a target that installed Stryker, then a candidate that modifies stryker.config.mjs or adds stryker.conf.json, .stryker.conf.json or .stryker.config.mjs is refused naming each file, and one that modifies src/agenda.ts is not", () => {
 		const stryker = { "node_modules/@stryker-mutator/core/package.json": '{"name":"@stryker-mutator/core"}' };
 		const mutation = STACKS_OF_495.recognise(targetWith("node --test", stryker), REFS, NODE).controls.find(
 			(c) => c.control_id === "mutation",
@@ -194,13 +194,56 @@ describe("Node stack: what the unit controls protect among the installed depende
 			manifestOf(
 				entry("stryker.config.mjs", "modified"),
 				entry("stryker.conf.json", "added"),
+				entry(".stryker.conf.json", "added"),
+				entry(".stryker.config.mjs", "added"),
+				entry("Stryker.conf.json", "added"),
+				entry("STRYKER.CONFIG.MJS", "added"),
+				entry(".Stryker.Config.mjs", "added"),
 				entry("src/agenda.ts", "modified"),
 			),
 			mutation.protected_paths,
 			[],
 			["node_modules"],
 		);
-		assert.deepEqual(changed.altered, ["stryker.config.mjs", "stryker.conf.json"]);
+		assert.deepEqual(changed.altered, [
+			"stryker.config.mjs",
+			"stryker.conf.json",
+			".stryker.conf.json",
+			".stryker.config.mjs",
+			"Stryker.conf.json",
+			"STRYKER.CONFIG.MJS",
+			".Stryker.Config.mjs",
+		]);
+	});
+	it("a path that names a protected file, directory or pattern under another case or Unicode folding is altered, since a case-insensitive volume opens it as the protected file", () => {
+		const changed = protectedPathsChanged(
+			manifestOf(
+				entry("ESLint.Config.js", "modified"),
+				entry("Test/greet.test.ts", "modified"),
+				entry("\u017Ftryker.conf.json", "added"),
+				entry("donne\u0301es/cas.json", "modified"),
+				entry("src/agenda.ts", "modified"),
+			),
+			["eslint.config.js", "test/", "stryker.conf.*", "donn\u00E9es/"],
+			[],
+			["node_modules"],
+		);
+		assert.deepEqual(changed.altered, [
+			"ESLint.Config.js",
+			"Test/greet.test.ts",
+			"\u017Ftryker.conf.json",
+			"donne\u0301es/cas.json",
+		]);
+	});
+	it("a file added under a protected directory named under another case is allowed as a new test, as it is under the directory itself", () => {
+		const added = protectedPathsChanged(
+			manifestOf(entry("Test/new.test.ts", "added")),
+			["test/"],
+			[],
+			["node_modules"],
+		);
+		assert.deepEqual(added.allowed, ["Test/new.test.ts"]);
+		assert.deepEqual(added.altered, []);
 	});
 	it("given a vitest target, when a candidate adds tests/new.test.ts, then the file is allowed as a new test and not refused", () => {
 		const { protected_paths: protectedPaths } = unitOf(targetWith("vitest run"));
@@ -703,19 +746,14 @@ describe("Node stack: the mutation control of a target that installed Stryker", 
 	const STRYKER = { "node_modules/@stryker-mutator/core/package.json": '{"name":"@stryker-mutator/core"}' };
 	const mutationOf = (project: string) =>
 		STACKS_OF_495.recognise(project, REFS, NODE).controls.find((c) => c.control_id === "mutation");
-	it("given a target whose node_modules carries @stryker-mutator/core, then the mutation control runs it with the json reporter and one process, asks for the loopback network only, writes reports/mutation and .stryker-tmp only and protects the Stryker configuration files, and given no Stryker, then no mutation control is declared and the recommendation names the tool, its version, its date and its source", () => {
+	it("given a target whose node_modules carries @stryker-mutator/core, then the mutation control runs it through its API with the json reporter and one process, asks for the loopback network only, writes reports/mutation and .stryker-tmp only and protects the Stryker configuration files, and given no Stryker, then no mutation control is declared and the recommendation names the tool, its version, its date and its source", () => {
 		const detection = STACKS_OF_495.recognise(targetWith("node --test", STRYKER), REFS, NODE);
 		const mutation = detection.controls.find((c) => c.control_id === "mutation");
 		assert.ok(mutation, "the detection declares a mutation control");
-		assert.deepEqual(mutation.command, [
-			NODE,
-			"node_modules/@stryker-mutator/core/bin/stryker.js",
-			"run",
-			"--reporters",
-			"json",
-			"--concurrency",
-			"1",
-		]);
+		const [binary, inputType, evaluate, launcher, end, ...rest] = mutation.command;
+		assert.deepEqual([binary, inputType, evaluate, end, rest], [NODE, "--input-type=module", "-e", "--", []]);
+		assert.match(launcher ?? "", /await import\("@stryker-mutator\/core"\)/, "Stryker is imported from the copy");
+		assert.match(launcher ?? "", /"reporters":\["json"\],"concurrency":1,/, "the json reporter and one process");
 		assert.equal(mutation.parser, "stryker-json");
 		assert.equal(mutation.report_path, "reports/mutation/mutation.json");
 		assert.equal(mutation.scope_argument, `--mutate=${SCOPE_PLACEHOLDER}`);
@@ -753,6 +791,23 @@ describe("Node stack: the mutation control of a target that installed Stryker", 
 
 		rmSync(join(root, "target"), { recursive: true, force: true });
 		assert.equal(mutationOf(targetWith("jest", STRYKER)), undefined, "no qualification witness is written for jest");
+	});
+	it("given a suite the owner bounds, then the mutation control has Stryker run the command runner on the unit command followed by the bound and the tests of its witnesses, each argument quoted for the shell, and given no bound, then it leaves the runner and command to the target", () => {
+		const optionsOf = (mutation: ControlDefinition | undefined) =>
+			JSON.parse(/^const options = (.*);$/m.exec(mutation?.command[3] ?? "")?.[1] ?? "null") as Record<string, unknown>;
+		const bound = ["test/*.test.js", "test/it's.test.js"];
+		const project = targetWith("node --test", STRYKER);
+		const bounded = optionsOf(
+			STACKS_OF_495.recognise(project, REFS, NODE, [], undefined, bound).controls.find(
+				(c) => c.control_id === "mutation",
+			),
+		);
+		assert.equal(bounded.testRunner, "command");
+		assert.deepEqual(bounded.commandRunner, {
+			command: `'${NODE}' '--test' '--test-reporter=tap' 'test/*.test.js' 'test/it'\\''s.test.js' 'test/495-covered-witness.test.mjs' 'test/495-unasserted-witness.test.mjs'`,
+		});
+		const free = optionsOf(mutationOf(project));
+		assert.deepEqual([free.testRunner, free.commandRunner], [undefined, undefined]);
 	});
 	it("given a vitest target that installed Stryker, then the mutation control also lets Vite compile the configuration under node_modules/.vite-temp and vitest keep its API token under node_modules/.vitest, which the sandbox copy of Stryker reaches through its node_modules link", () => {
 		const mutation = mutationOf(targetWith("vitest run", STRYKER));

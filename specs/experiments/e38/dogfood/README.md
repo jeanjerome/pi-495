@@ -46,13 +46,17 @@ La technologie Node, elle, lit `scripts.test` (`node --test 'test/**/*.test.ts'`
 exigences et la suite préparée. Lancé ainsi, confiné, il rencontre les mêmes échecs que la suite
 entière et dépasse ses dix minutes : la recette a lu deux préparations INDETERMINATE (« timeout after
 600035 ms ») et aucun G2. `policy.suite_paths` borne donc ce contrôle aux fichiers de test qui tournent
-confinés : ceux posés à la racine de `test/` — où la technologie écrit ses témoins et où une
-préparation écrit ses tests —, `test/v0-pure` et `test/cycle`, ajoutés à sa commande. Cette borne et le
-délai du contrôle se lisent dans la configuration du contrôleur, jamais dans un fichier du candidat :
-un candidat qui réécrit `scripts.test` ne restreint pas ce qui juge ses exigences et n’en allonge pas
-le délai. Un test préparé écrit ailleurs ne tourne pas, et la préparation qui le porte n’est pas
-qualifiée. `test/v4-platform/dogfood-preparation.test.ts` le vérifie sur une cible façonnée comme
-pi-495.
+confinés : ceux posés à la racine de `test/` en `.js`, `.mjs` et `.ts` — où une préparation écrit ses
+tests, et où la technologie écrit ses témoins, en `.mjs` pour la couverture et la mutation —, `test/v0-pure`
+et `test/cycle`, ajoutés à sa commande. La même borne s'applique à la mutation : Stryker y lance cette
+commande, et non `npm test` sur tout l'arbre. `policy.writable_paths` donne à `unit` un seul droit
+d'écriture de plus, `test-output/`, où les aides de test de pi-495 créent leurs dossiers ; il s'accorde
+par le chemin écrit, et un `test-output` que le candidat poserait comme lien fait refuser le contrôle.
+Cette borne, ce droit et le délai du contrôle se lisent dans la configuration du contrôleur, jamais dans
+un fichier du candidat : un candidat qui réécrit `scripts.test` ne restreint pas ce qui juge ses
+exigences et n’en allonge pas le délai. Un test préparé écrit ailleurs ne tourne pas, et la préparation
+qui le porte n’est pas qualifiée. `test/v4-platform/dogfood-preparation.test.ts` le vérifie sur une
+cible façonnée comme pi-495.
 
 ## La campagne
 
@@ -85,21 +89,26 @@ une faute de couches — se jouent avec un agent scripté, sur une cible façonn
 contrôle de couches de ce dépôt : `test/v4-platform/dogfood-process.test.ts`. Un vrai modèle ne commet
 pas une faute sur commande.
 
-## Où en est le dogfooding, le 11 octobre 2026
+## Où en est le dogfooding, le 12 octobre 2026
 
-Les campagnes de la recette de `e38s13` (`~/.495/campagnes/dogfood-20261011T*`, hors du dépôt), un vrai modèle et un
-changement réel de pi-495 — couper au dernier mot le titre d'une demande de plus de 80 caractères —, montrent la suite
-préparée jugée sur la référence dans son délai, sous la borne `suite_paths`. Aucune n'atteint G2 :
+Les campagnes de la recette de `e38s13` et de `e40s03` (`~/.495/campagnes/dogfood-2026101*`, hors du dépôt), un vrai
+modèle et un changement réel de pi-495 — couper au dernier mot le titre d'une demande de plus de 80 caractères —,
+ont montré ce qui empêchait le contrôleur stable d'aller au bout :
 
-- les tests préparés qui démarrent un changement par les aides de pi-495 créent leur dossier sous `test-output/`, que
-  le contrôle `unit` n'ouvre pas en écriture ; ils échouent sans assertion (`EPERM … mkdir '<copie>/test-output'`) et
-  leurs exigences ne prouvent rien. Un droit d'écriture sur `test-output/`, essayé puis retiré, s'élargissait à toute
-  la copie quand le candidat commitait `test-output` comme lien vers `.` : un droit s'accorde par le chemin réel ;
-- l'agent range ses tests du noyau sous `test/v2-kernel/`, que `suite_paths` ne lance pas ; une préparation qui ne
-  porte que ceux-là n'est pas qualifiée ;
-- les générations `v1` à `v4` restent hors du contrôle confiné : une partie de leurs échecs tient à l'emboîtement des
-  bacs à sable, une autre à la configuration git de l'hôte, qui signe les commits avec une clé de `~/.ssh`
-  (`BUG-2026-10-11T013000`).
+- le 11 octobre, aucune n'atteint G2 : les tests préparés échouent sans pouvoir créer leur dossier sous
+  `test-output/`, et la mutation de pi-495 sort sur `ts.parseConfigFileTextToJson`, que TypeScript 7 n'a plus
+  (`dogfood-20261011T090513`) ;
+- le 12 octobre, avec `test-output/` donné à `unit` et un réglage de Stryker posé dans la cible, G2, G3 et G4
+  passent ; G5 échoue sur le linter, qui lit la copie de travail qu'une mutation en échec a laissée sous
+  `.stryker-tmp`, et sur la mutation (`dogfood-20261012T140626`).
 
-La suite revient à l'epic `e40`, qui ne s'écrit qu'après l'étude
-`specs/spikes/confinement-de-l-execution-dans-d-autres-projets.md`.
+La configuration donne désormais `test-output/` à `unit`, et la borne couvre les témoins `.mjs`. Le contrôle de
+mutation lance Stryker par son API : il copie tel quel le `tsconfig.json` d'une copie en TypeScript 7, efface sa copie
+de travail quelle que soit l'issue, et tourne sous la borne. La campagne qui intègre, le nombre d'essais et le témoin
+négatif sous le contrôleur d'avant se lisent dans `specs/verifications/e40s05/`.
+
+Restent hors du contrôle confiné les générations `v1` à `v4` : une partie de leurs échecs tient à l'emboîtement des
+bacs à sable, une autre à la configuration git de l'hôte, qui signe les commits avec une clé de `~/.ssh`
+(`BUG-2026-10-11T013000`). Deux pièges connus peuvent encore arrêter une campagne : un test préparé qui lit le texte de
+son module échoue sous l'instrumentation de Stryker (`BUG-2026-10-12T171000`), et le propriétaire simulé ne répond qu'à
+l'adoption, à l'acceptation et à l'intégration (`BUG-2026-10-12T171500`).

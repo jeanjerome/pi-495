@@ -69,6 +69,7 @@ describe("the interface of a technology, published under pi-495/stack", () => {
 			requirement_refs: [],
 			node_binary: process.execPath,
 			referential_packages: [],
+			suite_paths: [],
 		};
 		const offer: Offer = technology.capabilities.tests.offer(question);
 		assert.equal(technology.recognise(view), true, "the technology recognises the project through the view");

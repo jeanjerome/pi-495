@@ -56,6 +56,37 @@ const spec = specReport({
 });
 const report = (paths: string[]) => ({ summary: "done", changed_paths: paths, tests_claimed: false, notes: [] });
 
+/**
+ * Stands in for the Stryker a target installed, as the package the mutation control imports: one mutant on the first
+ * line of each range it is asked to mutate, which survives in the module no test asserts on and is killed elsewhere.
+ */
+const STRYKER_STAND_IN: Record<string, string> = {
+	"node_modules/@stryker-mutator/core/package.json": JSON.stringify({
+		name: "@stryker-mutator/core",
+		version: "10.0.0",
+		type: "module",
+		exports: "./index.js",
+	}),
+	"node_modules/@stryker-mutator/core/index.js": [
+		'import { mkdirSync, writeFileSync } from "node:fs";',
+		"export class Stryker {",
+		"  constructor(options) { this.options = options; }",
+		"  async runMutationTest() {",
+		"    const files = {};",
+		"    for (const [id, range] of (this.options.mutate ?? []).entries()) {",
+		'      const [path, lines] = range.split(":");',
+		'      const line = Number(lines.split("-")[0]);',
+		'      const status = path.includes("unasserted") ? "Survived" : "Killed";',
+		"      const location = { start: { line, column: 1 }, end: { line, column: 2 } };",
+		'      (files[path] ??= { language: "javascript", source: "", mutants: [] }).mutants.push({ id: String(id), mutatorName: "ArithmeticOperator", replacement: "x", location, status });',
+		"    }",
+		'    mkdirSync("reports/mutation", { recursive: true });',
+		'    writeFileSync("reports/mutation/mutation.json", JSON.stringify({ schemaVersion: "2", files }));',
+		"  }",
+		"}",
+	].join("\n"),
+};
+
 describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-28, REC-29)", () => {
 	it("opens preparing, adopts a discriminant prepared suite, protects it, then accepts the implementation", async () => {
 		const p = trackedProject(fixtureTsWithoutTests);
@@ -1025,6 +1056,41 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 			writableOf("lint-own")?.includes(".lint-cache/"),
 			`the frozen lint-own control, declared, carries .lint-cache/: ${JSON.stringify(writableOf("lint-own"))}`,
 		);
+	});
+
+	it("sous une politique qui borne la suite, la commande figée de mutation nomme chaque motif de la borne, comme celle de unit", async () => {
+		const bound = ["test/*.test.js", "test/pure/**/*.test.js"];
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			scripts: {
+				prepare: {
+					steps: [
+						{ kind: "write", path: "test/shout.test.js", content: SHOUT_TEST },
+						{ kind: "complete", output: report(["test/shout.test.js"]) },
+					],
+				},
+			},
+			policy: { suite_paths: bound },
+		});
+		const { change } = await t.harness.start({
+			project_path: trackedProject((root) => {
+				fixtureTsWithoutTests(root);
+				writeFiles(root, STRYKER_STAND_IN);
+			}),
+			request_text: "add shout",
+			actor: HUMAN,
+		});
+		await t.harness.advance(change.change_id, { max_steps: 40 });
+		const state = t.ledger.loadChange(change.change_id)!.state;
+		assert.ok(
+			state.adopted.protocol,
+			`the protocol is frozen: ${JSON.stringify({ phase: state.phase, status: state.status, stop: state.stop_detail, pending: state.pending_decisions })}`,
+		);
+		const protocol = await t.harness.artifacts.read<Protocol>(state.adopted.protocol.ref);
+		const commandOf = (id: string) => protocol.controls.find((c) => c.control_id === id)?.command.join(" ") ?? "";
+		for (const id of ["unit", "mutation"])
+			for (const pattern of bound)
+				assert.ok(commandOf(id).includes(pattern), `the frozen ${id} control names ${pattern}: ${commandOf(id)}`);
 	});
 });
 

@@ -124,6 +124,12 @@ describe("candidate G4 (SA-011, BES-03, SEC-03)", () => {
 			),
 		);
 	});
+	it("a candidate that changes a protected path under another case fails G4 naming it, since a case-insensitive volume reads it as the protected file", () => {
+		const r = new Runner().toImplementing().implement();
+		r.freeze(candidate("c1"), { changed_paths: ["src/greet.ts", "ESLint.Config.js"] });
+		assert.equal(r.s.gates.G4?.verdict, "FAIL");
+		assert.ok(r.s.gates.G4?.reasons.includes("protected path altered by the producer: ESLint.Config.js"));
+	});
 	it("a change outside the mandate scope fails G4 (path derived from the mandate)", () => {
 		const r = new Runner().toImplementing().implement();
 		r.freeze(candidate("c1"), { changed_paths: ["src/greet.ts", "docs/README.md"] });

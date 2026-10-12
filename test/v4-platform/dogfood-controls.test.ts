@@ -5,13 +5,14 @@
  */
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, matchesGlob } from "node:path";
 import { describe, it } from "node:test";
 import { loadConfig } from "../../src/extension/config.ts";
 import { DOMAIN_IMPORTING_AN_ADAPTER, runOnPi495Shape } from "../helpers/dogfood.ts";
-import { NO_QUALIFIED_SANDBOX, removedAfterEach } from "../helpers/fixtures.ts";
+import { NO_QUALIFIED_SANDBOX, outputDir, removedAfterEach, writeFiles } from "../helpers/fixtures.ts";
+import { STACKS_OF_495 } from "../helpers/technologies.ts";
 
-removedAfterEach();
+const cleanups = removedAfterEach();
 
 const REPOSITORY = join(import.meta.dirname, "..", "..");
 /** The data directory of the stable controller: its `config.json` declares the controls of this repository. */
@@ -71,6 +72,39 @@ describe("the stable controller judges a change of pi-495 by the controls of npm
 			declared.find((c) => c.control_id === "lint-layers")?.command,
 			LAYERS.command,
 			"the layer control is the script npm run lint:layers runs",
+		);
+	});
+});
+
+describe("the stable controller's configuration of the suite of pi-495", () => {
+	it("la configuration du dogfooding donne test-output/ au contrôle unit, et chaque fichier de test que la technologie Node écrit comme témoin d'une suite node --test correspond à un motif de suite_paths", () => {
+		const { policy } = loadConfig(CONTROLLER, {}).config;
+		assert.deepEqual(policy.writable_paths?.unit, ["test-output/"], "unit may write test-output/");
+		const suitePaths = policy.suite_paths ?? [];
+		const { scripts } = JSON.parse(readFileSync(join(REPOSITORY, "package.json"), "utf8"));
+		const target = join(outputDir("dogfood-witnesses-", cleanups), "pi-495");
+		writeFiles(target, {
+			"package.json": JSON.stringify({ name: "pi-495", type: "module", scripts: { test: scripts.test } }),
+			"tsconfig.json": "{}\n",
+			"node_modules/@stryker-mutator/core/package.json": '{"name":"@stryker-mutator/core","version":"10.0.0"}',
+			"node_modules/typescript/package.json": '{"name":"typescript","version":"7.0.2"}',
+		});
+		const detection = STACKS_OF_495.recognise(target, [], process.execPath, [], undefined, suitePaths);
+		assert.ok(
+			detection.controls.some((c) => c.control_id === "mutation"),
+			`the target that installed Stryker gets the mutation control: ${detection.capability_missing.join("; ")}`,
+		);
+		const { isTestFile } = STACKS_OF_495.testLayoutOf(target);
+		const witnesses = [
+			detection.positive_witness,
+			detection.negative_witness,
+			...Object.values(detection.own_negative_witness),
+		].flatMap((files) => Object.keys(files).filter(isTestFile));
+		assert.ok(witnesses.length > 0, "the technology writes test files as witnesses");
+		assert.deepEqual(
+			witnesses.filter((path) => !suitePaths.some((pattern) => matchesGlob(path, pattern))),
+			[],
+			`every witness test runs under the bound ${JSON.stringify(suitePaths)}`,
 		);
 	});
 });

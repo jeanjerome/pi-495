@@ -1,0 +1,33 @@
+{
+  "controleur": {
+    "revision": "3465dc1e753344a6446cf0f295d90fc700870091",
+    "version": "0.4.1-dev",
+    "build": "sha256:e33d92085414ef9afa0c24773674c6740fa8ce9db79562d6b00b28588c1c854a",
+    "inchange": true
+  },
+  "candidat": {
+    "revision": "a3ffcb2f22602f7715d52f474291c7bdd7f9693e",
+    "depart": "ff8aa066e9f28eda3af7544e214856951ec285a4"
+  },
+  "arbre_integre": null,
+  "controles_declares": [
+    "build",
+    "lint-code",
+    "typecheck",
+    "lint-layers",
+    "lint-architecture",
+    "lint-exports",
+    "lint-distribution",
+    "lint-story-format",
+    "test"
+  ],
+  "promotion": "non promu : un candidat ne devient contrôleur qu'une fois qualifié — Preflight verte et les deux campagnes de référence à sa révision — et sur le mandat du propriétaire ; la campagne ne met jamais le contrôleur à jour",
+  "constats": [
+    "status decision_required (decision_pending)",
+    "G0 PASS",
+    "G1 PASS"
+  ],
+  "defauts": [
+    "G2 is not reached: the protocol was not frozen"
+  ]
+}

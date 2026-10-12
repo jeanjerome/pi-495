@@ -30,8 +30,9 @@ file past the read bound, throws, and the technology concludes nothing on what i
 
 Every capability but `workspace` and `install` is asked with the same `CapabilityQuestion`: the model the
 recognition returned, the view, the requirements its controls judge, the Node binary that runs a control
-spawning nothing of its own, the packages an adopted quality referential installed in the copy, and the
-architecture map the owner adopted, which is never read from the copy.
+spawning nothing of its own, the packages an adopted quality referential installed in the copy, the
+architecture map the owner adopted, and the test files the owner bounds the suite to, empty when they bound
+nothing; neither of the last two is ever read from the copy.
 
 ### Recognition
 

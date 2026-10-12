@@ -53,6 +53,10 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 			ctx.stacks.recognise(
 				handle.path,
 				mandate.requirement_ids.map((id) => ({ requirement_id: id, revision: 1 })),
+				process.execPath,
+				[],
+				undefined,
+				ctx.policy.suite_paths,
 			),
 			ctx.policy,
 		);

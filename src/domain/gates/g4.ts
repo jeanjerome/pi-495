@@ -28,7 +28,7 @@ export function evaluateG4(state: ChangeState, facts: CandidateFacts): G4Result 
 	if (state.protocol)
 		for (const p of facts.changed_paths)
 			if (
-				state.protocol.protected_paths.some((pp) => matchesScope(p, pp)) &&
+				state.protocol.protected_paths.some((pp) => matchesProtected(p, pp)) &&
 				!facts.altered_protected_paths.includes(p) &&
 				!allowedProtected.has(p)
 			)
@@ -51,6 +51,19 @@ export function matchesScope(path: string, pattern: string): boolean {
 		return re.test(path);
 	}
 	return path === pattern || path.startsWith(`${pattern}/`);
+}
+
+/**
+ * Whether `path` names what the protected `pattern` names on a volume that ignores case and Unicode form, as macOS
+ * does by default: a tool that opens `stryker.conf.json` there reads `Stryker.conf.json` or `ſtryker.conf.json`.
+ * Folding both sides refuses more on a volume that tells them apart, never less.
+ */
+function matchesProtected(path: string, pattern: string): boolean {
+	return matchesScope(foldName(path), foldName(pattern));
+}
+
+function foldName(s: string): string {
+	return s.normalize("NFKD").toUpperCase().toLowerCase();
 }
 
 function escapeRe(s: string): string {
@@ -127,7 +140,9 @@ export function protectedPathsChanged(
 			entry?.baseline_state === "added" &&
 			protectedPaths.some(
 				(pattern) =>
-					pattern.endsWith("/") && !inInstalledDependencies(pattern, installedDependencies) && matchesScope(p, pattern),
+					pattern.endsWith("/") &&
+					!inInstalledDependencies(pattern, installedDependencies) &&
+					matchesProtected(p, pattern),
 			)
 		)
 			return true;
@@ -140,7 +155,7 @@ export function protectedPathsChanged(
 			return entry === undefined || entry.baseline_state === "unchanged";
 		});
 	const altered = [
-		...changed.filter((p) => protectedPaths.some((pattern) => matchesScope(p, pattern)) && !allowed.includes(p)),
+		...changed.filter((p) => protectedPaths.some((pattern) => matchesProtected(p, pattern)) && !allowed.includes(p)),
 		...restored,
 	];
 	return { changed, produced: changed.filter((p) => !asWritten.includes(p)), allowed, altered };

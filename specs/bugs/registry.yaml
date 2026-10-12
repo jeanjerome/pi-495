@@ -3841,3 +3841,33 @@ bugs:
     follow_ups: >
       Decide what the stand-in owner answers to IH-04, and write it in the record of the campaign.
     status: open
+  - bug_id: BUG-2026-10-12T181801
+    date: "2026-10-12"
+    title: "The protected-path match folds ẞ (U+1E9E) to ß, where an APFS volume opens it as ss"
+    severity: low
+    priority: p3
+    scope: domain
+    what_happened: >
+      `foldName` in `src/domain/gates/g4.ts` folds a path by NFKD, then upper case, then lower case. `ẞ`, the capital
+      sharp s, stays `ẞ` in upper case and comes out as `ß`, while `ß` and `ss` both come out as `ss`. An APFS volume
+      opens a name written with `ẞ` as the same file as one written with `ss`, so a candidate that wrote such a name in
+      place of a protected path containing `ss` would not be refused as altering it. No protected path whose presence
+      a tool probes today (the Stryker, vitest, vite, mocha and jest configurations, `test/`, `package.json`) contains
+      `ss`, so the gap opens no bypass yet.
+    what_expected: >
+      The fold equates every name the volume opens as the same file, `ẞ` and `ss` included, for any protected path a
+      target's technology declares.
+    steps_to_reproduce:
+      - "Evaluate `s.normalize('NFKD').toUpperCase().toLowerCase()` on '\\u1E9E', '\\u00DF' and 'ss': it gives 'ß', 'ss', 'ss'."
+      - "On an APFS volume, create a file named 'ss' and test `existsSync('\\u1E9E')`: true."
+    root_cause: >
+      Lower-casing after upper-casing maps `ẞ` to `ß` and stops there; `ß` reaches `ss` only through upper case, a
+      step the fold has already taken.
+    evidence: >
+      Found in the review of e40s05, introduced by that branch: a probe of `existsSync` on the volume over every BMP
+      character and planes 1 and 1E9xx, against each ASCII letter, digit, `-`, `_` and `.` and the ligature pairs,
+      found this one equivalence `foldName` misses.
+    risk_level: low
+    follow_ups: >
+      Fold once more to upper then lower case, or fold `ẞ` explicitly, with a test on a protected path containing `ss`.
+    status: open

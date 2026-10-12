@@ -1222,9 +1222,9 @@ describe("the mutation control reading a Stryker report that cannot be trusted t
 });
 
 /**
- * Stands in for the Stryker the target installed, at the path the mutation control runs it from: it
- * listens on every interface as Stryker does to reach its test processes, then writes its report, or a
- * file outside the two paths the control may write.
+ * Stands in for the Stryker the target installed, as the package the mutation control imports it from: its run
+ * listens on every interface as Stryker does to reach its test processes, then writes its report, or a file
+ * outside the two paths the control may write.
  */
 class ListeningStryker {
 	readonly writes: "the report" | "a file outside the writable paths";
@@ -1232,23 +1232,33 @@ class ListeningStryker {
 		this.writes = writes;
 	}
 	install(workspace: string): void {
-		const file = join(workspace, "node_modules", "@stryker-mutator", "core", "bin", "stryker.js");
-		mkdirSync(dirname(file), { recursive: true });
+		const directory = join(workspace, "node_modules", "@stryker-mutator", "core");
+		mkdirSync(directory, { recursive: true });
 		writeFileSync(
-			file,
+			join(directory, "package.json"),
+			JSON.stringify({ name: "@stryker-mutator/core", type: "module", exports: "./index.js" }),
+		);
+		writeFileSync(
+			join(directory, "index.js"),
 			[
 				'import { createServer } from "node:net";',
 				'import { mkdirSync, writeFileSync } from "node:fs";',
-				"const server = createServer();",
-				'server.on("error", (error) => { console.error(`listen failed: ${error.code}`); process.exit(2); });',
-				'server.listen(0, "0.0.0.0", () => {',
-				"  try {",
+				"export class Stryker {",
+				"  runMutationTest() {",
+				"    return new Promise(() => {",
+				"      const server = createServer();",
+				'      server.on("error", (error) => { console.error(`listen failed: ${error.code}`); process.exit(2); });',
+				'      server.listen(0, "0.0.0.0", () => {',
+				"        try {",
 				this.writes === "the report"
-					? `    mkdirSync("reports/mutation", { recursive: true }); writeFileSync("reports/mutation/mutation.json", ${JSON.stringify(STRYKER_KILLED_REPORT)});`
-					: '    writeFileSync("elsewhere.txt", "outside");',
-				"  } catch (error) { console.error(`write failed: ${error.code}`); process.exit(3); }",
-				"  server.close(() => process.exit(0));",
-				"});",
+					? `          mkdirSync("reports/mutation", { recursive: true }); writeFileSync("reports/mutation/mutation.json", ${JSON.stringify(STRYKER_KILLED_REPORT)});`
+					: '          writeFileSync("elsewhere.txt", "outside");',
+				"        } catch (error) { console.error(`write failed: ${error.code}`); process.exit(3); }",
+				"        server.close(() => process.exit(0));",
+				"      });",
+				"    });",
+				"  }",
+				"}",
 			].join("\n"),
 		);
 	}

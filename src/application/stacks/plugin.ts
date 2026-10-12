@@ -24,8 +24,9 @@ export type WitnessFiles = Record<string, string>;
 /**
  * What a capability is asked with: the model of the project its technology recognised, the copy read
  * through its view, the requirements its controls judge, the Node binary that runs a control spawning
- * nothing of its own, the packages the adopted install of the quality referential put in the copy, and the
- * architecture map the owner adopted, never read from the copy.
+ * nothing of its own, the packages the adopted install of the quality referential put in the copy, the
+ * architecture map the owner adopted, and the test files the owner bounds the suite to, empty when they
+ * bound nothing; neither of the last two is ever read from the copy.
  */
 export interface CapabilityQuestion<Model> {
 	readonly model: Model;
@@ -34,6 +35,7 @@ export interface CapabilityQuestion<Model> {
 	readonly node_binary: string;
 	readonly referential_packages: readonly InstalledPackage[];
 	readonly architecture_map?: ArchitectureMap;
+	readonly suite_paths: readonly string[];
 }
 
 /**
