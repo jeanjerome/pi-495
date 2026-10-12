@@ -8,6 +8,8 @@ avant le code tâche par tâche, deux relecteurs indépendants, recette réelle,
 - L'adoption est le réglage `"unconfined": true` qu'il écrit dans `config.json` ; aucune question dans Pi.
 - Seul un contrôle qu'il déclare (`policy.project_controls`) peut le porter ; un contrôle détecté reste confiné.
 
+Versée sur `main` en `7681dbe2`, après l'accord du propriétaire le 12 octobre 2026 ; la branche `e40s06` est gardée.
+
 ## Rouge-vert
 
 | Tâche | Rouge (commit du test seul) | Vert |
