@@ -14,7 +14,8 @@ export interface SpawnPlan {
 
 /**
  * Spawns without a shell in its own process group, enforces the timeout with SIGTERM then SIGKILL
- * after a grace period, and bounds captured output (§12.2, §12.3). Always resolves.
+ * after a grace period, and bounds captured output (§12.2, §12.3). A watchdog ends the group if the
+ * caller dies before the command does. Always resolves.
  */
 export function runProcess(
 	plan: SpawnPlan,
@@ -46,6 +47,7 @@ export function runProcess(
 			resolve(finish(null, null, false, messageOf(error)));
 			return;
 		}
+		child.on("close", guardGroup(child));
 		const timer = setTimeout(() => {
 			timedOut = true;
 			terminateGroup(child, graceMs);
@@ -94,6 +96,34 @@ export function runProcess(
 			};
 		}
 	});
+}
+
+/**
+ * Watchdog script, run by `node -e` with the group leader's pid as its only argument. Its stdin is the pipe whose
+ * other end the caller holds: that pipe closes only when the caller dies, SIGKILL included, and the whole group is
+ * then killed at once. A run that ends has the watchdog terminated instead, so that it kills nothing. It ends at
+ * once, signalling nothing, on Windows, which has no process group to kill, and for a pid that cannot be a group
+ * leader's (not an integer above 1, as for a child that did not start): a negated 1 or 0 would signal every process
+ * of the user, or the watchdog's own group.
+ */
+export const WATCHDOG = `
+const pid = Number(process.argv[1]);
+if (process.platform === "win32" || !Number.isInteger(pid) || pid <= 1) process.exit(0);
+process.stdin.on("error", () => {});
+process.stdin.on("close", () => {
+	try { process.kill(-pid, "SIGKILL"); } catch {}
+});
+process.stdin.resume();
+`;
+
+/**
+ * Starts a watchdog, in a process group of its own so that a kill of the caller's group does not take it too, that
+ * kills the child's process group if this process dies before the run ends. Returns what ends the watchdog.
+ */
+function guardGroup(child: ChildProcess): () => void {
+	const watchdog = spawn(process.execPath, ["-e", WATCHDOG, String(child.pid)], { detached: true });
+	watchdog.on("error", () => {});
+	return () => watchdog.kill();
 }
 
 /** Signals the child's process group, or the child alone on Windows; a group already gone is ignored. */
