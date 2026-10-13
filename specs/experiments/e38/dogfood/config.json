@@ -152,7 +152,7 @@
         "command": [
           "node",
           "--test",
-          "test/**/!(control-runner|control-write-survey|lcov-control|sandbox|unconfined-control|writable-path-seatbelt|architecture-recommendation-remark-dialog|conduct-end-message|config-refused|phase-refusal|pi-entries|pi-rpc-sdk|refusal-next-actions|resume|state-acceptance|state-entry|dogfood-controls|dogfood-preparation|dogfood-process|example-conformance-script|formal-control-sandbox|lean-verdict-proof|maven-architecture-ignore-patterns|maven-architecture-offline|maven-architecture-properties|maven-architecture|maven-dependencies-configuration|maven-dependencies|maven-quality-offline|maven-quality-reactor|maven-quality|node-architecture|node-dependencies-configuration|node-dependencies|node-mutation|node-quality-install|node-quality|stack-conformance-of-495).test.ts"
+          "test/**/!(control-runner|control-write-survey|lcov-control|process-caller-death|sandbox|unconfined-control|writable-path-seatbelt|architecture-recommendation-remark-dialog|conduct-end-message|config-refused|phase-refusal|pi-entries|pi-rpc-sdk|refusal-next-actions|resume|state-acceptance|state-entry|dogfood-controls|dogfood-preparation|dogfood-process|example-conformance-script|formal-control-sandbox|lean-verdict-proof|maven-architecture-ignore-patterns|maven-architecture-offline|maven-architecture-properties|maven-architecture|maven-dependencies-configuration|maven-dependencies|maven-quality-offline|maven-quality-reactor|maven-quality|node-architecture|node-dependencies-configuration|node-dependencies|node-mutation|node-quality-install|node-quality|stack-conformance-of-495).test.ts"
         ],
         "timeout_ms": 1800000,
         "protected_paths": [
@@ -178,6 +178,7 @@
           "test/v1-adapters/control-runner.test.ts",
           "test/v1-adapters/control-write-survey.test.ts",
           "test/v1-adapters/lcov-control.test.ts",
+          "test/v1-adapters/process-caller-death.test.ts",
           "test/v1-adapters/sandbox.test.ts",
           "test/v1-adapters/unconfined-control.test.ts",
           "test/v1-adapters/writable-path-seatbelt.test.ts",
