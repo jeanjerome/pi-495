@@ -2503,3 +2503,32 @@ bugs:
       the preparer's mandate; until then, a prepared test outside them leaves the prepared suite undecided. Done at 44a29f74: under `node --test`, the preparation mandate names the bound's patterns, and a test file a preparation adds that none of them matches is not retained, with a note naming the bound.
     status: fixed
     fixed_in: 44a29f74
+  - bug_id: BUG-2026-10-13T012800
+    date: "2026-10-13"
+    title: "A campaign whose single /495 resume outlasts one hour dies on an uncaught timeout and writes no record"
+    severity: low
+    priority: p3
+    scope: cycle
+    what_happened: >
+      `conduire` (`cycle/src/pilote-pi.ts`) waits for the response to each command at most `DELAI_COMMANDE_MS`, one hour.
+      A change of pi-495 whose candidate fails G5 runs its three attempts inside one `/495 resume`; with the reference
+      passes, the mutation of each candidate and the suite run twice, that resume lasted more than an hour when two
+      dogfood campaigns ran side by side. `waitFor` then threw "no matching RPC event within 3600000 ms", the launcher
+      exited 1 with the stack trace, and no `releve.json` was written, although the dossier held the G5 verdict.
+    what_expected: >
+      A campaign that runs past its delay stops Pi, reads the dossier as it stands and writes the record, saying that
+      the campaign was cut by its delay.
+    steps_to_reproduce:
+      - "Run two dogfood campaigns at once whose candidate fails test-sandbox (scripted agent ~/.495-campagnes/scripts/e40s07-agent-casse.json), one with --controleur e229e5da, one with --controleur main."
+      - "Read the launchers' outputs: both end on 'no matching RPC event within 3600000 ms'; neither campaign directory holds releve.json."
+    root_cause: >
+      The delay of a command is an exception of the RPC client that nothing in the driver catches.
+    evidence: >
+      Campaigns ~/.495/campagnes/dogfood-20261012T222414 and dogfood-20261012T222419, on 2026-10-13, in the acceptance
+      run of e40s07; the driver predates it.
+    risk_level: low
+    follow_ups: >
+      Catch the delay in `conduire`, stop Pi, and write the record from the dossier with the cut named.
+      Done at 43a2bc6d: a command that outlasts its delay ends the campaign, Pi is stopped, the record is written from the dossier and names the delay; the dogfooding waits for a command as long as the change's time budget.
+    status: fixed
+    fixed_in: 43a2bc6d
