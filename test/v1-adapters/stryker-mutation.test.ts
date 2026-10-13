@@ -411,3 +411,42 @@ describe("the output Stryker leaves when its initial run fails (VER-04)", () => 
 		]);
 	});
 });
+
+describe("the cases a Stryker initial run fails on are named (VER-04)", () => {
+	it("given a failing initial run of the node test runner, then each failing case is named with its message and its file in the copy, the sandbox directory of the run left out and the suite that holds it not repeated", () => {
+		const output =
+			"\u001b[91m13:33:58 (86241) ERROR DryRunExecutor\u001b[39m One or more tests failed in the initial test run:\n" +
+			"    # Subtest: r-layering has harness.ts only call the shortener, once\n" +
+			"    not ok 2 - r-layering has harness.ts only call the shortener, once\n" +
+			"      ---\n" +
+			"      duration_ms: 2.88\n" +
+			"      type: 'test'\n" +
+			"      location: '/home/o/.495/dossier/workspaces/ws_1/.stryker-tmp/sandbox-0k1Ebs/test/title.test.ts:321:2'\n" +
+			"      failureType: 'testCodeFailure'\n" +
+			"      error: |-\n" +
+			"        the title is shortened by one call of shortenTitle\n" +
+			"        \n" +
+			"        2 !== 1\n" +
+			"        \n" +
+			"      code: 'ERR_ASSERTION'\n" +
+			"      ...\n" +
+			"    1..2\n" +
+			"not ok 62 - r-layering\n" +
+			"  ---\n" +
+			"  type: 'suite'\n" +
+			"  location: '/home/o/.495/dossier/workspaces/ws_1/.stryker-tmp/sandbox-0k1Ebs/test/title.test.ts:307:1'\n" +
+			"  failureType: 'subtestsFailed'\n" +
+			"  error: '1 subtest failed'\n" +
+			"  code: 'ERR_TEST_FAILURE'\n" +
+			"  ...\n" +
+			"\u001b[91m13:33:58 (86241) ERROR Stryker\u001b[39m There were failed tests in the initial test run.\n";
+		const parsed = analyzeMutation(obs({ exit_code: 1 }), null, { [CALC]: [5] }, scopeOf(CALC), output, STRYKER_ENGINE);
+
+		assert.equal(parsed.verdict, "FAIL");
+		assert.deepEqual(parsed.failures, [
+			"failing case of the initial run: r-layering has harness.ts only call the shortener, once (test/title.test.ts): the title is shortened by one call of shortenTitle 2 !== 1",
+			"ERROR DryRunExecutor One or more tests failed in the initial test run:",
+			"ERROR Stryker There were failed tests in the initial test run.",
+		]);
+	});
+});

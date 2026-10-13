@@ -425,6 +425,19 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		);
 		assert.doesNotMatch(objective, /only add tests/, "it no longer reads that only tests are to be added");
 	});
+	it("the preparation objective tells that the mutation control runs the suite on rewritten sources, so that a case asserts behaviour and never the text of a source", () => {
+		const objective = preparationObjective(preparationMandateObjective("node", ["test/"], ["R1"]), ["R1"]);
+		assert.match(
+			objective,
+			/mutation[^.]*rewritten sources/,
+			`the preparer reads that the suite also runs on sources a mutation tool rewrites: ${objective}`,
+		);
+		assert.match(
+			objective,
+			/never[^.]*text of a source file/,
+			`the preparer reads that a case never reads the text of a source file: ${objective}`,
+		);
+	});
 	it("on a Maven reactor with JaCoCo, the producer is asked to run mvn -B -q -o test and told coverage and structure are read, never to run node -e", () => {
 		const p = tempDir("495-maven-jacoco-", cleanups);
 		fixtureMavenHexagonal(p, true);

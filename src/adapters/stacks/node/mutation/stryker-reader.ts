@@ -5,6 +5,7 @@
  */
 import { stripVTControlCharacters } from "node:util";
 import { hasControlCharacter } from "../../../../application/coverage.ts";
+import type { ObservedCase } from "../../../../contracts/v1/protocol.ts";
 import type {
 	IntroducedLines,
 	ParsedReport,
@@ -21,6 +22,7 @@ import {
 	type MutationSummary,
 } from "../../../execution/mutation.ts";
 import { MAX_NAMED_PATHS, MAX_REPORT_BYTES } from "../../../execution/parsers.ts";
+import { parseNodeTestTap } from "../tests/node-test-reader.ts";
 import { isScriptUnderTest, STRYKER_REPORT_PATH } from "../shared.ts";
 
 /**
@@ -147,6 +149,23 @@ function unreadableStrykerReport(doc: ReportDocument): string | null {
 	return "unreadable" in read ? read.unreadable : null;
 }
 
+/** The sandbox directory Stryker copies the project to, whose name changes from one run to the next. */
+const STRYKER_SANDBOX = /[^\s(]*\.stryker-tmp\/sandbox-[^/\s)]+\//g;
+
+/**
+ * The cases the initial run failed on, as the node test runner printed them in the log: the producer cannot change a
+ * frozen case, and has to know which one the control fails to contest it. A suite that fails only because a case of
+ * its own failed is not a case, and is not named.
+ */
+function failingCases(obs: ProcessObservation, log: string): string[] {
+	const read = parseNodeTestTap(obs, log);
+	const cases = (read.facts.cases ?? []) as readonly ObservedCase[];
+	const failing = cases.filter((c) => c.outcome !== "passed").map((c) => c.name);
+	return read.failures
+		.filter((failure) => failing.some((name) => failure.startsWith(name)))
+		.map((failure) => `failing case of the initial run: ${failure.replace(STRYKER_SANDBOX, "")}`);
+}
+
 /**
  * What the control answers when Stryker left no report it could read. A report that is there and
  * cannot be checked complete is undecided whatever the exit code says. Without any, a non-zero exit is
@@ -172,17 +191,19 @@ function withoutStrykerReport(
 		};
 	// Stryker colors its log and stamps each line with the time and its process number: none of that
 	// belongs to a message that two runs of the same tree must word alike.
-	const errors = stripVTControlCharacters(output)
+	const log = stripVTControlCharacters(output);
+	const errors = log
 		.split(/\r?\n/)
 		.filter((line) => /\bERROR\b/.test(line))
 		.map((line) => line.replace(/^\s*\d{2}:\d{2}:\d{2} \(\d+\) /, "").trim());
+	const named = [...failingCases(obs, log), ...errors];
 	return {
 		verdict: "FAIL",
 		facts,
 		notes: [
 			`Stryker exited with ${obs.exit_code} before writing a report: the initial test run fails in the frozen copy`,
 		],
-		failures: errors.length > 0 ? errors.slice(0, MAX_NAMED_PATHS) : [`exit code ${obs.exit_code}`],
+		failures: named.length > 0 ? named.slice(0, MAX_NAMED_PATHS) : [`exit code ${obs.exit_code}`],
 	};
 }
 
