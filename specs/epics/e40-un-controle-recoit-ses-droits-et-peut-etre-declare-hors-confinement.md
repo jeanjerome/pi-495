@@ -1,6 +1,6 @@
 # e40 — Un contrôle reçoit les droits dont il a besoin, et le propriétaire peut en déclarer un hors confinement
 
-Statut : à faire
+Statut : versé
 Point de départ : `b3e88aa9`, branche main, le 11 octobre 2026.
 Décision : `specs/adr/D-90-un-controle-recoit-ses-droits-du-proprietaire-et-peut-etre-declare-hors-confinement.md`, dont la
 règle 3 est remplacée par `specs/adr/D-92-un-dossier-a-proposer-se-releve-dans-ce-qu-une-suite-ecrit-sur-un-double-de-la-copie.md`.

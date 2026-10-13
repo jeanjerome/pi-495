@@ -539,7 +539,7 @@ epics:
 
   - id: e40
     title: "Un contrôle reçoit les droits dont il a besoin, et le propriétaire peut en déclarer un hors confinement"
-    status: à faire
+    status: versé
     source: specs/epics/e40-un-controle-recoit-ses-droits-et-peut-etre-declare-hors-confinement.md
     objet: >
       Un contrôle écrit là où le propriétaire l'a permis dans la configuration du contrôleur ; un droit manquant
@@ -557,6 +557,9 @@ epics:
       bornée ; la partie 2 (s06, s07) rend toute la suite au jugement de 495. Chaque story touche les contrôles ou
       l'exécuteur, et sa recette joue donc les deux campagnes de référence (`D-89`). 495 ne lance ni VM ni
       conteneur ; Apple `container` sert à produire pi-495, pas aux projets cibles.
+      Versé le 2026-10-13 : le dogfooding de pi-495 intègre un changement réel avec toute sa suite jugée, les tests
+      qui démarrent un bac à sable dans un contrôle déclaré hors confinement. Restent au registre quatre défauts de
+      gravité moyenne, à corriger avant l'epic suivant (`D-73`).
     stories:
       - { id: e40s01, status: "versée", title: "git, dans un contrôle, ne lit ni la configuration globale ni la configuration système de l'hôte" }
       - { id: e40s02, status: "versée", title: "Le propriétaire donne à un contrôle un dossier inscriptible de la copie, créé par le contrôleur, et un lien ou un fichier du candidat fait refuser au lieu d'élargir" }
