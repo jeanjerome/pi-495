@@ -3917,3 +3917,35 @@ bugs:
     follow_ups: >
       Catch the delay in `conduire`, stop Pi, and write the record from the dossier with the cut named.
     status: open
+  - bug_id: BUG-2026-10-13T093000
+    date: "2026-10-13"
+    title: "The implement role runs under a sandbox with no loopback network, so it cannot run the mutation control the kernel will run on its candidate"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      In the npm reference campaign, the three implement interventions each noted that Stryker could not run in their
+      sandbox (`EPERM` on `listen`) and that the mutation of their candidate was unverified. The mutation control of the
+      stack runs under the `loopback` network profile, because Stryker forks workers and talks to them over a local
+      socket; the implement role runs under `denied` (`profileFor` in `src/application/intervention.ts`). Each candidate
+      then reached G5 with surviving mutants on the guard `minutes <= 0` of `lastFit` (the same check `slot()` already
+      makes), and the second attempt tried a `Stryker disable` comment, which the mutation control refused. The model
+      could neither see the survivors nor add a test (the test files are protected), so it corrected blind.
+    what_expected: >
+      What the implement role runs to check itself is what the kernel will run: the commands of the technology's
+      controls start in its sandbox as they start in the control runner, and the role sees the surviving mutants of its
+      own candidate before it is frozen.
+    steps_to_reproduce:
+      - "Run `npm run campagne -- npm`."
+      - "Read the `notes` of each implement output in the dossier: 'Stryker n'a pas pu s'exécuter dans le bac à sable (EPERM sur listen)'."
+    root_cause: >
+      `profileFor` sets `network: "denied"` for every role, while the mutation controls of the node and Maven stacks
+      declare `network: "loopback"`; the comment above `profileFor` claims the role runs what the kernel will run.
+    evidence: >
+      Campaign ~/.495/campagnes/npm-20261013T091923 at 4b98a9e2 on 2026-10-13: G5 FAIL after three attempts, mutation
+      FAIL on each candidate (4, 1 then 4 surviving mutants), unit and coverage PASS.
+    risk_level: medium
+    follow_ups: >
+      Decide whether the implement role is given the `loopback` profile the mutation control uses, or is shown the
+      surviving mutants of its candidate by another route; either keeps the other hosts unreachable.
+    status: open
