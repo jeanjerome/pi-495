@@ -2436,3 +2436,70 @@ bugs:
       and red under the mutation of the rule into `subpath`, with "a process of the run recreated where it was run".
     status: fixed
     fixed_in: a19079ef
+  - bug_id: BUG-2026-10-12T222000
+    date: "2026-10-12"
+    title: "A declared control that fails on the reference passes G5 on the candidate as a tolerated preexisting finding"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      A control the owner declares in `policy.project_controls` is judged on the candidate against its run on the
+      reference (VER-08, `no_aggravation`). When its command fails on both for the same reason, the candidate's evidence
+      is PASS with the note "this control fails on nothing the reference does not already carry: 1 preexisting
+      finding(s) tolerated, none aggravated", and G5 accepts. A declared control that tests starting a sandbox of their
+      own fail confined, because Seatbelt refuses a second profile, therefore passes G5 without having judged anything;
+      the confinement failure is hidden as a preexisting finding.
+    what_expected: >
+      A declared control is required to pass on the candidate (README, `policy.project_controls`): a failure its
+      command shares with the reference does not stand for a pass, or at least the verdict says that the control never
+      passed on either side.
+    steps_to_reproduce:
+      - "Declare in config.json a control whose command writes outside the copy (~/x/marques.log) under Seatbelt, without `unconfined`."
+      - "Drive a change to G5 with the scripted agent (bench ~/.495-campagnes/scripts/e40s06-run.sh confine1 … confine)."
+      - "Read the record: sandbox-tests FAIL exit_code=1 on the reference, PASS exit_code=1 on the candidate with the tolerance note; G5 PASS."
+    root_cause: >
+      Declared controls are read through their exit code and go through the same differential reading as the detected
+      ones, where a failure shared with the reference is a preexisting finding.
+    evidence: >
+      Campaign e40s06-confine1 on 2026-10-12 (build at 024054d5); the behaviour predates e40s06, which neither changes
+      nor reaches it.
+    risk_level: medium
+    follow_ups: >
+      Decide with the owner whether a declared control is exempt from the tolerance of preexisting findings. Done at 44a29f74: a control the frozen protocol names among the declared ones is compared to its reference pass under `block_any`, so a failure it shares with the reference is FAIL and G5 names it; the detected controls keep the protocol's tolerance.
+    status: fixed
+    fixed_in: 44a29f74
+  - bug_id: BUG-2026-10-11T105300
+    date: "2026-10-11"
+    title: "A prepared test written under test/ but outside the profile's suite_paths never runs, so the prepared suite is INDETERMINATE on the reference and the change stops before G2"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      `withSuitePaths` (`src/application/project-controls.ts`) appends the profile's `suite_paths` to the suite the
+      technology detects, but the paths the preparer may write stay those of the technology: the Node preparation
+      allows all of `test/` and `tests/` (`preparationPaths`, `src/adapters/stacks/node/tests/unit-controls.ts`), and
+      nothing tells the preparer which of them the suite runs. Under the stable controller of pi-495
+      (`specs/experiments/e38/dogfood/config.json`, `test/*.test.{js,ts}`, `test/v0-pure/**`, `test/cycle/**`), a
+      prepared test put at `test/v2-kernel/shout.test.js`, where pi-495's own convention puts a kernel test, is never
+      executed: the prepared suite is judged `on_reference: INDETERMINATE` with the note "prepared suite is not loadable
+      or produced no test: no test was executed", an incident requirement IH-04 follows, and the change does not reach G2.
+    what_expected: >
+      A test the preparer is allowed to write is run by the suite that judges it, or the preparer is told, or held to,
+      the paths that suite runs.
+    steps_to_reproduce:
+      - "On the pi-495-shaped bench of the dogfooding campaign, have the scripted preparer write its test under `test/v2-kernel/` instead of the root of `test/`."
+      - "Run the campaign to the judgement of the prepared suite: `on_reference` is INDETERMINATE with \"no test was executed\", not PASS or FAIL, and IH-04 is raised."
+    root_cause: >
+      The suite's scope is the profile's and the preparation's writable paths are the technology's, and nothing
+      reconciles them: the preparation accepts a path the narrowed suite command does not match.
+    evidence: >
+      Introduced by the branch e38s13, which adds `suite_paths`. Found in the round-1 review by a throwaway probe on the
+      pi-495-shaped bench (not committed). The real campaign at the controller with the branch's code
+      (dogfood-20261011T022605) wrote its prepared test at the root of `test/` and was judged FAIL with no timeout note,
+      so the observed run did not reach this path.
+    risk_level: medium
+    follow_ups: >
+      Narrow the preparation's writable paths to the profile's `suite_paths` when it names some, or name those paths in
+      the preparer's mandate; until then, a prepared test outside them leaves the prepared suite undecided. Done at 44a29f74: under `node --test`, the preparation mandate names the bound's patterns, and a test file a preparation adds that none of them matches is not retained, with a note naming the bound.
+    status: fixed
+    fixed_in: 44a29f74

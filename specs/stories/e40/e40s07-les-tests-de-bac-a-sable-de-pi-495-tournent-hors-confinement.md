@@ -2,7 +2,7 @@
 
 Story : e40s07
 Epic : e40
-Statut : à faire
+Statut : versée
 
 ## 1. Ce que le lecteur gagne
 

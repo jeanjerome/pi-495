@@ -3,6 +3,8 @@
 Story `e40s07`, branche `e40s07`, menée du 12 au 13 octobre 2026 sans l'outil du cycle, sur décision du propriétaire :
 rouge avant le code tâche par tâche, deux relecteurs indépendants, recette réelle, versement à la main après son accord.
 
+Versée sur `main` en `44a29f74`, après l'accord du propriétaire le 13 octobre 2026 ; la branche `e40s07` est gardée.
+
 ## Arbitrages du propriétaire, avant le code
 
 Après une mesure de chaque génération sous Seatbelt, lancée comme le noyau lance un contrôle, sur une copie jetable de
