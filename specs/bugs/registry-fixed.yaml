@@ -2630,3 +2630,38 @@ bugs:
       Done at 0e45f247: the sandbox of the implement role grants the loopback interface and no other host, as the mutation control it is judged by does (D-93); every other role keeps the network closed.
     status: fixed
     fixed_in: 0e45f247
+  - bug_id: BUG-2026-10-12T130349
+    date: "2026-10-12"
+    title: "A command the process runner starts outlives the process that started it when that process is killed"
+    severity: medium
+    priority: p2
+    scope: adapters
+    what_happened: >
+      `runProcess` (`src/adapters/sandbox/process.ts`) spawns every command in a process group of its own and ends
+      that group only on its timeout or on an abort. When the process that called it is killed, by `SIGKILL` or by a
+      runner that stops a test file, neither happens: the command goes on running, adopted by `launchd`, under
+      Seatbelt or unconfined. Under bubblewrap, `--die-with-parent` ends it. On 2026-10-12, six processes of the test
+      "the process runner enforces timeout, kills the process group and bounds output" of
+      test/v1-adapters/sandbox.test.ts, three outer `node -e` and their children, were found still running an hour
+      after three test runs that started them at 12:03:34-35 had ended, and were stopped by their pid.
+    what_expected: >
+      A command the process runner starts ends with the process that started it, even when that process is killed,
+      on every backend, as bubblewrap's `--die-with-parent` already gives.
+    steps_to_reproduce:
+      - "Write a script that calls `runProcess` with `node -e \"setInterval(()=>{},1000)\"` and a 60 s timeout, then kills itself with SIGKILL after 300 ms."
+      - "Run it with `node`: once it is killed, `ps -Ao pid,ppid,command` shows the `node -e setInterval` process with parent 1, running until it is stopped by its pid."
+    root_cause: >
+      The group is detached so that a timeout can end it as a whole, and only the runner's own timer or abort signal
+      ends it; nothing ties the group's life to the runner's, outside bubblewrap.
+    evidence: >
+      Reproduced on 2026-10-12 on macOS with the script above (not committed): the command, pid 85454, ran with parent 1
+      after its caller was killed, and was stopped by its pid. Run alone to its end, test/v1-adapters/sandbox.test.ts
+      leaves no process behind. The defect predates the branch e40s03, which neither introduces nor changes
+      `runProcess`.
+    risk_level: medium
+    follow_ups: >
+      Tie the process group to the runner on every backend, for instance behind a parent that ends the group once its
+      input from the runner closes, and hold it with a test that kills the runner and finds the command gone.
+      Done at 800f449d: a watchdog process started with each command kills the command's process group when the process that ran it dies, SIGKILL included, and is ended with the command; it signals nothing on Windows or for a pid that cannot be a group leader's.
+    status: fixed
+    fixed_in: 800f449d
