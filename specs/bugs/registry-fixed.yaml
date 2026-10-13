@@ -2665,3 +2665,40 @@ bugs:
       Done at 800f449d: a watchdog process started with each command kills the command's process group when the process that ran it dies, SIGKILL included, and is ended with the command; it signals nothing on Windows or for a pid that cannot be a group leader's.
     status: fixed
     fixed_in: 800f449d
+  - bug_id: BUG-2026-10-11T040100
+    date: "2026-10-11"
+    title: "A profile whose suite_paths match no .mjs file leaves the coverage witness unrun, so a Node target that adopts the coverage complement cannot freeze its protocol"
+    severity: medium
+    priority: p2
+    scope: application
+    what_happened: >
+      `withSuitePaths` (`src/application/project-controls.ts`) appends the profile's `suite_paths` to the suite the
+      technology detects. The Node coverage control reads the LCOV report that suite writes, and qualifies on witness
+      tests written as `test/495-covered-witness.test.mjs` and `test/495-uncovered-witness.test.mjs`
+      (`witnessTestLayout`, `src/adapters/stacks/node/project/witness-layout.ts`). Under a profile naming
+      `test/*.test.js` alone, those witnesses are never run: both witnesses give INDETERMINATE ("no coverage report
+      measures ... src/witness495/covered.mjs") and the change stops at qualification with CAPABILITY_MISSING
+      "protocol not frozen". The stable controller of pi-495 (`specs/experiments/e38/dogfood/config.json`) names
+      `test/*.test.js`, `test/*.test.ts`, `test/v0-pure/**/*.test.ts` and `test/cycle/**/*.test.ts`, none of which
+      matches a `.mjs` witness, so a dogfooding change whose owner adopts the coverage complement would block there.
+    what_expected: >
+      The test files a profile names narrow what the suite runs of the target's tests, never the witnesses 495
+      writes to qualify a control on that suite.
+    steps_to_reproduce:
+      - "In `test/v2-kernel/preparation.test.ts`, the test of the frozen unit control under an adopted complement, set `policy: { suite_paths: [\"test/*.test.js\"] }`: the change ends in qualification, blocked, with the coverage witnesses INDETERMINATE."
+    root_cause: >
+      The witnesses' paths are chosen by the technology and the suite's scope by the profile, and nothing reconciles
+      them: qualification runs the frozen command, scope included, on a tree whose witnesses lie outside it.
+    evidence: >
+      Introduced by the branch e38s13, which adds `suite_paths`. Observed while writing the test of the second
+      detection during the round-1 review: with `test/*.test.js` alone the protocol is not frozen, with
+      `test/*.test.mjs` added it is. The dogfooding campaign's answerer does not adopt a complement, so the real
+      campaign does not reach this path.
+    risk_level: medium
+    follow_ups: >
+      Run a control's qualification with the witness files it writes added to the suite's scope, or have the profile's
+      scope apply to the target's tests alone; until then, a profile naming `suite_paths` has to match the witnesses'
+      `.mjs` files.
+      Done at 4381b867: the qualification of the suite an owner's bound narrows gives the suite's command the witness test files of the workspace it runs on, so that the frozen command still runs the files the profile names alone and the witnesses a technology writes are run whatever the profile names.
+    status: fixed
+    fixed_in: 4381b867
