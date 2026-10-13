@@ -49,11 +49,14 @@ function dernieresPreuvesDuCandidat(preuves: PreuveLue[]): PreuveLue[] {
 	return [...parControle.values()];
 }
 
-export function jugerCampagne(etat: EtatLu, preuves: PreuveLue[]): VerdictCampagne {
+/** `coupeeApresMs`: the delay a command of the campaign outlasted, when it did. */
+export function jugerCampagne(etat: EtatLu, preuves: PreuveLue[], coupeeApresMs?: number): VerdictCampagne {
 	const defauts: string[] = [];
 	const constats = [`status ${etat.statut}${etat.arret ? ` (${etat.arret})` : ""}`];
 	for (const [porte, verdict] of Object.entries(etat.portes)) constats.push(`${porte} ${verdict}`);
 
+	if (coupeeApresMs !== undefined)
+		defauts.push(`the campaign was cut by its delay of ${coupeeApresMs} ms while the change was ${etat.statut}`);
 	if (etat.arret === "capability_missing") defauts.push("the change is blocked on capability_missing");
 	if (etat.portes.G2 !== "PASS") defauts.push(`G2 is ${etat.portes.G2 ?? "not reached"}: the protocol was not frozen`);
 	else if (etat.portes.G5 === undefined) defauts.push("the campaign did not reach the verification of the candidate");

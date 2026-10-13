@@ -17,6 +17,9 @@ export interface RpcEvent {
 	[key: string]: unknown;
 }
 
+/** A wait that ran out of time, as opposed to a Pi that exited before the event. */
+export class RpcTimeoutError extends Error {}
+
 /** Answers an `extension_ui_request`; `null` leaves the dialog unanswered. */
 export type UiResponder = (request: RpcEvent) => Record<string, unknown> | null;
 
@@ -111,7 +114,9 @@ export class PiRpcClient {
 			const timer = setTimeout(
 				() =>
 					reject(
-						new Error(`no matching RPC event within ${timeoutMs} ms; stderr: ${this.stderr.join("").slice(0, 500)}`),
+						new RpcTimeoutError(
+							`no matching RPC event within ${timeoutMs} ms; stderr: ${this.stderr.join("").slice(0, 500)}`,
+						),
 					),
 				timeoutMs,
 			);

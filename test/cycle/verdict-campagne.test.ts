@@ -21,6 +21,19 @@ const preuve = (
 });
 
 describe("Campaign verdict: what only the harness can have caused", () => {
+	it("given a campaign cut by its delay, then the verdict names the delay and where the change stood, and a campaign that ended on its own does not", () => {
+		const enCours: EtatLu = { statut: "running", arret: null, portes: { G2: "PASS", G4: "PASS" } };
+
+		const coupee = jugerCampagne(enCours, [], 3_600_000);
+		assert.ok(
+			coupee.defauts.includes("the campaign was cut by its delay of 3600000 ms while the change was running"),
+			coupee.defauts.join(" | "),
+		);
+
+		const terminee = jugerCampagne(enCours, []);
+		assert.equal(terminee.defauts.filter((d) => d.includes("cut by its delay")).length, 0);
+	});
+
 	it("given a campaign accepted with every control read, then it has no defect and reports each gate and control", () => {
 		const verdict = jugerCampagne(ACCEPTE, [
 			preuve("unit", "PASS"),

@@ -16,8 +16,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PiRpcClient } from "../../test/helpers/rpc-client.ts";
 import { empreinte } from "./empreinte.ts";
-import { conduire, repondeur } from "./pilote-pi.ts";
-import { jugerCampagne, lireEtat, lirePreuves } from "./verdict-campagne.ts";
+import { mener, repondeur } from "./pilote-pi.ts";
 
 /** The controller's tree: this script runs from the extraction of the controller's revision. */
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -36,6 +35,13 @@ export interface Lancement {
 	modele: string;
 	reflexion: string;
 }
+
+/**
+ * The time the change may take in all. One `/495 resume` runs the attempts of a candidate one after the other, each
+ * with the whole suite and the mutation of pi-495, so the driver waits for it as long as this budget lets the change
+ * run.
+ */
+const BUDGET_INCREMENT_MS = 21_600_000;
 
 /** What the campaign states of the candidate: it is integrated in the copy, never put in the controller's place. */
 const PROMOTION =
@@ -58,7 +64,7 @@ async function main(): Promise<number> {
 			policy: {
 				...declaration.policy,
 				revision: 1,
-				budgets: { intervention_ms: 3_600_000, increment_ms: 21_600_000 },
+				budgets: { intervention_ms: 3_600_000, increment_ms: BUDGET_INCREMENT_MS },
 				adoption: { mandate: "human" },
 				integration_enabled: true,
 			},
@@ -89,14 +95,9 @@ async function main(): Promise<number> {
 		// An owner who adopts the mandate, accepts the candidate and lets it be integrated in the copy.
 		respond: repondeur(["adopt", "accept", "integrate"]),
 	});
-	try {
-		await conduire(client, dossier, lancement.objectif);
-	} finally {
-		await client.close();
-	}
+	const verdict = await mener(client, dossier, lancement.objectif, BUDGET_INCREMENT_MS);
 
 	const apres = empreinte(join(RACINE, "dist"));
-	const verdict = jugerCampagne(lireEtat(dossier), lirePreuves(dossier));
 	const git = (...a: string[]) => execFileSync("git", a, { cwd: cible, encoding: "utf8" }).trim();
 	const integre = git("rev-parse", "HEAD");
 	if (avant !== apres) verdict.defauts.push(`the controller's build changed during the campaign: ${avant} -> ${apres}`);

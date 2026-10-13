@@ -16,8 +16,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PiRpcClient } from "../../test/helpers/rpc-client.ts";
-import { conduire, repondeur } from "./pilote-pi.ts";
-import { jugerCampagne, lireEtat, lirePreuves } from "./verdict-campagne.ts";
+import { mener, repondeur } from "./pilote-pi.ts";
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const MODELE_PAR_DEFAUT = "anthropic/claude-sonnet-5-5";
@@ -140,13 +139,7 @@ async function main(): Promise<number> {
 		// An owner who adopts the mandate and accepts the candidate, and refuses to guess anything else.
 		respond: repondeur(["adopt", "accept"]),
 	});
-	try {
-		await conduire(client, dossier, cible.objectif);
-	} finally {
-		await client.close();
-	}
-
-	const verdict = jugerCampagne(lireEtat(dossier), lirePreuves(dossier));
+	const verdict = await mener(client, dossier, cible.objectif);
 	for (const constat of verdict.constats) console.log(`  ${constat}`);
 	for (const defaut of verdict.defauts) console.log(`DEFECT ${defaut}`);
 	console.log(verdict.defauts.length === 0 ? "reference campaign: no defect of the harness" : `dossier: ${dossier}`);
