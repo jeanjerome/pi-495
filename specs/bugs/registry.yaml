@@ -3748,38 +3748,6 @@ bugs:
       Have the failure of `closeWorkspace` name the directory left, as an `Error` whose message carries it, and say that
       path in the progress message.
     status: open
-  - bug_id: BUG-2026-10-12T171000
-    date: "2026-10-12"
-    title: "A frozen prepared test that reads the text of its module fails under Stryker's instrumentation, and the mutation finding does not name it"
-    severity: medium
-    priority: p2
-    scope: adapters
-    what_happened: >
-      In the dogfooding campaign `dogfood-20261012T140626`, the preparation froze
-      `test/v0-pure/request-title.test.ts`, whose case "r-pure-helper-architecture" reads the text of
-      `src/domain/request-title.ts` and refuses any global access in it. The case passes under `unit` on every
-      candidate. The mutation control runs it on the module Stryker instrumented, whose text carries Stryker's own
-      globals: the initial test run fails on the three candidates, and G5 fails until the three attempts are spent.
-      The finding the producer receives says only "One or more tests failed in the initial test run"; the name of the
-      case is in the raw output alone. The test is frozen since G2, so the producer can neither see nor change it.
-    what_expected: >
-      A frozen test that the mutation control alone makes fail is named to the producer and to the owner, and does not
-      leave the change without any way forward.
-    steps_to_reproduce:
-      - "Run the dogfooding campaign of pi-495 with the request of 2026-10-11 until a preparation writes an architecture case that reads the source text of the helper."
-      - "Read the mutation evidence of the candidate: FAIL, finding 'One or more tests failed in the initial test run', no test named; read its raw output: the case fails on 'no side-effecting access in the helper'."
-    root_cause: >
-      Stryker runs the suite on instrumented sources, which a test that reads source text sees; the Stryker reader
-      keeps the error lines of the log and not the failing cases the runner printed before them.
-    evidence: >
-      Observed on 2026-10-12 in `~/.495/campagnes/dogfood-20261012T140626` (evidence `evc_mv5c8l9p81ca2ccfb5`, raw
-      output `sha256:1e8b1f62…`), at main `cf8f1a7c` with a Stryker setting of the target. Set outside e40s05 by the
-      owner.
-    risk_level: medium
-    follow_ups: >
-      Name the failing cases of the initial run in the mutation finding, and let a producer contest a frozen case that
-      only the mutation control fails, or tell a preparation that its cases run on instrumented sources.
-    status: open
   - bug_id: BUG-2026-10-12T171500
     date: "2026-10-12"
     title: "The owner the dogfooding campaign stands in for answers no question but adoption, acceptance and integration"
@@ -3861,64 +3829,4 @@ bugs:
     risk_level: low
     follow_ups: >
       Descend into list items in `unknownKeys`, naming `policy.project_controls.0.unconfinedd`.
-    status: open
-  - bug_id: BUG-2026-10-12T224500
-    date: "2026-10-12"
-    title: "A design G3 refuses stops the change on execution_error instead of going back to the model"
-    severity: medium
-    priority: p2
-    scope: application
-    what_happened: >
-      In the Maven reference campaign, the model's plan had task t-1 write `src/test/java/registry/UserRegistryTest.java`,
-      which the frozen protocol protects. G3 refused it, as it should, and `design` (`src/application/phases/design.ts`)
-      threw `PRECONDITION_FAILED: design rejected at G3`: the change stopped `blocked` (`execution_error`) at the design
-      phase, with no correction asked of the model. The campaign reported "DEFECT the campaign did not reach the
-      verification of the candidate"; a second run of the same campaign, whose plan touched no protected file, went to
-      G5 PASS.
-    what_expected: >
-      A design G3 refuses is sent back to the model with the reasons, within the attempt budget, as a candidate G5
-      refuses is; the change stops only when that budget is spent.
-    steps_to_reproduce:
-      - "Run `npm run campagne -- maven` until the model's plan names a task that writes a test file under src/test/."
-      - "Read the record: G3 FAIL 'task t-1 writes … which the frozen protocol protects', status blocked, stop execution_error."
-    root_cause: >
-      `design` turns a G3 FAIL into an exception; no phase rewrites the design.
-    evidence: >
-      Campaign ~/.495/campagnes/maven-20261012T202609 at b18c523f on 2026-10-12; the code path dates from 8b375221 and
-      e40s06 neither changes nor reaches it.
-    risk_level: medium
-    follow_ups: >
-      Return a refused design to the specify role with G3's reasons, counted against the attempt budget.
-    status: open
-  - bug_id: BUG-2026-10-13T093000
-    date: "2026-10-13"
-    title: "The implement role runs under a sandbox with no loopback network, so it cannot run the mutation control the kernel will run on its candidate"
-    severity: medium
-    priority: p2
-    scope: application
-    what_happened: >
-      In the npm reference campaign, the three implement interventions each noted that Stryker could not run in their
-      sandbox (`EPERM` on `listen`) and that the mutation of their candidate was unverified. The mutation control of the
-      stack runs under the `loopback` network profile, because Stryker forks workers and talks to them over a local
-      socket; the implement role runs under `denied` (`profileFor` in `src/application/intervention.ts`). Each candidate
-      then reached G5 with surviving mutants on the guard `minutes <= 0` of `lastFit` (the same check `slot()` already
-      makes), and the second attempt tried a `Stryker disable` comment, which the mutation control refused. The model
-      could neither see the survivors nor add a test (the test files are protected), so it corrected blind.
-    what_expected: >
-      What the implement role runs to check itself is what the kernel will run: the commands of the technology's
-      controls start in its sandbox as they start in the control runner, and the role sees the surviving mutants of its
-      own candidate before it is frozen.
-    steps_to_reproduce:
-      - "Run `npm run campagne -- npm`."
-      - "Read the `notes` of each implement output in the dossier: 'Stryker n'a pas pu s'exécuter dans le bac à sable (EPERM sur listen)'."
-    root_cause: >
-      `profileFor` sets `network: "denied"` for every role, while the mutation controls of the node and Maven stacks
-      declare `network: "loopback"`; the comment above `profileFor` claims the role runs what the kernel will run.
-    evidence: >
-      Campaign ~/.495/campagnes/npm-20261013T091923 at 4b98a9e2 on 2026-10-13: G5 FAIL after three attempts, mutation
-      FAIL on each candidate (4, 1 then 4 surviving mutants), unit and coverage PASS.
-    risk_level: medium
-    follow_ups: >
-      Decide whether the implement role is given the `loopback` profile the mutation control uses, or is shown the
-      surviving mutants of its candidate by another route; either keeps the other hosts unreachable.
     status: open
