@@ -27,6 +27,7 @@ import { diagnoseControlCapability, referenceTestFiles } from "../preparation.ts
 import type { PreparationRecord, ReferenceSuiteObservation } from "../preparation.ts";
 import { ownerWritableOf, withOwnerPaths } from "../project-controls.ts";
 import type { DetectedTechnology } from "../stacks/stack.ts";
+import type { BoundedSuite } from "../qualification.ts";
 import { failedInstalls, recordFailedInstall, recordResolution } from "./install-records.ts";
 import { settleArchitectureMap } from "./architecture-map.ts";
 import { foundWrongNotes } from "./contestation.ts";
@@ -505,6 +506,7 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 				positive: detection.positive_witness,
 				negative: detection.negative_witness,
 				own_negative: detection.own_negative_witness,
+				...boundedSuiteOf(detection, isTestFile),
 				reference_positive: detection.reference_positive ?? [],
 				tests: detection.witness_tests,
 			},
@@ -590,4 +592,23 @@ export async function designVerification(ctx: PhaseContext, unit: Unit, cor: str
 	} finally {
 		await ctx.workspace.closeWorkspace(handle.workspace_id, "delete");
 	}
+}
+
+/**
+ * The witness test files the suite is given when the owner's bound narrows it to the files it names: the suite is the
+ * first control, which the common layer puts before the others, and the bound reaches it only where the technology
+ * reads it as files.
+ */
+function boundedSuiteOf(
+	detection: DetectedTechnology,
+	isTestFile: (path: string) => boolean,
+): { bounded_suite?: BoundedSuite } {
+	const suite = detection.controls[0];
+	if (!suite || detection.suite_file_patterns.length === 0) return {};
+	const witnessFiles = [
+		detection.positive_witness,
+		detection.negative_witness,
+		...Object.values(detection.own_negative_witness),
+	].flatMap((files) => Object.keys(files));
+	return { bounded_suite: { control_id: suite.control_id, tests: [...new Set(witnessFiles.filter(isTestFile))] } };
 }

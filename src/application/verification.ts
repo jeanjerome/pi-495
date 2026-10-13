@@ -373,6 +373,7 @@ export class VerificationCoordinator {
 							negative_path: ownHandle?.path ?? negative.path,
 							positive_files: files.positive,
 							negative_files: files.negative,
+							...(input.witnesses.bounded_suite ? { bounded_suite: input.witnesses.bounded_suite } : {}),
 						},
 						base,
 						producers,

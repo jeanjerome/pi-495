@@ -23,6 +23,18 @@ export interface QualificationFixtures {
 	 */
 	positive_files?: Record<string, string>;
 	negative_files?: Record<string, string>;
+	/** The suite the owner's bound narrows, when it does, as `ControlWitnesses.bounded_suite` says. */
+	bounded_suite?: BoundedSuite;
+}
+
+/**
+ * The control that runs the suite under the owner's bound on the files it runs, and the test files among the
+ * witnesses. The bound narrows what that suite runs of the target's own tests, never the witnesses that qualify the
+ * controls: a run on a witness workspace gives the suite's command the witness test files that workspace holds.
+ */
+export interface BoundedSuite {
+	control_id: string;
+	tests: readonly string[];
 }
 
 /** The witnesses a detection offers its controls, as the qualification writes them on the reference. */
@@ -33,6 +45,8 @@ export interface ControlWitnesses {
 	negative: Record<string, string>;
 	/** Per control, the defect only that one detects, when the shared one proves nothing for it. */
 	own_negative: Record<string, Record<string, string>>;
+	/** The suite the owner's bound narrows to the files it names, when the suite reads that bound as files. */
+	bounded_suite?: BoundedSuite;
 	/** The controls whose positive witness is the reference alone, the shared one carrying what they detect. */
 	reference_positive?: readonly string[];
 }
@@ -128,6 +142,17 @@ function witnessFindings(
 	};
 }
 
+/** The control, given the witness test files of the workspace it runs on when it is the suite the owner's bound narrows. */
+function withWitnessTests(
+	control: ControlDefinition,
+	files: Record<string, string>,
+	bounded: BoundedSuite | undefined,
+): ControlDefinition {
+	if (bounded?.control_id !== control.control_id) return control;
+	const tests = bounded.tests.filter((path) => Object.hasOwn(files, path));
+	return tests.length === 0 ? control : { ...control, command: [...control.command, ...tests] };
+}
+
 /**
  * Qualifies one control. `prerequisites` are the controls that write the reports it reads, in the
  * order they run in: a sensor that measures nothing of its own is asked nothing meaningful in a
@@ -145,7 +170,7 @@ export async function qualifyControlDetailed(
 		(
 			await runner.runControl({
 				...base,
-				control: c,
+				control: withWitnessTests(c, files, fixtures.bounded_suite),
 				workspace_path: path,
 				introduced_lines: introducedByAddedFiles(files),
 			})
