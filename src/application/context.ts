@@ -466,6 +466,11 @@ export function requirementsRevisionInstruction(requirementIds: readonly string[
 	return `The owner asks to revise ${named}, which no test can judge. Rewrite ${named} as the owner asks and keep the other requirements as they stand. The owner's instruction: ${ownerText?.trim() || "(none given)"}`;
 }
 
+/** What the model is asked when G3 refused the plan of its specification: the same requirements, a plan the gate accepts. */
+export function designRefusalInstruction(reasons: readonly string[]): string {
+	return `The plan of your specification was refused at G3: ${reasons.join("; ")}. Write the specification again with the same requirements and a plan that G3 accepts: a task writes only what the frozen tests leave to the code, never a path the protocol protects.`;
+}
+
 /** The mandate a bounded preparation is opened on: what is missing, and what of its work is retained. */
 export function preparationMandateObjective(
 	stack: string,

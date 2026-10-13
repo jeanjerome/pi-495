@@ -3,11 +3,44 @@
  */
 import type { Design } from "../../contracts/v1/protocol.ts";
 import type { SpecificationReport } from "../../contracts/v1/reports.ts";
+import { specificationStanding } from "../../domain/change/state.ts";
 import { DomainError } from "../../domain/errors.ts";
 import { KERNEL_ACTOR } from "../actors.ts";
+import { designRefusalInstruction } from "../context.ts";
+import { writeSpecification } from "./clarify.ts";
 import type { PhaseContext, Unit } from "./phase.ts";
 
 export async function design(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
+	// The plan is written before the protocol is frozen, so a plan G3 refuses for a path the protocol protects goes back
+	// to the model with the reasons, as many times as the change has attempts.
+	for (let rewrites = 0; ; rewrites++) {
+		unit = await proposeDesign(ctx, unit, cor);
+		const g3 = unit.state.gates.G3;
+		if (g3?.verdict !== "FAIL") return unit;
+		if (rewrites >= unit.state.budgets.max_attempts)
+			throw new DomainError("PRECONDITION_FAILED", `design rejected at G3: ${g3.reasons.join("; ")}`);
+		const request = await ctx.artifacts.read<string>(unit.state.request);
+		const { declared } = specificationStanding(
+			unit.state,
+			(await ctx.artifacts.latest<SpecificationReport>(unit.state, "diagnostic"))!.content,
+			await ctx.artifacts.specificationHistory(unit.state),
+		);
+		const written = await writeSpecification(
+			ctx,
+			unit,
+			cor,
+			await ctx.artifacts.reference(unit.state),
+			request,
+			declared,
+			designRefusalInstruction(g3.reasons),
+		);
+		unit = written.unit;
+		if (!written.report) return unit;
+	}
+}
+
+/** The design the latest specification report carries, proposed to G3. */
+async function proposeDesign(ctx: PhaseContext, unit: Unit, cor: string): Promise<Unit> {
 	const spec = await ctx.artifacts.latest<SpecificationReport>(unit.state, "diagnostic");
 	if (!spec) throw new DomainError("EVIDENCE_MISSING", "no specification report");
 	const design: Design = {
@@ -28,7 +61,5 @@ export async function design(ctx: PhaseContext, unit: Unit, cor: string): Promis
 		{ type: "gate.evaluate", gate: "G3", at: ctx.now(), actor: KERNEL_ACTOR, design_ref: ref, design },
 		cor,
 	);
-	if (unit.state.gates.G3?.verdict === "FAIL")
-		throw new DomainError("PRECONDITION_FAILED", `design rejected at G3: ${unit.state.gates.G3.reasons.join("; ")}`);
 	return unit;
 }

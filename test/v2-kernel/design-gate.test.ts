@@ -81,3 +81,73 @@ describe("G3 verifies the plan instead of trusting indicators", () => {
 		assert.equal(compatible.state.outcome, "accepted", compatible.result.steps.join(" | "));
 	});
 });
+
+/**
+ * A change whose specification first carries `bad` as its plan and, once the plan is sent back with G3's reasons,
+ * carries `good`. The objective of an intervention that rewrites the plan is the one that says G3 refused it.
+ */
+async function sentBack(bad: SpecificationReport["design"], good: SpecificationReport["design"]) {
+	const script = (design: SpecificationReport["design"]) => ({
+		steps: [{ kind: "complete" as const, output: { ...specReport(), design } }],
+	});
+	const t = makeHarness({
+		defaultScript: script(bad),
+		scripts: {
+			implement: {
+				steps: [
+					{ kind: "write", path: "src/greet.js", content: GOOD_GREET },
+					{
+						kind: "complete",
+						output: { summary: "done", changed_paths: ["src/greet.js"], tests_claimed: true, notes: [] },
+					},
+				],
+			},
+		},
+	});
+	const start = t.agent.startIntervention.bind(t.agent);
+	t.agent.startIntervention = (mandate) => {
+		if (mandate.role === "specify" && mandate.objective.includes("refused at G3"))
+			t.agent.scripts.set("specify", script(good));
+		return start(mandate);
+	};
+	const { change } = await t.harness.start({
+		project_path: trackedProject(),
+		request_text: "Keep greet behaviour, tidy the implementation",
+		actor: HUMAN,
+	});
+	const result = await t.harness.advance(change.change_id);
+	const state = t.ledger.loadChange(change.change_id)!.state;
+	const rewrites = t.agent.started.filter((m) => m.role === "specify" && m.objective.includes("refused at G3"));
+	return { result, state, rewrites };
+}
+
+describe("a plan G3 refuses goes back to the model that wrote it", () => {
+	it("given a plan whose task writes a protected path, then the plan is written again with G3's reasons and the change goes on with the plan it gets", async () => {
+		const bad = { ...specReport().design, tasks: [greetTask(["src/greet.js", "test/greet.test.js"])] };
+		const good = { ...specReport().design, tasks: [greetTask(["src/greet.js"])] };
+
+		const { result, state, rewrites } = await sentBack(bad, good);
+
+		assert.equal(rewrites.length, 1, "the plan is sent back once");
+		assert.ok(
+			rewrites[0]!.objective.includes("T1") && rewrites[0]!.objective.includes("test/greet.test.js"),
+			`the model is told which task writes which protected path: ${rewrites[0]?.objective}`,
+		);
+		assert.equal(state.gates.G3?.verdict, "PASS", state.gates.G3?.reasons.join(" | "));
+		assert.equal(state.outcome, "accepted", result.steps.join(" | "));
+	});
+
+	it("given a plan G3 refuses every time, then it is written again as many times as the change has attempts and the change then stops on G3's reasons", async () => {
+		const bad = { ...specReport().design, tasks: [greetTask(["src/greet.js", "test/greet.test.js"])] };
+
+		const { state, rewrites } = await sentBack(bad, bad);
+
+		assert.equal(
+			rewrites.length,
+			state.budgets.max_attempts,
+			"the plan is sent back once for each attempt the change has",
+		);
+		assert.equal(state.status, "blocked");
+		assert.match(state.stop_detail ?? "", /design rejected at G3.*test\/greet\.test\.js/);
+	});
+});
