@@ -339,6 +339,69 @@ describe("preparation of missing tests (SA-008, SA-009, SA-010, PRE-01..03, REC-
 		);
 		assert.match(preparations[1]?.prompt ?? "", /\.verify-scratch\/run\.log/);
 	});
+	it("sous une borne test/*.test.js, une préparation qui écrit test/v2-kernel/shout.test.js ne le voit pas retenu, le dossier dit que la suite bornée ne le lance pas en nommant la borne, et le mandat nomme les fichiers que la suite lance", async () => {
+		const p = trackedProject(fixtureTsWithoutTests);
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			policy: { suite_paths: ["test/*.test.js"] },
+			scripts: {
+				prepare: {
+					steps: [
+						{ kind: "write", path: "test/v2-kernel/shout.test.js", content: SHOUT_TEST },
+						{ kind: "complete", output: report(["test/v2-kernel/shout.test.js"]) },
+					],
+				},
+			},
+		});
+		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+		const record = await t.harness.artifacts.read<PreparationRecord>(
+			t.ledger.listArtifacts(change.change_id, "preparation").find((a) => a.ref.artifact_id.startsWith("prep_"))!.ref,
+		);
+		assert.deepEqual(
+			record.files.map((f) => f.path),
+			[],
+			`a test the bounded suite does not run is not retained: ${result.steps.join(" | ")}`,
+		);
+		assert.ok(
+			record.notes.includes(
+				"test file the bounded suite does not run, not retained: test/v2-kernel/shout.test.js (the suite runs test/*.test.js)",
+			),
+			record.notes.join(" | "),
+		);
+		const first = t.agent.started.find((m) => m.role === "prepare");
+		assert.match(
+			first?.prompt ?? "",
+			/only the test files matching test\/\*\.test\.js run and are retained/,
+			"the mandate names the files the suite runs",
+		);
+	});
+	it("une préparation qui efface package.json de sa copie ne fait pas retenir test/v2-kernel/shout.test.js hors de la borne : ce qu'est un test se lit sur le projet, pas sur la copie de l'agent", async () => {
+		const p = trackedProject(fixtureTsWithoutTests);
+		const t = makeHarness({
+			defaultScript: { steps: [{ kind: "complete", output: spec }] },
+			policy: { suite_paths: ["test/*.test.js"] },
+			scripts: {
+				prepare: {
+					steps: [
+						{ kind: "delete", path: "package.json" },
+						{ kind: "write", path: "test/v2-kernel/shout.test.js", content: SHOUT_TEST },
+						{ kind: "complete", output: report(["test/v2-kernel/shout.test.js"]) },
+					],
+				},
+			},
+		});
+		const { change } = await t.harness.start({ project_path: p, request_text: "add shout", actor: HUMAN });
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+		const record = await t.harness.artifacts.read<PreparationRecord>(
+			t.ledger.listArtifacts(change.change_id, "preparation").find((a) => a.ref.artifact_id.startsWith("prep_"))!.ref,
+		);
+		assert.deepEqual(
+			record.files.map((f) => f.path),
+			[],
+			`the test outside the bound is not retained: ${result.steps.join(" | ")} ${record.notes.join(" | ")}`,
+		);
+	});
 	it("the preparation objective says only files under its roots are retained and anything written elsewhere is ignored", () => {
 		const objective = preparationMandateObjective("maven", ["src/test/", "domain/src/test/"], ["R1"]);
 		assert.match(

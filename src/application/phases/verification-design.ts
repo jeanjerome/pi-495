@@ -176,7 +176,12 @@ async function openPreparation(
 	// A case an examination found wrong is still frozen until this preparation replaces it: it is named, so
 	// that the preparation does not carry it over as it stands.
 	const objective = [
-		preparationMandateObjective(detection.stack, detection.preparation_paths, diagnosis.undiscriminated_requirements),
+		preparationMandateObjective(
+			detection.stack,
+			detection.preparation_paths,
+			diagnosis.undiscriminated_requirements,
+			detection.suite_file_patterns,
+		),
 		...(await foundWrongNotes(ctx, unit)),
 	].join("\n");
 	const mandate = {

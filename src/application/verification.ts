@@ -567,6 +567,9 @@ export class VerificationCoordinator {
 		const { protocol, manifest, reference } = input;
 		const facts: EvidenceFact[] = [];
 		const baseline = protocol.baseline;
+		// A control the owner declared is required to pass on the candidate: a failure it shares with the reference is
+		// still a failure, never a preexisting finding tolerated — a check that fails on both trees has judged nothing.
+		const declared = new Set(protocol.project_control_ids ?? []);
 		const shape = candidateShape(manifest);
 		// What this change wrote, line by line: a differential control is given the introduced lines and
 		// judges those, instead of a ratio that would answer for the whole tree (QLT-04).
@@ -609,7 +612,8 @@ export class VerificationCoordinator {
 			};
 			const pass = passes.get(control.control_id);
 			if (pass) {
-				let outcome = compareToReference(observed.verdict, observed.findings, pass, shape, baseline.tolerance);
+				const tolerance = declared.has(control.control_id) ? "block_any" : baseline.tolerance;
+				let outcome = compareToReference(observed.verdict, observed.findings, pass, shape, tolerance);
 				// The divergence to pay a confirmation for is the one the tolerance left standing: a control
 				// whose every finding the reference already carried has nothing to confirm.
 				if (

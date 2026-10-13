@@ -37,6 +37,7 @@ const detectionOf = (controls: ControlDefinition[]): DetectedTechnology => ({
 	negative_witness: {},
 	own_negative_witness: {},
 	preparation_paths: [],
+	suite_file_patterns: [],
 	capability_missing: [],
 	recommendations: [],
 });

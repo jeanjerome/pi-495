@@ -471,8 +471,13 @@ export function preparationMandateObjective(
 	stack: string,
 	allowedPaths: readonly string[],
 	undiscriminated: readonly string[],
+	suitePaths: readonly string[] = [],
 ): string {
-	return `Write automated tests for the adopted requirements in the target technology (${stack}); only files under ${allowedPaths.join(", ")} are retained, and whatever you write elsewhere to check yourself is ignored. The controls already on this target cannot decide ${undiscriminated.join(", ")}: for those, a test that passes on the tree as it stands proves nothing.`;
+	const bound =
+		suitePaths.length > 0
+			? ` The suite is bounded by the controller's configuration: only the test files matching ${suitePaths.join(", ")} run and are retained.`
+			: "";
+	return `Write automated tests for the adopted requirements in the target technology (${stack}); only files under ${allowedPaths.join(", ")} are retained, and whatever you write elsewhere to check yourself is ignored.${bound} The controls already on this target cannot decide ${undiscriminated.join(", ")}: for those, a test that passes on the tree as it stands proves nothing.`;
 }
 
 /**

@@ -1,0 +1,52 @@
+{
+  "controleur": {
+    "revision": "e229e5da4238b43362b2747745a5d3f3c109f39a",
+    "version": "0.4.1-dev",
+    "build": "sha256:ded1f3c17f25ae82a9e1bda7fac808a00d51e54c77c2cc7adf85096d5bff1bd2",
+    "inchange": true
+  },
+  "candidat": {
+    "revision": "e229e5da4238b43362b2747745a5d3f3c109f39a",
+    "depart": "4721e16d33c5f365ec5ec4f01b73cf204e75279e"
+  },
+  "arbre_integre": {
+    "commit": "58e937a9d02a481ec471844dfddc76b928a3bc80",
+    "tree": "22c66f8a3bd423272822bbf60c4d3f5a965b54b3"
+  },
+  "controles_declares": [
+    "build",
+    "lint-code",
+    "typecheck",
+    "lint-layers",
+    "lint-architecture",
+    "lint-exports",
+    "lint-distribution",
+    "lint-story-format",
+    "test",
+    "test-sandbox"
+  ],
+  "promotion": "non promu : un candidat ne devient contrôleur qu'une fois qualifié — Preflight verte et les deux campagnes de référence à sa révision — et sur le mandat du propriétaire ; la campagne ne met jamais le contrôleur à jour",
+  "constats": [
+    "status completed",
+    "G0 PASS",
+    "G1 PASS",
+    "G2 PASS",
+    "G3 PASS",
+    "G4 PASS",
+    "G5 PASS",
+    "G6 PASS",
+    "unit PASS on the candidate",
+    "mutation PASS on the candidate",
+    "build PASS on the candidate",
+    "lint-code PASS on the candidate",
+    "typecheck PASS on the candidate",
+    "lint-layers PASS on the candidate",
+    "lint-architecture PASS on the candidate",
+    "lint-exports PASS on the candidate",
+    "lint-distribution PASS on the candidate",
+    "lint-story-format PASS on the candidate",
+    "test PASS on the candidate",
+    "test-sandbox PASS on the candidate"
+  ],
+  "defauts": []
+}

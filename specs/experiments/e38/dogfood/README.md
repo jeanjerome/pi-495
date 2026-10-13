@@ -11,7 +11,7 @@ objets d’une campagne n’ont rien à faire dans le dépôt.
 La technologie Node détecte la suite de tests ; elle ne sait rien du reste de `npm run check`.
 `policy.project_controls` déclare donc chaque contrôle que `npm run check` enchaîne, sous son nom
 (`lint-code`, `typecheck`, `lint-layers`, `lint-architecture`, `lint-exports`, `lint-distribution`,
-`lint-story-format`, `test`, limité à ce qui tourne confiné), plus `build`, qui reconstruit `dist/` avant ceux qui le lisent
+`lint-story-format`, et `test`, partagé en deux contrôles : `test`, confiné, et `test-sandbox`, hors confinement), plus `build`, qui reconstruit `dist/` avant ceux qui le lisent
 (`typecheck` lit `dist/stack.d.ts`, `lint-distribution` compare `dist/` à `src/`, des tests
 importent `pi-495/stack`). Chacun tourne sur la référence et sur le candidat, est lu par son code de
 sortie, et G5 exige qu’il passe sur le candidat : une suite verte ne tient pas lieu d’un import
@@ -19,27 +19,34 @@ refusé. Les scripts qu’ils lancent, `package.json` et ce que chacun lit pour 
 producteur ne les modifie pas. `test/v4-platform/dogfood-controls.test.ts` vérifie que la liste suit
 `npm run check`.
 
-## Ce que le contrôleur ne juge pas confiné
+## La suite, confinée et hors confinement
 
 Les contrôles du candidat tournent dans le bac à sable de la plateforme (Seatbelt sur macOS), sous le
 profil de vérification : lecture de la copie, écriture dans ce que le contrôle déclare et dans le
-répertoire temporaire. Mesuré le 2026-10-11 sur une copie de pi-495, chaque contrôle lancé comme le
-noyau le lance : les huit contrôles de lint, de typage et de construction passent ; la suite entière
-(`npm run test`) y échoue sur 551 de ses 1734 tests, pour deux raisons qui ne tiennent pas au
-candidat :
+répertoire temporaire. Mesuré le 2026-10-12 à `01c0ab8a` sur une copie de pi-495, chaque génération
+lancée comme le noyau lance un contrôle : `v0-pure`, `test/cycle` et `v2-kernel` (494 tests, 2 min)
+passent entièrement ; 38 fichiers échouent — 6 de `v1-adapters`, 10 de `v3-pi`, 22 de `v4-platform` —
+parce qu’ils lancent eux-mêmes Seatbelt, ou l’extension qui en lance un, et que Seatbelt refuse un second
+profil. La configuration git de l’hôte n’y joue plus : un contrôle ne la lit pas (e40s01).
 
-- les générations `v1-adapters`, `v2-kernel`, `v3-pi` et `v4-platform` lancent elles-mêmes Seatbelt ou
-  bubblewrap, et les bacs à sable ne s’emboîtent pas ; leur garde `NO_QUALIFIED_SANDBOX` lit la
-  plateforme, pas l’emboîtement, et ces tests échouent au lieu de se sauter ;
-- leurs dépôts de test commitent avec la configuration git de l’hôte : sur une machine qui signe ses
-  commits avec une clé de `~/.ssh`, hors de la copie, `git commit` échoue.
+La suite de `npm run test` est donc jugée par deux contrôles, et chaque fichier par un seul :
 
-Le contrôle `test` déclaré se limite donc à `test/v0-pure` et `test/cycle`, qui passent confinés
-(599 tests, 20 s), avec `test-output/` pour seule écriture. Les générations `v1` à `v4` restent
-jugées là où elles ont un sens, sans contournement de l’emboîtement : par la Preflight du cycle, non
-confinée (`cycle/README.md` § How the cycle differs from 495), sur la machine de référence, et par
-`npm run test:v4` sous Linux dans la machine virtuelle de qualification. Un dogfooding ne les compte
-pas comme passées.
+- `test`, confiné, lance `test/**/*.test.ts` sauf ces 38 fichiers, exclus par leur nom, avec
+  `test-output/` pour seule écriture. Un fichier de test qu’un candidat ajoute y tourne, s’il ne porte pas l’un des
+  38 noms ; s’il démarre
+  un bac à sable, il y échoue et bloque le changement tant que le propriétaire ne l’a pas ajouté à
+  `test-sandbox` ;
+- `test-sandbox`, que le propriétaire déclare hors confinement (`"unconfined": true`), lance ces 38
+  fichiers, nommés un par un : aucun motif ne fait tourner hors confinement un fichier que le candidat
+  ajoute ou renomme. Les deux protègent `test/`, `scripts/`, `package.json` et ce dossier : l’implémentation
+  ne modifie aucun de ces fichiers ; une préparation peut mettre à jour un test existant, et le code que ces
+  tests importent ou lancent hors de ces chemins, `src/` et `examples/` compris, est celui du candidat. Ses 150 tests passent en 2 min hors confinement. Il lit `~/.ssh` et les
+  identifiants de l’hôte, a le réseau, et le code du candidat que ces tests importent tourne sans
+  protection, comme sous la Preflight ; son évidence et le verdict G5 le disent (`D-90`).
+
+Un contrôle déclaré doit passer sur le candidat : un échec qu’il partage avec la référence n’est pas
+toléré comme un constat préexistant. `test/v4-platform/dogfood-controls.test.ts` vérifie que chaque
+fichier de la suite est lancé par l’un des deux contrôles, et par un seul.
 
 La technologie Node, elle, lit `scripts.test` (`node --test 'test/**/*.test.ts'`) comme une suite
 `node --test` et la lance sans motif, sur tout l’arbre : c’est son contrôle `unit`, celui qui juge les
@@ -54,9 +61,11 @@ d'écriture de plus, `test-output/`, où les aides de test de pi-495 créent leu
 par le chemin écrit, et un `test-output` que le candidat poserait comme lien fait refuser le contrôle.
 Cette borne, ce droit et le délai du contrôle se lisent dans la configuration du contrôleur, jamais dans
 un fichier du candidat : un candidat qui réécrit `scripts.test` ne restreint pas ce qui juge ses
-exigences et n’en allonge pas le délai. Un test préparé écrit ailleurs ne tourne pas, et la préparation
-qui le porte n’est pas qualifiée. `test/v4-platform/dogfood-preparation.test.ts` le vérifie sur une
-cible façonnée comme pi-495.
+exigences et n’en allonge pas le délai ; `test/v4-platform/dogfood-preparation.test.ts` le vérifie sur une
+cible façonnée comme pi-495. Le mandat de préparation nomme ces motifs, et un fichier de test qu’une
+préparation ajoute ailleurs n’est pas retenu, avec la raison : sous `test/v2-kernel/`, où l’usage de
+pi-495 range un test du noyau, il ne tournerait pas. La borne ne s’élargit pas au noyau : la mutation y
+relancerait 494 tests de plus à chaque mutant.
 
 ## La campagne
 
@@ -107,8 +116,7 @@ mutation lance Stryker par son API : il copie tel quel le `tsconfig.json` d'une 
 de travail quelle que soit l'issue, et tourne sous la borne. La campagne qui intègre, le nombre d'essais et le témoin
 négatif sous le contrôleur d'avant se lisent dans `specs/verifications/e40s05/`.
 
-Restent hors du contrôle confiné les générations `v1` à `v4` : une partie de leurs échecs tient à l'emboîtement des
-bacs à sable, une autre à la configuration git de l'hôte, qui signe les commits avec une clé de `~/.ssh`
-(`BUG-2026-10-11T013000`). Deux pièges connus peuvent encore arrêter une campagne : un test préparé qui lit le texte de
+Depuis le 12 octobre au soir, toute la suite est jugée : `test` confiné, `test-sandbox` hors confinement ; la campagne
+qui intègre se lit dans `specs/verifications/e40s07/`. Deux pièges connus peuvent encore arrêter une campagne : un test préparé qui lit le texte de
 son module échoue sous l'instrumentation de Stryker (`BUG-2026-10-12T171000`), et le propriétaire simulé ne répond qu'à
 l'adoption, à l'acceptation et à l'intégration (`BUG-2026-10-12T171500`).

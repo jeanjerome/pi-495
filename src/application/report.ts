@@ -494,7 +494,8 @@ export function engineeringReport(
 		for (const exclusion of e.limits.exclusions)
 			add("excluded_from_measure", `control ${e.control_id} excluded ${exclusion} from what it measured.`);
 		for (const note of e.limits.notes) add("control_limit", `control ${e.control_id}: ${note}`);
-		if ((e.baseline?.preexisting_findings ?? 0) > 0)
+		// A control judged without tolerance — one the owner declared — lets no finding stand, preexisting or not.
+		if (e.baseline?.tolerance === "no_aggravation" && e.baseline.preexisting_findings > 0)
 			add(
 				"preexisting_findings_tolerated",
 				`control ${e.control_id} reports ${e.baseline!.preexisting_findings} finding(s) the reference already carried; the tolerance let them stand.`,

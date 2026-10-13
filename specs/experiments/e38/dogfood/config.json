@@ -148,18 +148,18 @@
       },
       {
         "control_id": "test",
-        "title": "npm run test, restricted to the generations that run confined (node --test test/v0-pure test/cycle)",
+        "title": "npm run test, every file but those that start a sandbox of their own, which test-sandbox runs",
         "command": [
           "node",
           "--test",
-          "test/v0-pure/**/*.test.ts",
-          "test/cycle/**/*.test.ts"
+          "test/**/!(control-runner|control-write-survey|lcov-control|sandbox|unconfined-control|writable-path-seatbelt|architecture-recommendation-remark-dialog|conduct-end-message|config-refused|phase-refusal|pi-entries|pi-rpc-sdk|refusal-next-actions|resume|state-acceptance|state-entry|dogfood-controls|dogfood-preparation|dogfood-process|example-conformance-script|formal-control-sandbox|lean-verdict-proof|maven-architecture-ignore-patterns|maven-architecture-offline|maven-architecture-properties|maven-architecture|maven-dependencies-configuration|maven-dependencies|maven-quality-offline|maven-quality-reactor|maven-quality|node-architecture|node-dependencies-configuration|node-dependencies|node-mutation|node-quality-install|node-quality|stack-conformance-of-495).test.ts"
         ],
         "timeout_ms": 1800000,
         "protected_paths": [
           "scripts/",
           "package.json",
-          "test/"
+          "test/",
+          "specs/experiments/e38/dogfood/"
         ],
         "network": "loopback",
         "requires": [
@@ -168,6 +168,63 @@
         "writable_paths": [
           "test-output/"
         ]
+      },
+      {
+        "control_id": "test-sandbox",
+        "title": "npm run test, the files that start a sandbox of their own, which a sandbox refuses: run outside confinement by the owner’s decision",
+        "command": [
+          "node",
+          "--test",
+          "test/v1-adapters/control-runner.test.ts",
+          "test/v1-adapters/control-write-survey.test.ts",
+          "test/v1-adapters/lcov-control.test.ts",
+          "test/v1-adapters/sandbox.test.ts",
+          "test/v1-adapters/unconfined-control.test.ts",
+          "test/v1-adapters/writable-path-seatbelt.test.ts",
+          "test/v3-pi/architecture-recommendation-remark-dialog.test.ts",
+          "test/v3-pi/conduct-end-message.test.ts",
+          "test/v3-pi/config-refused.test.ts",
+          "test/v3-pi/phase-refusal.test.ts",
+          "test/v3-pi/pi-entries.test.ts",
+          "test/v3-pi/pi-rpc-sdk.test.ts",
+          "test/v3-pi/refusal-next-actions.test.ts",
+          "test/v3-pi/resume.test.ts",
+          "test/v3-pi/state-acceptance.test.ts",
+          "test/v3-pi/state-entry.test.ts",
+          "test/v4-platform/dogfood-controls.test.ts",
+          "test/v4-platform/dogfood-preparation.test.ts",
+          "test/v4-platform/dogfood-process.test.ts",
+          "test/v4-platform/example-conformance-script.test.ts",
+          "test/v4-platform/formal-control-sandbox.test.ts",
+          "test/v4-platform/lean-verdict-proof.test.ts",
+          "test/v4-platform/maven-architecture-ignore-patterns.test.ts",
+          "test/v4-platform/maven-architecture-offline.test.ts",
+          "test/v4-platform/maven-architecture-properties.test.ts",
+          "test/v4-platform/maven-architecture.test.ts",
+          "test/v4-platform/maven-dependencies-configuration.test.ts",
+          "test/v4-platform/maven-dependencies.test.ts",
+          "test/v4-platform/maven-quality-offline.test.ts",
+          "test/v4-platform/maven-quality-reactor.test.ts",
+          "test/v4-platform/maven-quality.test.ts",
+          "test/v4-platform/node-architecture.test.ts",
+          "test/v4-platform/node-dependencies-configuration.test.ts",
+          "test/v4-platform/node-dependencies.test.ts",
+          "test/v4-platform/node-mutation.test.ts",
+          "test/v4-platform/node-quality-install.test.ts",
+          "test/v4-platform/node-quality.test.ts",
+          "test/v4-platform/stack-conformance-of-495.test.ts"
+        ],
+        "timeout_ms": 1800000,
+        "protected_paths": [
+          "scripts/",
+          "package.json",
+          "test/",
+          "specs/experiments/e38/dogfood/"
+        ],
+        "requires": [
+          "dist"
+        ],
+        "unconfined": true
       }
     ]
   }

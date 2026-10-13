@@ -4,7 +4,7 @@
  * of the platform, and G5 requires each of them.
  */
 import { strict as assert } from "node:assert";
-import { readFileSync } from "node:fs";
+import { existsSync, globSync, readFileSync } from "node:fs";
 import { join, matchesGlob } from "node:path";
 import { describe, it } from "node:test";
 import { loadConfig } from "../../src/extension/config.ts";
@@ -77,6 +77,49 @@ describe("the stable controller judges a change of pi-495 by the controls of npm
 });
 
 describe("the stable controller's configuration of the suite of pi-495", () => {
+	it("chaque fichier de test que npm run test lance est lancé par test, confiné, ou par test-sandbox, hors confinement, et par un seul des deux ; test-sandbox nomme ses fichiers un par un et il est le seul contrôle déclaré hors confinement ; tous deux protègent la configuration que ce test lit", () => {
+		const declared = loadConfig(CONTROLLER, {}).config.policy.project_controls ?? [];
+		assert.deepEqual(
+			declared.filter((c) => c.unconfined === true).map((c) => c.control_id),
+			["test-sandbox"],
+			"test-sandbox is the only declared control outside confinement",
+		);
+		const filesOf = (id: string) => {
+			const command = declared.find((c) => c.control_id === id)?.command ?? [];
+			assert.deepEqual(command.slice(0, 2), ["node", "--test"], `${id} runs node --test`);
+			return command.slice(2);
+		};
+		for (const id of ["test", "test-sandbox"])
+			assert.ok(
+				declared.find((c) => c.control_id === id)?.protected_paths.includes("specs/experiments/e38/dogfood/"),
+				`${id} protects the configuration this test reads, which a producer would otherwise rewrite to match its files`,
+			);
+		const confined = filesOf("test");
+		const unconfined = filesOf("test-sandbox");
+		assert.ok(unconfined.length > 0, "test-sandbox runs some files");
+		for (const file of unconfined) {
+			assert.doesNotMatch(file, /[*?[\]{}()!]/, `test-sandbox names ${file} one by one, never by a pattern`);
+			assert.ok(existsSync(join(REPOSITORY, file)), `${file} exists`);
+		}
+		const { scripts } = JSON.parse(readFileSync(join(REPOSITORY, "package.json"), "utf8"));
+		const suite = /'([^']+)'/.exec(String(scripts.test))?.[1];
+		assert.ok(suite, `npm run test names its files by a pattern: ${scripts.test}`);
+		const files = globSync(suite, { cwd: REPOSITORY });
+		assert.ok(files.length > 0, `npm run test runs ${suite}`);
+		const judged = files.map((file) => {
+			const by = [
+				...(confined.some((pattern) => matchesGlob(file, pattern)) ? ["test"] : []),
+				...(unconfined.includes(file) ? ["test-sandbox"] : []),
+			];
+			return `${file}: ${by.join(", ") || "none"}`;
+		});
+		assert.deepEqual(
+			judged.filter((line) => !/: test(-sandbox)?$/.test(line)),
+			[],
+			"every file of the suite is run by exactly one of test and test-sandbox",
+		);
+	});
+
 	it("la configuration du dogfooding donne test-output/ au contrôle unit, et chaque fichier de test que la technologie Node écrit comme témoin d'une suite node --test correspond à un motif de suite_paths", () => {
 		const { policy } = loadConfig(CONTROLLER, {}).config;
 		assert.deepEqual(policy.writable_paths?.unit, ["test-output/"], "unit may write test-output/");

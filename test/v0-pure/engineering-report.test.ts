@@ -148,6 +148,34 @@ describe("engineering report: observations, judgments and residual risks (IMP-05
 		}
 	});
 
+	it("un contrôle jugé sans tolérance, qui échoue sur un constat que la référence portait déjà, n'est pas dit toléré dans les risques", () => {
+		const r = new Runner().toDeciding(c, { unit: "PASS", lint: "FAIL" });
+		const entries = r.s.evidence;
+		const evidences = [
+			stored(entries[0]!),
+			stored(entries[1]!, {
+				baseline: {
+					reference_id: "ref_1",
+					reference_digest: digestValue("ref"),
+					reference_verdict: "FAIL",
+					reference_evidence_id: null,
+					reused: false,
+					tolerance: "block_any",
+					raw_verdict: "FAIL",
+					new_findings: 0,
+					preexisting_findings: 1,
+					removed_findings: 0,
+					blocking_findings: 1,
+					unstable: false,
+					confirmations: 0,
+					notes: [],
+				},
+			}),
+		];
+		const codes = engineeringReport(r.s, evidences, protocol()).residual_risks.map((risk) => risk.code);
+		assert.ok(!codes.includes("preexisting_findings_tolerated"), codes.join(", "));
+	});
+
 	it("names a control that failed its own witnesses and a requirement no control carries", () => {
 		const r = new Runner().toDeciding(c);
 		const weakened = protocol({

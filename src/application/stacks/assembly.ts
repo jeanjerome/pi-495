@@ -38,6 +38,7 @@ export function undetected(stack: string, blindSpot: string, facts: Record<strin
 		negative_witness: {},
 		own_negative_witness: {},
 		preparation_paths: [],
+		suite_file_patterns: [],
 		capability_missing: [blindSpot],
 		recommendations: [],
 	};
@@ -99,6 +100,7 @@ export function assembleDetection<Model>(
 		),
 		reference_positive: available.flatMap(({ offer }) => offer.reference_positive ?? []),
 		preparation_paths: tests.preparationPaths(question),
+		suite_file_patterns: tests.suiteFilePatterns?.(question) ?? [],
 		capability_missing: sensors.flatMap(({ sensor, offer }) => blindSpotOf(BLIND_SPOTS[sensor], offer)),
 		recommendations: sensors.flatMap(({ offer }) => recommendationOf(offer)),
 		...(referential ? { quality_referential: referential } : {}),

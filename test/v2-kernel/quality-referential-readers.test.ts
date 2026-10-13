@@ -39,6 +39,7 @@ describe("the quality referential, for a target whose style control reads throug
 			negative_witness: {},
 			own_negative_witness: {},
 			preparation_paths: [],
+			suite_file_patterns: [],
 			capability_missing: [],
 			recommendations: [],
 			quality_referential: { kind: "not_proposed", note: "the target configures its own analyser" },

@@ -53,21 +53,34 @@ export interface PreparationRecord {
  * on the reference named apart. What it wrote elsewhere — a work log, a script, the feature itself —
  * is named and left out, never refused: the mandate bounds what is retained, not what a producer
  * may write to check itself. A deletion or a non-file entry under a root is refused, since nothing
- * of it can be retained.
+ * of it can be retained. A test file it adds where the bounded suite does not run it (`unrun`) is named
+ * and left out too: kept, it would never run, and the prepared suite would decide nothing.
  */
 export function preparedFilesFrom(
 	manifest: CandidateManifest,
 	allowed: string[],
-): { files: PreparedFile[]; modified_existing: string[]; out_of_scope: string[]; refused: string[] } {
+	unrun: (path: string) => boolean = () => false,
+): {
+	files: PreparedFile[];
+	modified_existing: string[];
+	out_of_scope: string[];
+	refused: string[];
+	not_run: string[];
+} {
 	const files: PreparedFile[] = [];
 	const modifiedExisting: string[] = [];
 	const out: string[] = [];
 	const refused: string[] = [];
+	const notRun: string[] = [];
 	for (const e of manifest.entries) {
 		if (e.baseline_state === "unchanged") continue;
 		const inScope = allowed.some((a) => e.path.startsWith(a));
 		if (!inScope) {
 			out.push(e.path);
+			continue;
+		}
+		if (e.baseline_state === "added" && unrun(e.path)) {
+			notRun.push(e.path);
 			continue;
 		}
 		if (e.baseline_state === "deleted" || e.kind !== "file" || !e.content_digest) {
@@ -77,7 +90,7 @@ export function preparedFilesFrom(
 		files.push({ path: e.path, digest: e.content_digest, size_bytes: e.size });
 		if (e.baseline_state !== "added") modifiedExisting.push(e.path);
 	}
-	return { files, modified_existing: modifiedExisting, out_of_scope: out, refused };
+	return { files, modified_existing: modifiedExisting, out_of_scope: out, refused, not_run: notRun };
 }
 
 /**

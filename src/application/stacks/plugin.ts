@@ -100,6 +100,12 @@ export interface TestCapability<Model> {
 	/** Whether the file at `path` is named as one of its tests, which says nothing about it ever running. */
 	isTestFile(path: string): boolean;
 	/**
+	 * The patterns of the owner's bound (`suite_paths`) as the files the suite runs, when its command reads them as
+	 * such: a test file none of them matches never runs. Absent, or empty, when the command reads them otherwise — as
+	 * filters or expressions — and no file can be said not to run.
+	 */
+	suiteFilePatterns?(question: CapabilityQuestion<Model>): string[];
+	/**
 	 * For a test resource at `path`, the production resource a test may carry byte for byte; null for any other
 	 * path. Absent when the technology lays out no test resource beside a production one.
 	 */

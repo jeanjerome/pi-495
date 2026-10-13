@@ -35,6 +35,8 @@ export interface DetectedTechnology {
 	reference_positive?: string[];
 	/** Explicit directories in which a preparation intervention may add tests and test resources. */
 	preparation_paths: string[];
+	/** The owner's bound on the suite, as the files it runs; empty when the suite does not read it as files. */
+	suite_file_patterns: string[];
 	capability_missing: string[];
 	/**
 	 * What the technology recommends the target adds where a sensor it can read is missing. Data of the

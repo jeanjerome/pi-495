@@ -2,6 +2,7 @@
  * Preparing: a bounded intervention writes the tests no existing control can replace, and the kernel
  * judges them on the bare reference before adopting any of them.
  */
+import { matchesGlob } from "node:path";
 import type { ReferenceSnapshot } from "../../contracts/v1/candidate.ts";
 import type {
 	AdoptedComplement,
@@ -116,8 +117,19 @@ export async function prepare(ctx: PhaseContext, unit: Unit, cor: string): Promi
 		// What the copy carried from the start is not something the producer wrote.
 		const carried = new Map(complements.map((c) => [c.path, c.digest]));
 		const manifest = { ...snapshot, entries: snapshot.entries.filter((e) => carried.get(e.path) !== e.content_digest) };
-		const { files, modified_existing, out_of_scope, refused } = preparedFilesFrom(manifest, mandate.allowed_paths);
+		const suitePaths = detected.suite_file_patterns;
+		// What a test file is reads on the project, never on the copy the producer could leave unrecognised.
+		const { isTestFile } = ctx.stacks.testLayoutOf(reference.project_path);
+		const { files, modified_existing, out_of_scope, refused, not_run } = preparedFilesFrom(
+			manifest,
+			mandate.allowed_paths,
+			(path) => suitePaths.length > 0 && isTestFile(path) && !suitePaths.some((glob) => matchesGlob(path, glob)),
+		);
 		for (const p of out_of_scope) notes.push(`written outside the preparation mandate, not retained: ${p}`);
+		for (const p of not_run)
+			notes.push(
+				`test file the bounded suite does not run, not retained: ${p} (the suite runs ${suitePaths.join(", ")})`,
+			);
 		for (const p of refused) notes.push(`change under the preparation roots refused: ${p}`);
 		if (files.length === 0) notes.push("no test file was produced");
 		await ctx.artifacts.ensureBytes(handle.path, files);

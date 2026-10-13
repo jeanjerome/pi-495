@@ -173,4 +173,8 @@ export const NODE_TESTS: TestCapability<NodeProject> = {
 	measuredCodeWitness: ({ model, view }) => measuredCodeWitness(model.suite.runner ?? "node-test", view),
 	preparationPaths: () => ["test/", "tests/"],
 	isTestFile: (path) => TEST_FILE_NAME.test(path),
+	// node --test takes each argument as a glob of the files it runs, `./` or not; vitest, mocha and jest read theirs
+	// as filters, globs of another library or expressions, and no file can be said not to run under them.
+	suiteFilePatterns: ({ model, suite_paths }) =>
+		model.suite.runner === "node-test" ? suite_paths.map((pattern) => pattern.replace(/^(\.\/)+/, "")) : [],
 };

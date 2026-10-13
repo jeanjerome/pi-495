@@ -67,6 +67,58 @@ describe("a change on a project whose test already fails on the reference", () =
 		assert.equal(state.outcome, "accepted", result.steps.join(" | "));
 	});
 
+	it("un contrôle déclaré qui échoue sur la référence comme sur le candidat est FAIL sur le candidat sans note de tolérance, G5 échoue sur declared control own-check: FAIL, et test/farewell.test.js reste un constat preexisting toléré par unit", async () => {
+		const p = trackedProject(fixtureTsWithFailingTest);
+		const t = makeHarness({
+			policy: {
+				budgets: { max_attempts: 1 },
+				project_controls: [
+					{
+						control_id: "own-check",
+						title: "a check of the project that fails on every tree",
+						command: ["node", "-e", "process.exit(1)"],
+						timeout_ms: 30_000,
+						protected_paths: [],
+					},
+				],
+			},
+			scripts: { implement: writesGreet("export function greet(name) {\n  return `Hello, ${name}`; // tidied\n}\n") },
+		});
+		const { change } = await t.harness.start({
+			project_path: p,
+			request_text: "Keep greet behaviour, tidy the implementation",
+			actor: HUMAN,
+		});
+		const result = await t.harness.advance(change.change_id, { max_steps: 40 });
+		const state = t.ledger.loadChange(change.change_id)!.state;
+
+		const onCandidate = t.ledger
+			.listEvidence(change.change_id)
+			.filter((e) => e.subject.kind === "candidate" && e.facts.run === "candidate");
+		const own = onCandidate.findLast((e) => e.control_id === "own-check");
+		assert.ok(own, `own-check ran on the candidate: ${result.steps.join(" | ")}`);
+		assert.equal(
+			own.verdict,
+			"FAIL",
+			`a failure the reference shares is still a failure: ${JSON.stringify(own.baseline)}`,
+		);
+		assert.ok(
+			!(own.baseline?.notes ?? []).some((n) => n.includes("tolerated")),
+			`no tolerance note: ${JSON.stringify(own.baseline?.notes)}`,
+		);
+		assert.equal(state.gates.G5?.verdict, "FAIL", `G5 is evaluated and refuses: ${result.steps.join(" | ")}`);
+		assert.ok(
+			state.gates.G5.reasons.includes("declared control own-check: FAIL"),
+			`G5 names the declared control: ${state.gates.G5.reasons.join("; ")}`,
+		);
+		const unit = onCandidate.findLast((e) => e.control_id === "unit");
+		assert.equal(unit?.verdict, "PASS", "the detected suite keeps its tolerance");
+		assert.ok(
+			unitFindingsOnCandidate(t, change.change_id).includes("preexisting test/farewell.test.js"),
+			"the detected suite's failure the reference shares stays a preexisting finding",
+		);
+	});
+
 	it("un candidat qui fait échouer test/greet.test.js sur ce projet est refusé à G5 par requirement R1: FAIL (unit=FAIL), avec un constat new qui nomme test/greet.test.js", async () => {
 		const p = trackedProject(fixtureTsWithFailingTest);
 		const t = makeHarness({
