@@ -273,7 +273,9 @@ export class InterventionSupervisor {
 			profile_id: role,
 			read_paths: [workspacePath],
 			write_paths: writes ? [workspacePath] : [],
-			network: "denied",
+			// The producer checks itself with what the kernel will run on its candidate, and the mutation control talks to
+			// its own workers over the loopback interface: that role is granted it, and no other host (D-93).
+			network: role === "implement" ? "loopback" : "denied",
 			env_allowlist: writes
 				? [...new Set([...BASE_ENV, ...this.deps.technologyEnv(workspacePath)])]
 				: ["PATH", "HOME", "TMPDIR", "LANG"],

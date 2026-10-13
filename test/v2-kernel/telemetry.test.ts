@@ -120,9 +120,14 @@ describe("observability without imposed surveillance (NFR-06, REC-24)", () => {
 		}
 		assert.deepEqual(attempts, [], "a conducted change reached out somewhere");
 		// Nothing was reached because nothing was allowed to: what ran outside this process had no
-		// route out either.
+		// route out either. The producer alone may join the loopback interface, to run the mutation control that judges
+		// it, and that reaches no other host.
 		assert.ok(profiles.length > 0);
-		assert.deepEqual([...new Set(profiles.map((entry) => entry.split(":")[2]))], ["denied"], profiles.join(" | "));
+		assert.deepEqual(
+			profiles.filter((entry) => !entry.endsWith(":denied")),
+			["intervention:implement:loopback"],
+			profiles.join(" | "),
+		);
 	});
 
 	it("no source can reach a network: no client, no socket, no endpoint literal", () => {
