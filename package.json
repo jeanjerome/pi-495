@@ -91,7 +91,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
     "@earendil-works/pi-ai": "^1.0.4",
-    "@earendil-works/pi-coding-agent": "^1.0.4",
+    "@earendil-works/pi-coding-agent": "^1.5.0",
     "@earendil-works/pi-tui": "^1.0.4",
     "@stryker-mutator/core": "^10.0.0",
     "@stryker-mutator/tap-runner": "^10.0.0",
